@@ -1,0 +1,616 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ManpowerRequest;
+use App\Models\Setting;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
+class ManpowerRequestController extends Controller
+{
+    public static function index()
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $userJobInfo = $user->JobPosition;
+        $jobSpec = Setting::jobSpecList();
+        if(!$user->userAccess('personnelreq', 'viewall')){
+            $jobSpec = $jobSpec->filter(fn ($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false);
+        }
+        return view('pages.manpower-request', [
+            'user_empno' => $user->Emp_No,
+            'jobspec' => $jobSpec,
+            'userJobInfo' => $userJobInfo,
+            'department' => Setting::departmentList(0),
+            'section' => Setting::sectionList(0),
+            'position' => Setting::positionList(),
+            'emplstat' => Setting::emplStatusList(),
+            'main_link' => 'manpower-request',
+            'sub_link' => ''
+        ]);
+    }
+
+    public static function showList($stat)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $user_empno = $user->Emp_No;
+        // $userJobInfo = $user->JobPosition;
+        $reviewer = $user->userAccess('personnelreq', 'reviewer');
+
+        if ($stat == 'jobspec') {
+            $data = Setting::jobSpecList();
+            if(!$user->userAccess('personnelreq', 'viewall')){
+                $data = $data->filter(fn ($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false);
+            }
+
+            $html = '<table class="table table-sm table-bordered table-hover table-striped">';
+            $html .= '<thead>';
+            $html .= '<tr>';
+            $html .= '<th>Position</th>';
+            $html .= '<th>Department</th>';
+            $html .= '</tr>';
+            $html .= '</thead>';
+
+            $html .= '<tbody>';
+
+            foreach ($data as $v) {
+                // e($str) for escaping
+                $html .= '<tr data-bs-toggle="modal" data-bs-target="#modal-mpr-jobspec" data-pos="' . $v->jspec_position . '">';
+                $html .= '<td>' . $v->Dept_Name . '</td>';
+                $html .= '<td>' . $v->jd_title . '</td>';
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody>';
+            $html .= '</table>';
+
+            return $html;
+        }
+
+        $employee = DB::table('tbl201_persinfo')
+            ->selectRaw("pers_empno, Dept_Name, TRIM(CONCAT(pers_lastname, ', ', pers_firstname)) as empname")
+            // ->join('tbl201_jobinfo', 'ji_empno', '=', 'pers_empno')
+            ->leftJoin('tbl201_jobrec', function ($join) {
+                $join->on('jrec_empno', '=', 'pers_empno')
+                    ->on('jrec_status', '=', DB::raw("'Primary'"));
+            })
+            // ->leftJoin('tbl_company', 'C_Code', '=', 'jrec_company')
+            ->leftJoin('tbl_department', 'Dept_Code', '=', 'jrec_department')
+            // ->leftJoin('tbl_jobdescription', 'jd_code', '=', 'jrec_position')
+            // ->orderBy('C_Name', 'asc')
+            ->orderBy('Dept_Name', 'asc')
+            ->orderBy('pers_lastname', 'asc')
+            ->orderBy('pers_firstname', 'asc')
+            ->get();
+
+        $positionList = Setting::positionList(0);
+
+        $query = ManpowerRequest::where('mp_status', $stat);
+        if ($user->userAccess('personnelreq', 'viewall') || $user->userAccess('personnelreq', 'viewer')) {
+            if (!in_array($stat, ['update', 'cancelled', 'draft'])) {
+                $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+            } elseif ($stat == 'update') {
+                $query = ManpowerRequest::whereRaw("(mpu_stat='pending' OR mpu_stat='approved')");
+            }
+        } else {
+            $query->whereRaw("(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?)", [
+                check_assign($user->Emp_No, 'PR'),
+                $user->Emp_No
+            ]);
+            if (!in_array($stat, ['update', 'cancelled'])) {
+                $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+            } elseif ($stat == 'update') {
+                $query = ManpowerRequest::whereRaw("(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?) AND (mpu_stat='pending' OR mpu_stat='approved')", [
+                    check_assign($user->Emp_No, 'PR'),
+                    $user->Emp_No
+                ]);
+            }
+        }
+
+        if (in_array($stat, ['update', 'cancelled'])) {
+            $query->leftJoin('tbl_mpupdate', 'mpu_mpid', '=', 'mp_id');
+        }
+
+        $query->orderBy('mp_filled', 'desc')
+            ->orderBy('mp_id', 'desc');
+        $data = $query->get();
+
+        $html = '<table class="table table-sm table-bordered table-hover table-striped">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th class="text-start">Date Prepared</th>';
+        $html .= '<th>Prepared by</th>';
+        $html .= '<th>Department</th>';
+        if ($stat == 'approved') {
+            $html .= '<th>Approved By</th>';
+        } elseif ($stat == 'update') {
+            $html .= '<th>Request Update By</th>';
+            $html .= '<th>Action</th>';
+            $html .= '<th>Reason</th>';
+        } elseif ($stat == 'cancelled') {
+            $html .= '<th>Reason</th>';
+        } elseif ($stat == 'declined') {
+            $html .= '<th>Declined By</th>';
+            $html .= '<th>Reason</th>';
+        }
+
+        if ($stat == 'approved' || $stat == 'update') {
+            $html .= '<th>Filled</th>';
+        }
+        
+        $btn_action_show = 0;
+        if (
+            in_array($user_empno, $data->pluck('mp_requestby')->toArray()) 
+            || ($stat == 'pending' && count(array_intersect(explode(',', check_assign($user->Emp_No, 'PR')), $data->pluck('mp_requestby')->toArray())) > 0 && $reviewer) 
+            || ($stat == 'update' && $user->userAccess('personnelreq', 'viewall'))
+        ) {
+            $html .= '<th></th>';
+            $btn_action_show = 1;
+        }
+
+        $html .= '</tr>';
+        $html .= '</thead>';
+
+        $html .= '<tbody>';
+        foreach ($data as $v) {
+
+            $progress = explode(',', $v->mp_progress ?? '');
+            // $fill = explode('/', $progress[1] ?? '');
+
+            if ($user->userAccess('personnelreq', 'viewall')) {
+                // Match all groups enclosed in square brackets
+                preg_match_all('/\[([^\]]+)\]/', $v->mp_replacement, $r_matches);
+
+                // Split each group by "|" and build the final array
+                $replacement = array_map(function ($group) use ($positionList) {
+                    $group = explode('|', $group);
+                    $arr = [
+                        trim($positionList->where('jd_code', $group[0])->first()?->jd_title),
+                        $group[0],
+                        $group[1],
+                        $group[2],
+                        $group[3],
+                        $group[4] ?? 0
+                    ];
+                    return $arr;
+                }, $r_matches[1]);
+
+
+                preg_match_all('/\[([^\]]+)\]/', $v->mp_additional, $a_matches);
+                $additional = array_map(function ($group) use ($positionList) {
+                    $group = explode('|', $group);
+                    $arr = [
+                        trim($positionList->where('jd_code', $group[0])->first()->jd_title),
+                        $group[0],
+                        $group[1],
+                        $group[2],
+                        $group[3],
+                        $group[4] ?? 0
+                    ];
+                    return $arr;
+                }, $a_matches[1]);
+            }
+
+            $html .= '<tr data-bs-toggle="modal" 
+                        data-bs-target="#modal-view-mpr"
+                        data-id="' . $v->mp_id . '"
+                        data-replacement="' . e(json_encode($replacement)) . '"
+                        data-additional="' . e(json_encode($additional)) . '"
+                        data-nonnegotiable="' . e($v->mp_nonnegotiable) . '">';
+            $html .= '<td class="text-start">' . $v->mp_dtprepared . '</td>';
+            $html .= '<td>' . $employee->where('pers_empno', $v->mp_requestby)->first()?->empname . '</td>';
+            $html .= '<td class="text-start">' . $employee->where('pers_empno', $v->mp_requestby)->first()?->Dept_Name . '</td>';
+            if ($stat == 'approved') {
+                $html .= '<td>' . $employee->where('pers_empno', $v->mp_approvedby)->first()?->empname . '</td>';
+            } elseif ($stat == 'update') {
+                $html .= '<td>' . $employee->where('pers_empno', $v->mpu_by)->first()?->empname . '</td>';
+                $html .= '<td>' . strtoupper($v->mpu_req) . '</td>';
+                $html .= '<td>' . nl2br(htmlentities($v->mpu_reason, ENT_QUOTES)) . '</td>';
+            } elseif ($stat == 'cancelled') {
+                $html .= '<td>' . nl2br(htmlentities($v->mpu_reason, ENT_QUOTES)) . '</td>';
+            } elseif ($stat == 'declined') {
+                $html .= '<td>' . $employee->where('pers_empno', $v->mp_declinedby)->first()?->empname . '</td>';
+                $html .= '<td>' . nl2br(htmlentities($v->mp_decline_reason, ENT_QUOTES)) . '</td>';
+            }
+
+            if ($stat == 'approved' || $stat == 'update') {
+                $html .= '<td class="text-center">' . ($progress[1] ?? '') . '</td>';
+            }
+
+            
+            $btn_action = '';
+            if ($user_empno == $v->mp_requestby) {
+                if ($stat == 'draft' || $stat == 'pending') {
+                    $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modal-mpr"
+                                data-id="' . $v->mp_id . '"
+                                data-replacement="' . e($v->mp_replacement) . '"
+                                data-additional="' . e($v->mp_additional) . '"
+                                data-nonnegotiable="' . e($v->mp_nonnegotiable) . '"><i class="fa fa-edit"></i></button>';
+
+                    $btn_action .= '<button class="m-1 btn btn-sm btn-danger" onclick="remove_mpr(' . $v->mp_id . ')"><i class="fa fa-trash"></i></button>';
+                } elseif ($stat == 'approved') {
+                    $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modal-mpr-update"
+                                data-id="' . $v->mp_id . '"
+                                data-action="edit"
+                                title="Request to Edit"><i class="fa fa-edit"></i></button>';
+
+                    $btn_action .= '<button class="m-1 btn btn-sm btn-danger"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modal-mpr-update"
+                                data-id="' . $v->mp_id . '"
+                                data-action="cancel"
+                                title="Request to Cancel"><i class="fa fa-cancel"></i></button>';
+                } elseif ($stat == 'update' && isset($v->mpu_stat) && $v->mpu_stat == 'approved') {
+                    $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modal-mpr"
+                                data-id="' . $v->mp_id . '"
+                                data-replacement="' . e($v->mp_replacement) . '"
+                                data-additional="' . e($v->mp_additional) . '"
+                                data-nonnegotiable="' . e($v->mp_nonnegotiable) . '"><i class="fa fa-edit"></i></button>';
+                }
+            }
+
+            if ($stat == 'pending' && strpos(check_assign($user->Emp_No, 'PR'), $v->mp_requestby) !== false && $reviewer) {
+                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary" onclick="approve(' . $v->mp_id . ')"><i class="fa fa-check"></i></button>';
+
+                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-danger" onclick="decline(' . $v->mp_id . ')"><i class="fa fa-times"></i></button>';
+            }
+            if ($stat == 'update' && $user->userAccess('personnelreq', 'viewall')) {
+                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary" onclick="approve_update(' . $v->mpu_id . ')"><i class="fa fa-check"></i></button>';
+
+                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-danger" onclick="decline_update(' . $v->mpu_id . ')"><i class="fa fa-times"></i></button>';
+            }
+
+            if($btn_action_show){
+                $html .= '<td>' . $btn_action . '</td>';
+            }
+
+            $html .= '</tr>';
+        }
+        $html .= '</tbody>';
+        $html .= '</table>';
+
+        return $html;
+    }
+
+    public static function viewSpec($pos)
+    {
+        try {
+            $data = Setting::jobSpecList(0, $pos)->first();
+            if($data?->jspec_education){
+                $data->jspec_education = explode('%#', $data?->jspec_education);
+                $data->jspec_education = array_map(fn ($item) => explode('%&', $item) , $data?->jspec_education);
+            }
+
+            $json = [
+                'id' => $data?->jspec_id,
+                'department' => $data?->jspec_department,
+                'section' => $data?->jspec_section,
+                'position' => $data?->jspec_position,
+
+                'department_name' => $data?->Dept_Name,
+                'section_name' => $data?->sec_name,
+                'position_name' => $data?->jd_title,
+
+                'sex' => $data?->jspec_sex,
+                'agerange' => explode('-', $data?->jspec_agerange),
+                'emplstat' => $data?->jspec_emplstat,
+                'education' => $data?->jspec_education,
+                'workexp' => explode('%#', $data?->jspec_workexp),
+                'duties' => $data?->jspec_duties,
+                'techcompetencies' => $data?->jspec_techcompetencies,
+                'competencies' => $data?->jspec_competencies,
+                'computerskill' => explode('%#', $data?->jspec_computerskill),
+                'otherskill' => $data?->jspec_otherskill,
+                'mpa' => $data?->jspec_mpa,
+                'mpb' => explode('|', $data?->jspec_mpb),
+                'mpc' => $data?->jspec_mpc,
+                'mpd' => $data?->jspec_mpd,
+                'mpe' => $data?->jspec_mpe,
+                'mpf' => explode('|', $data?->jspec_mpf),
+                'mpg' => $data?->jspec_mpg,
+                'tapt' => explode('%#', $data?->jspec_tapt),
+                'enneagram' => explode('%#', $data?->jspec_enneagram),
+                'learnstyle' => explode('%#', $data?->jspec_learnstyle),
+                'career' => explode('%#', $data?->jspec_career),
+                'motivation' => explode('%#', $data?->jspec_motivation),
+                'personality' => explode('%#', $data?->jspec_personality),
+                'ravenl' => explode('%#', $data?->jspec_ravenl),
+                'ravena' => explode('%#', $data?->jspec_ravena),
+                'ravenh' => explode('%#', $data?->jspec_ravenh),
+                'leadership' => $data?->jspec_leadership,
+                'remarks' => $data?->jspec_remarks
+            ];
+
+            return response()->json($json);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function store(Request $request)
+    {
+        try {
+            // Validate the form data
+            $validated = $request->validate([
+                'id' => 'nullable|numeric',
+                'replacement' => 'nullable|string',
+                'additional' => 'nullable|string',
+                'nonnegotiable' => 'nullable|string'
+            ]);
+
+            $validated['replacement'] = json_decode($validated['replacement'], true);
+            $validated['additional'] = json_decode($validated['additional'], true);
+
+            $progress[0] = '0%';
+            $progress[1] = '0/'.(array_sum(array_column($validated['replacement'], 'count')) + array_sum(array_column($validated['additional'], 'count')));
+
+            $validated['replacement'] = array_map(fn($i) => implode('|', $i), $validated['replacement']);
+            $validated['additional'] = array_map(fn($i) => implode('|', $i), $validated['additional']);
+
+            $data = [
+                'mp_replacement' => (!empty($validated['replacement']) ? "[" . implode('][', $validated['replacement']) . "]" : ""),
+                'mp_additional' => (!empty($validated['additional']) ? "[" . implode('][', $validated['additional']) . "]" : ""),
+                'mp_nonnegotiable' => $validated['nonnegotiable'],
+                'mp_progress' => implode(',', $progress)
+            ];
+
+            if ($validated['id']) {
+                if (ManpowerRequest::where('mp_id', $validated['id'])->first()?->mp_status != 'draft') {
+                    $data['mp_status'] = 'pending';
+                }
+                ManpowerRequest::where('mp_id', $validated['id'])->update($data);
+            } else {
+                $data['mp_dtprepared'] = date('Y-m-d');
+                $data['mp_requestby'] = Auth::user()->Emp_No;
+                $data['mp_status'] = 'pending';
+                $data['mp_progress'] = '';
+                $data['mp_filled'] = 'Not';
+                ManpowerRequest::insert($data);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function saveSpec(Request $request)
+    {
+        try {
+            // Validate the form data
+            $validated = $request->validate([
+                'id' => 'nullable|numeric',
+                'department' => 'required|string',
+                'section' => 'nullable|string',
+                'position' => 'required|string',
+                'emplstat' => 'required|string',
+                'sex' => 'required|string',
+                'agerange' => 'required|string',
+                'education' => 'required|string',
+                'workexp' => 'required|string',
+                'duties' => 'required|string',
+                'techcompetencies' => 'nullable|string',
+                'competencies' => 'nullable|string',
+                'computerskill' => 'nullable|string',
+                'otherskill' => 'nullable|string',
+                'mpa' => 'required|string',
+                'mpb' => 'required|string',
+                'mpc' => 'required|string',
+                'mpd' => 'required|string',
+                'mpe' => 'required|string',
+                'mpf' => 'required|string',
+                'mpg' => 'required|string',
+                'tapt' => 'required|string',
+                'enneagram' => 'required|string',
+                'learnstyle' => 'required|string',
+                'career' => 'required|string',
+                'motivation' => 'required|string',
+                'personality' => 'required|string',
+                'ravenl' => 'required|string',
+                'ravena' => 'required|string',
+                'ravenh' => 'required|string',
+                'leadership' => 'nullable|string',
+                'remarks' => 'nullable|string'
+            ]);
+
+            $data = [
+                'jspec_department' => $validated['department'],
+                'jspec_section' => $validated['section'],
+                'jspec_position' => $validated['position'],
+                'jspec_sex' => $validated['sex'],
+                'jspec_agerange' => $validated['agerange'],
+                'jspec_emplstat' => $validated['emplstat'],
+                'jspec_education' => $validated['education'],
+                'jspec_workexp' => $validated['workexp'],
+                'jspec_duties' => $validated['duties'],
+                'jspec_techcompetencies' => $validated['techcompetencies'],
+                'jspec_competencies' => $validated['competencies'],
+                'jspec_computerskill' => $validated['computerskill'],
+                'jspec_otherskill' => $validated['otherskill'],
+                'jspec_mpa' => $validated['mpa'],
+                'jspec_mpb' => $validated['mpb'],
+                'jspec_mpc' => $validated['mpc'],
+                'jspec_mpd' => $validated['mpd'],
+                'jspec_mpe' => $validated['mpe'],
+                'jspec_mpf' => $validated['mpf'],
+                'jspec_mpg' => $validated['mpg'],
+                'jspec_tapt' => $validated['tapt'],
+                'jspec_enneagram' => $validated['enneagram'],
+                'jspec_learnstyle' => $validated['learnstyle'],
+                'jspec_career' => $validated['career'],
+                'jspec_motivation' => $validated['motivation'],
+                'jspec_personality' => $validated['personality'],
+                'jspec_ravenl' => $validated['ravenl'],
+                'jspec_ravena' => $validated['ravena'],
+                'jspec_ravenh' => $validated['ravenh'],
+                'jspec_leadership' => $validated['leadership'],
+                'jspec_remarks' => $validated['remarks']
+            ];
+
+            if(DB::connection('hrd2')->table('tbl_jobspec')->where([
+                ['jspec_position', '=', $validated['position']],
+                // ['jspec_department', '=', $validated['department']],
+                ['jspec_id', '!=', $validated['id']]
+            ])->count() > 0){
+                return response()->json(['success' => false, 'error' => 'Job specification already exist']);
+            }
+
+            if ($validated['id']) {
+                DB::connection('hrd2')->table('tbl_jobspec')->where('jspec_id', $validated['id'])->update($data);
+            } else {
+                DB::connection('hrd2')->table('tbl_jobspec')->insert($data);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function delete($id)
+    {
+        try {
+            ManpowerRequest::where('mp_id', $id)->delete();
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function updateStat(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'id' => 'required|numeric',
+                'stat' => 'nullable|string',
+                'reason' => 'nullable|string',
+            ]);
+
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
+            $data['mp_status'] = $validated['stat'];
+            if ($validated['stat'] == 'approved') {
+                $data['mp_dtapproved'] = date('Y-m-d');
+                $data['mp_approvedby'] = $user->Emp_No;
+            } elseif ($validated['stat'] == 'reviewed') {
+                $data['mp_reviewedby'] = $user->Emp_No;
+            } elseif ($validated['stat'] == 'declined') {
+                $data['mp_declinedby'] = $user->Emp_No;
+                $data['mp_decline_reason'] = $validated['reason'];
+            }
+
+            ManpowerRequest::where('mp_id', $validated['id'])->update($data);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function fillRequest(Request $request)
+    {
+        try {
+            // Validate the form data
+            $validated = $request->validate([
+                'id' => 'nullable|numeric',
+                'replacement' => 'nullable|string',
+                'additional' => 'nullable|string'
+            ]);
+
+            $validated['replacement'] = json_decode($validated['replacement'], true);
+            $validated['additional'] = json_decode($validated['additional'], true);
+
+            $count = array_sum(array_column($validated['replacement'], 'count')) + array_sum(array_column($validated['additional'], 'count'));
+            $fill = array_sum(array_column($validated['replacement'], 'fill')) + array_sum(array_column($validated['additional'], 'fill'));
+            $progress = (($fill/$count) * 100) . '%,' . $fill . '/' . $count;
+
+            $validated['replacement'] = array_map(fn($i) => implode('|', $i), $validated['replacement']);
+            $validated['additional'] = array_map(fn($i) => implode('|', $i), $validated['additional']);
+
+            $data = [
+                'mp_replacement' => (!empty($validated['replacement']) ? "[" . implode('][', $validated['replacement']) . "]" : ""),
+                'mp_additional' => (!empty($validated['additional']) ? "[" . implode('][', $validated['additional']) . "]" : ""),
+                'mp_progress' => $progress
+            ];
+
+            if ($validated['id']) {
+                ManpowerRequest::where('mp_id', $validated['id'])->update($data);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function updateRequest(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'id' => 'required|numeric',
+                'action' => 'required|string',
+                'reason' => 'required|string',
+            ]);
+
+            DB::table("tbl_mpupdate")->insert([
+                'mpu_mpid' => $validated['id'],
+                'mpu_req' => $validated['action'],
+                'mpu_reason' => $validated['reason'],
+                'mpu_stat' => 'pending',
+                'mpu_by' => Auth::user()->Emp_No
+            ]);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function approveUpdate($id)
+    {
+        try {
+            $table = DB::table("tbl_mpupdate")
+                ->where('mpu_id', $id);
+
+            $data = $table->first();
+            $action = $data?->mpu_req;
+            $mp_id = $data?->mpu_mpid;
+
+            if ($action == 'cancel') {
+                DB::table("tbl_manpower")
+                    ->where('mp_id', $mp_id)
+                    ->update(['mp_status' => 'cancelled']);
+            }
+
+            $table->update(['mpu_stat' => 'approved']);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function declineUpdate($id)
+    {
+        try {
+            DB::table("tbl_mpupdate")
+                ->where('mpu_id', $id)
+                ->update(['mpu_stat' => 'denied']);
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+}

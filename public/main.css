@@ -1,0 +1,99 @@
+/* Custom styling to ensure the sidebar takes full height */
+:root {
+    --main-top-margin: 70px;
+}
+
+body,
+html {
+    min-height: 100%;
+    margin: 0;
+    background-color: #e9ecf3 !important;
+}
+
+.bi {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+}
+
+/* nav.navbar {
+    max-height: 50px;
+    height: 50px;
+} */
+
+@media (min-width: 768px) {
+    .ms-custom {
+        margin-left: 250px !important;
+    }
+}
+
+/*-----------------------------------------------*/
+.dropdown-menu {
+    --bs-dropdown-font-size: .8rem;
+}
+
+.dropdown-item.active, .dropdown-item:active {
+    color: var(--bs-dropdown-link-active-color);
+    text-decoration: none;
+    /*background-color: var(--bs-dropdown-link-active-bg);*/
+    background-color: #6c757d;
+}
+
+/*-----------------------------------------------*/
+
+nav.navbar {
+    background-color: var(--bs-white) !important;
+}
+
+#servicesMenu a {
+    color: rgba(var(--bs-body-color-rgb),var(--bs-text-opacity));
+}
+
+#servicesMenu a span{
+    font-size: 11px;
+}
+
+#user-dropdown .dropdown-menu {
+    --bs-dropdown-min-width: 1rem;
+}
+
+/*-----------------------------------------------*/
+
+body > main {
+    margin-top: var(--main-top-margin);
+}
+
+/*-----------------------------------------------*/
+
+a[href="#servicesMenu"].has-notification::after {
+    content: "";
+    display: inline-block;
+    color: white;
+    background-color: red;
+    /* font-size: 0.5rem; */
+    font-weight: bold;
+    border-radius: 50%;
+    text-align: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    margin-left: -10px;
+    width: .5rem;
+    height: .5rem;
+}
+
+#servicesMenu [notification-cnt]:not([notification-cnt=""]) {
+    text-wrap: nowrap;
+}
+
+#servicesMenu [notification-cnt]:not([notification-cnt=""])::after {
+    content: attr(notification-cnt);
+    display: inline-block;
+    border-radius: 3px;
+    border: 1px solid red;
+    color: red;
+    text-align: center;
+    font-size: 0.7rem;
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-left: 3px;
+}
