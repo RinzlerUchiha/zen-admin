@@ -121,6 +121,15 @@
             </div>
             <div class="offcanvas-body p-0">
                 <ul class="nav flex-column p-3">
+
+                <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
+                        <span>Interview Results</span>
+                    </h6>
+
+                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'interview-details']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'interview-details' ? 'active' : '' }}">Interview Details</a></li>
+
+                    <hr class="my-3">
+
                     <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
                         <span>Profile</span>
                     </h6>
