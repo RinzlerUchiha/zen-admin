@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Applicant;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantPersonal;
+use App\Models\Applicant\InterviewDeets;
 use App\Models\Employee;
 use App\Models\Setting;
 use App\Models\User;
@@ -357,6 +358,15 @@ class ApplicantProfileController extends Controller
             ];
         }
 
+        if($tab == 'interview-details'){
+            $records = InterviewDeets::where('app_id', $id)->get()->keyBy('interview_type');
+            $params['interviewDetails'] = [
+                'Initial' => $records->get('Initial'),
+                '2nd Prelim' => $records->get('2nd Prelim'),
+                'Final' => $records->get('Final'),
+            ];
+        }
+
         if(view()->exists("pages.applicant.{$tab}")){
             $view = "pages.applicant.{$tab}";
         }else{
@@ -364,6 +374,26 @@ class ApplicantProfileController extends Controller
             // $view = "pages.applicant.personal";
         }
         return view($view, $params);
+    }
+
+    public function saveInterviewDetails(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'interview_type' => 'nullable|string',
+            'interview_date' => 'nullable|date',
+            'interviewer_name' => 'nullable|string',
+            'company' => 'nullable|string',
+            'position' => 'nullable|string',
+            'remarks' => 'nullable|string',
+            'verdict' => 'nullable|string',
+        ]);
+
+        InterviewDeets::updateOrCreate(
+            ['app_id' => $id, 'interview_type' => $request->interview_type],
+            $validated
+        );
+
+        return redirect()->back()->with('success', 'Interview details saved successfully.');
     }
 
     public function showFormHireContent($id)

@@ -189,14 +189,15 @@
                 <div class="d-flex mb-2">
                     <h5>Applicant Profile - {{ $applicant?->first_last_name }}</h5>
                     {{-- <button class="btn btn-outline-secondary btn-sm">Hire</button> --}}
+                    @if(($sub_link ?? '') !== 'interview-details')
                     <div class="btn-group dropstart ms-auto">
                         <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Set Status</button>
                         <ul class="dropdown-menu">
                             <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#hireModal">Hired</button></li>
                             <li><a class="dropdown-item" href="#">Inactive</a></li>
-                            {{-- <li><a class="dropdown-item" href="#">Action three</a></li> --}}
                         </ul>
                     </div>
+                    @endif
                 </div>
                 @yield('profile_content')
             </div>

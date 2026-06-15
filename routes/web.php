@@ -141,6 +141,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('info/{id}/{tab?}', [ApplicantProfileController::class, 'show'])->name('show');
         Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])->name('form.hire');
         Route::post('hire/{id}', [ApplicantProfileController::class, 'hire'])->name('hire');
+        Route::post('interview-details/save/{id}', [ApplicantProfileController::class, 'saveInterviewDetails'])->name('interview.save');
     });
 
 
