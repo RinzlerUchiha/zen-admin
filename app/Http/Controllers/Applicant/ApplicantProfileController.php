@@ -13,26 +13,26 @@ use Illuminate\Support\Facades\DB;
 
 class ApplicantProfileController extends Controller
 {
-    public function index(Request $request) 
+    public function index(Request $request)
     {
         // If request is AJAX (DataTables)
         if ($request->ajax()) {
 
             $query = ApplicantPersonal::query()
-            ->leftJoin('tblapp_address', 'tblapp_address.app_id', '=', 'tblapp_persinfo.app_id')
-            ->select([
-                'tblapp_persinfo.app_id',
-                DB::raw("CONCAT_WS(
+                ->leftJoin('tblapp_address', 'tblapp_address.app_id', '=', 'tblapp_persinfo.app_id')
+                ->select([
+                    'tblapp_persinfo.app_id',
+                    DB::raw("CONCAT_WS(
                     ' ',
                     CONCAT(app_lname, ','),
                     app_fname,
                     app_suffix
                 ) AS name"),
-                'app_date as date_created',
-                'app_email as email',
-                DB::raw("IFNULL(app_mobile, app_telephone) as contact"),
-                'app_posapplied as position',
-            ]);
+                    'app_date as date_created',
+                    'app_email as email',
+                    DB::raw("IFNULL(app_mobile, app_telephone) as contact"),
+                    'app_posapplied as position',
+                ]);
 
             // 🔽 Custom status filter
             if ($request->filled('status')) {
@@ -49,9 +49,9 @@ class ApplicantProfileController extends Controller
                             app_fname,
                             app_suffix
                         ) LIKE ?", ["%{$search}%"])
-                      ->orWhere('app_date', 'like', "%{$search}%")
-                      ->orWhere('app_email', 'like', "%{$search}%")
-                      ->orWhereRaw("IFNULL(app_mobile, app_telephone) LIKE ?", "%{$search}%");
+                        ->orWhere('app_date', 'like', "%{$search}%")
+                        ->orWhere('app_email', 'like', "%{$search}%")
+                        ->orWhereRaw("IFNULL(app_mobile, app_telephone) LIKE ?", "%{$search}%");
                 });
             }
 
@@ -102,7 +102,7 @@ class ApplicantProfileController extends Controller
             // 'employment_status' => Setting::emplStatusList()
         ];
 
-        if($tab == 'personal'){
+        if ($tab == 'personal') {
             $params['provinceList'] = DB::table('tbl_province')->get();
             $params['municipalityList'] = DB::table('tbl_municipality as a')
                 ->leftJoin('tbl_province as b', 'pr_code', '=', 'ct_province')
@@ -114,26 +114,26 @@ class ApplicantProfileController extends Controller
                 ->get();
         }
 
-        if($tab == 'skill'){
+        if ($tab == 'skill') {
             $params['skillsCategoryList'] = DB::table('tbl_skill_category')
-            ->where('sc_stat', '=', '1')
-            ->orderByRaw("IF(sc_id = 7, 1, 0) asc")
-            ->orderBy('sc_title', 'asc')
-            ->get();
+                ->where('sc_stat', '=', '1')
+                ->orderByRaw("IF(sc_id = 7, 1, 0) asc")
+                ->orderBy('sc_title', 'asc')
+                ->get();
 
             $params['skillsList'] = DB::table('tbl_skill_type as a')
-            ->where('a.status', '=', '1')
-            ->orderBy('skill_name', 'asc')
-            ->get();
+                ->where('a.status', '=', '1')
+                ->orderBy('skill_name', 'asc')
+                ->get();
 
-            $applicant->skill = $applicant?->skill->map(function($s) use($params){
+            $applicant->skill = $applicant?->skill->map(function ($s) use ($params) {
                 $s->sc_title = $params['skillsCategoryList']->where('sc_id', $s->skill_category)->first()?->sc_title;
                 $s->skill_name = $params['skillsList']->where('id', $s->skill_type)->first()?->skill_name;
                 return $s;
             });
         }
 
-        if($tab == 'enneagram' && $applicant?->enneagram?->enneagram_ans){
+        if ($tab == 'enneagram' && $applicant?->enneagram?->enneagram_ans) {
             $applicant->enneagram->enneagram_ans = json_decode($applicant->enneagram->enneagram_ans, true);
             $params['answerList'] = config('exams.enneagram');
             $scores = collect([
@@ -151,7 +151,7 @@ class ApplicantProfileController extends Controller
             $prevscore = $scores->values()[0];
             $params['topItems'] = $scores
                 ->filter(function ($value) use (&$counter, &$prevscore) {
-                    if($counter < 3 || $value == $prevscore){
+                    if ($counter < 3 || $value == $prevscore) {
                         $counter++;
                         $prevscore = $value;
                         return true;
@@ -160,21 +160,21 @@ class ApplicantProfileController extends Controller
                 });
         }
 
-        if($tab == 'tapt' && $applicant?->tapt?->tapt_ans){
+        if ($tab == 'tapt' && $applicant?->tapt?->tapt_ans) {
             $applicant->tapt->tapt_ans = json_decode($applicant->tapt->tapt_ans, true);
             $params['taptResult'] = implode('', [$applicant->tapt->e_i, $applicant->tapt->s_n, $applicant->tapt->t_f, $applicant->tapt->j_p]);
             // $params['answerList'] = config('exams.tapt');
-            $params['answerList'] = collect(config('exams.tapt'))->map(function ($category, $c) use($applicant){
+            $params['answerList'] = collect(config('exams.tapt'))->map(function ($category, $c) use ($applicant) {
                 $collection = collect($category);
                 $keys = array_keys($collection->first());
                 return [
-                    $keys[0] => $collection->map(fn($item) => $item[$keys[0]])->filter(fn ($item, $i) => data_get($applicant->tapt->tapt_ans, "$c.$i", '') == $keys[0])->all(),
-                    $keys[1] => $collection->map(fn($item) => $item[$keys[1]])->filter(fn ($item, $i) => data_get($applicant->tapt->tapt_ans, "$c.$i", '') == $keys[1])->all(),
+                    $keys[0] => $collection->map(fn($item) => $item[$keys[0]])->filter(fn($item, $i) => data_get($applicant->tapt->tapt_ans, "$c.$i", '') == $keys[0])->all(),
+                    $keys[1] => $collection->map(fn($item) => $item[$keys[1]])->filter(fn($item, $i) => data_get($applicant->tapt->tapt_ans, "$c.$i", '') == $keys[1])->all(),
                 ];
             });
         }
 
-        if($tab == 'disc' && $applicant?->disc?->disc_ans){
+        if ($tab == 'disc' && $applicant?->disc?->disc_ans) {
             $applicant->disc->disc_ans = json_decode($applicant->disc->disc_ans, true);
             $params['answerList'] = config('exams.disc');
             $scores = collect([
@@ -187,7 +187,7 @@ class ApplicantProfileController extends Controller
             $prevscore = $scores->values()[0];
             $params['discResult'] = $scores
                 ->filter(function ($value) use (&$counter, &$prevscore) {
-                    if($counter < 1 || $value == $prevscore){
+                    if ($counter < 1 || $value == $prevscore) {
                         $counter++;
                         $prevscore = $value;
                         return true;
@@ -196,7 +196,7 @@ class ApplicantProfileController extends Controller
                 });
         }
 
-        if($tab == 'miq' && $applicant?->miq?->miq_ans){
+        if ($tab == 'miq' && $applicant?->miq?->miq_ans) {
             $applicant->miq->miq_ans = json_decode($applicant->miq->miq_ans, true);
             $params['answerList'] = config('exams.miq');
             $miqCategory = config('exams.miq_category');
@@ -214,17 +214,17 @@ class ApplicantProfileController extends Controller
             $prevscore = $scores->values()[0];
             $params['miqResult'] = $scores
                 ->filter(function ($value) use (&$counter, &$prevscore) {
-                    if($counter < 3 || $value == $prevscore){
+                    if ($counter < 3 || $value == $prevscore) {
                         $counter++;
                         $prevscore = $value;
                         return true;
                     }
                     return false;
                 })
-                ->mapWithKeys(fn ($value, $key) => [$key => $miqCategory[$key]]);
+                ->mapWithKeys(fn($value, $key) => [$key => $miqCategory[$key]]);
         }
 
-        if($tab == 'color' && $applicant?->color?->wcay_ans){
+        if ($tab == 'color' && $applicant?->color?->wcay_ans) {
             $applicant->color->wcay_ans = json_decode($applicant->color->wcay_ans, true);
             $params['answerList'] = config('exams.color');
             $colorCategory = config('exams.color_category');
@@ -238,17 +238,17 @@ class ApplicantProfileController extends Controller
             $prevscore = $scores->values()[0];
             $params['colorResult'] = $scores
                 ->filter(function ($value) use (&$counter, &$prevscore) {
-                    if($counter < 1 || $value == $prevscore){
+                    if ($counter < 1 || $value == $prevscore) {
                         $counter++;
                         $prevscore = $value;
                         return true;
                     }
                     return false;
                 })
-                ->mapWithKeys(fn ($value, $key) => [$key => $colorCategory[$key]]);
+                ->mapWithKeys(fn($value, $key) => [$key => $colorCategory[$key]]);
         }
 
-        if($tab == 'vak' && $applicant?->vak?->vak_ans){
+        if ($tab == 'vak' && $applicant?->vak?->vak_ans) {
             $applicant->vak->vak_ans = json_decode($applicant->vak->vak_ans, true);
             $params['answerList'] = config('exams.vak');
             $vakCategory = config('exams.vak_category');
@@ -261,17 +261,17 @@ class ApplicantProfileController extends Controller
             $prevscore = $scores->values()[0];
             $params['vakResult'] = $scores
                 ->filter(function ($value) use (&$counter, &$prevscore) {
-                    if($counter < 1 || $value == $prevscore){
+                    if ($counter < 1 || $value == $prevscore) {
                         $counter++;
                         $prevscore = $value;
                         return true;
                     }
                     return false;
                 })
-                ->mapWithKeys(fn ($value, $key) => [$key => $vakCategory[$key]]);
+                ->mapWithKeys(fn($value, $key) => [$key => $vakCategory[$key]]);
         }
 
-        if($tab == 'why-i-work' && $applicant?->whyIWork){
+        if ($tab == 'why-i-work' && $applicant?->whyIWork) {
             $whyIWorkResult = [
                 1 => $applicant->whyIWork->outcome_1,
                 2 => $applicant->whyIWork->outcome_2,
@@ -288,23 +288,23 @@ class ApplicantProfileController extends Controller
             ];
 
             $params['answerList'] = config('exams.why_i_work');
-            $params['whyIWorkResult'] = collect($params['answerList'])->map(function ($item, $key) use($whyIWorkResult) {
+            $params['whyIWorkResult'] = collect($params['answerList'])->map(function ($item, $key) use ($whyIWorkResult) {
                 $item['rank'] = $whyIWorkResult[$key];
                 return $item;
             })
-            ->sortBy('rank');
+                ->sortBy('rank');
             // ->sortBy(fn ($value, $key) => $whyIWorkResult[$key]);
         }
 
-        if($tab == 'career-anchors' && $applicant?->careerAnchor?->career_ans){
+        if ($tab == 'career-anchors' && $applicant?->careerAnchor?->career_ans) {
             $applicant->careerAnchor->career_ans = json_decode($applicant->careerAnchor->career_ans, true);
             $applicant->careerAnchor->career_highest = json_decode($applicant->careerAnchor->career_highest ?? '', true);
-            $params['careerAnchorResult']['category'] = collect(config('exams.career_anchors_category'))->mapWithKeys(function ($value, $key) use($applicant){
-                $data[$key] = collect($applicant?->careerAnchor?->career_ans)->filter(fn ($v, $k) => in_array($k, $value));
+            $params['careerAnchorResult']['category'] = collect(config('exams.career_anchors_category'))->mapWithKeys(function ($value, $key) use ($applicant) {
+                $data[$key] = collect($applicant?->careerAnchor?->career_ans)->filter(fn($v, $k) => in_array($k, $value));
                 return $data;
             });
             $params['answerList'] = config('exams.career_anchors');
-            $params['careerAnchorResult']['answer'] = collect($params['answerList'])->map(function ($item, $key) use($applicant) {
+            $params['careerAnchorResult']['answer'] = collect($params['answerList'])->map(function ($item, $key) use ($applicant) {
                 $data['sequence'] = $key;
                 $data['desc'] = $item;
                 $data['rate'] = $applicant->careerAnchor->career_ans[$key];
@@ -312,53 +312,51 @@ class ApplicantProfileController extends Controller
                 // $data['category'] = $category->filter(fn ($values) => in_array($key, $values, true))->keys()->first();
                 return $data;
             })
-            ->sortBy([
-                ['rate', 'desc'],
-                ['sequence', 'asc'],
-            ]);
-
-
+                ->sortBy([
+                    ['rate', 'desc'],
+                    ['sequence', 'asc'],
+                ]);
         }
 
-        if($tab == 'abstract-reasoning' && $applicant?->basicAbstractReasoning?->abstract_ans){
+        if ($tab == 'abstract-reasoning' && $applicant?->basicAbstractReasoning?->abstract_ans) {
             $applicant->basicAbstractReasoning->abstract_ans = json_decode($applicant->basicAbstractReasoning->abstract_ans, true);
             $params['answerList'] = config('exams.basic_abstract_reasoning');
-            $params['abstractReasoningResult'] = collect($applicant->basicAbstractReasoning->abstract_ans)->filter(fn ($value, $key) => $params['answerList'][$key]['answer'] == $value)->count();
+            $params['abstractReasoningResult'] = collect($applicant->basicAbstractReasoning->abstract_ans)->filter(fn($value, $key) => $params['answerList'][$key]['answer'] == $value)->count();
         }
 
-        if($tab == 'basic-math' && $applicant?->basicMath?->math_ans){
+        if ($tab == 'basic-math' && $applicant?->basicMath?->math_ans) {
             $applicant->basicMath->math_ans = json_decode($applicant->basicMath->math_ans, true);
             $params['answerList'] = config('exams.basic_math');
-            $params['basicMathResult'] = collect($applicant->basicMath->math_ans)->filter(fn ($value, $key) => $params['answerList'][$key]['answer'] == $value)->count();
+            $params['basicMathResult'] = collect($applicant->basicMath->math_ans)->filter(fn($value, $key) => $params['answerList'][$key]['answer'] == $value)->count();
         }
 
-        if($tab == 'maya' && $applicant?->maya?->maya_ans){
+        if ($tab == 'maya' && $applicant?->maya?->maya_ans) {
             $applicant->maya->maya_ans = json_decode($applicant->maya->maya_ans, true);
             $params['answerList'] = config('exams.maya');
 
             $result = collect($params['answerList'])
-            ->map(function ($set, $s) use($applicant){
-                return collect($set)->map(function ($item, $i) use($applicant, $s){
-                    $item['selected'] = $applicant->maya->maya_ans[$s.$i] ?? '';
-                    $item['isCorrect'] = $item['selected'] == $item['answer'];
-                    return $item;
+                ->map(function ($set, $s) use ($applicant) {
+                    return collect($set)->map(function ($item, $i) use ($applicant, $s) {
+                        $item['selected'] = $applicant->maya->maya_ans[$s . $i] ?? '';
+                        $item['isCorrect'] = $item['selected'] == $item['answer'];
+                        return $item;
+                    });
                 });
-            });
 
-            $totalPerSet = $result->map(fn ($set) => $set->where('isCorrect', true)->count());
+            $totalPerSet = $result->map(fn($set) => $set->where('isCorrect', true)->count());
 
             $params['mayaResult'] = [
                 'totalPerSet' => $totalPerSet,
                 'totalOverallSet' => $totalPerSet->sum(),
-                'percentile' => round((($totalPerSet->sum()/$result->flatMap(fn ($set) => $set)->count()) * 100), 2),
-                'totalPerDifficulty' => $result->flatMap(fn ($set) => $set)
-                    ->filter(fn ($item) => isset($item['difficulty']))
+                'percentile' => round((($totalPerSet->sum() / $result->flatMap(fn($set) => $set)->count()) * 100), 2),
+                'totalPerDifficulty' => $result->flatMap(fn($set) => $set)
+                    ->filter(fn($item) => isset($item['difficulty']))
                     ->groupBy('difficulty')
-                    ->map(fn ($grp) => $grp->where('isCorrect', true)->count())
+                    ->map(fn($grp) => $grp->where('isCorrect', true)->count())
             ];
         }
 
-        if($tab == 'interview-details'){
+        if ($tab == 'interview-details') {
             $records = InterviewDeets::where('app_id', $id)->get()->keyBy('interview_type');
             $params['interviewDetails'] = [
                 'Initial' => $records->get('Initial'),
@@ -367,9 +365,9 @@ class ApplicantProfileController extends Controller
             ];
         }
 
-        if(view()->exists("pages.applicant.{$tab}")){
+        if (view()->exists("pages.applicant.{$tab}")) {
             $view = "pages.applicant.{$tab}";
-        }else{
+        } else {
             abort(404);
             // $view = "pages.applicant.personal";
         }
@@ -385,6 +383,7 @@ class ApplicantProfileController extends Controller
             'company' => 'nullable|string',
             'position' => 'nullable|string',
             'remarks' => 'nullable|string',
+            'recommendation' => 'nullable|string',
             'verdict' => 'nullable|string',
         ]);
 
@@ -393,7 +392,7 @@ class ApplicantProfileController extends Controller
             $validated
         );
 
-        return redirect()->back()->with('success', 'Interview details saved successfully.');
+        return redirect()->back()->with('success', 'Interview details saved successfully.')->with('active_type', $request->interview_type);
     }
 
     public function showFormHireContent($id)
@@ -415,7 +414,8 @@ class ApplicantProfileController extends Controller
 
     public function hire(Request $request, $id)
     {
-        $validated = $request->validate([
+        $validated = $request->validate(
+            [
                 'hire-dt' => 'required|date',
                 'hire-employment-status' => 'required|string',
                 'hire-outlet' => 'required|string',
@@ -463,13 +463,13 @@ class ApplicantProfileController extends Controller
         );
 
         try {
-            
+
             DB::transaction(function () use ($validated, $id) {
                 $exist = DB::table('tbl201_persinfo')->where('pers_empno', $validated['hire-empno'])->exists();
-                if($exist){
+                if ($exist) {
                     return redirect()->back()->withErrors(['error' => 'Employee No already exist']);
                 }
-                
+
                 $applicant = ApplicantPersonal::find($id);
 
                 // $applicant?->basicAbstractReasoning
@@ -560,7 +560,7 @@ class ApplicantProfileController extends Controller
                     'estat_timestamp' => now()
                 ]);
 
-                $insert_rec = $applicant?->family->map(function ($item) use($validated){
+                $insert_rec = $applicant?->family->map(function ($item) use ($validated) {
                     return [
                         'fam_empno' => $validated['hire-empno'],
                         'fam_relationship' => $item->fam_relationship,
@@ -577,10 +577,10 @@ class ApplicantProfileController extends Controller
                         'fam_workplace' => $item->fam_workplace
                     ];
                 })->toArray();
-                
+
                 DB::table('tbl201_family')->insert($insert_rec);
 
-                $insert_rec = $applicant?->education->map(function ($item) use($validated){
+                $insert_rec = $applicant?->education->map(function ($item) use ($validated) {
                     return [
                         'educ_empno' => $validated['hire-empno'],
                         'educ_level' => $item->edu_level,
@@ -596,7 +596,7 @@ class ApplicantProfileController extends Controller
 
                 DB::table('tbl201_education')->insert($insert_rec);
 
-                $insert_rec = $applicant?->skill->map(function ($item) use($validated){
+                $insert_rec = $applicant?->skill->map(function ($item) use ($validated) {
                     return [
                         'skill_empno' => $validated['hire-empno'],
                         'skill_category' => $item->skill_category,
@@ -608,7 +608,7 @@ class ApplicantProfileController extends Controller
 
                 DB::table('tbl201_skills')->insert($insert_rec);
 
-                $insert_rec = $applicant?->license->map(function ($item) use($validated){
+                $insert_rec = $applicant?->license->map(function ($item) use ($validated) {
                     return [
                         'el_empno' => $validated['hire-empno'],
                         'el_type' => $item->el_type,
@@ -621,7 +621,7 @@ class ApplicantProfileController extends Controller
 
                 DB::table('tbl201_eligibility')->insert($insert_rec);
 
-                $insert_rec = $applicant?->certificate->map(function ($item) use($validated){
+                $insert_rec = $applicant?->certificate->map(function ($item) use ($validated) {
                     return [
                         'cert_empno' => $validated['hire-empno'],
                         'cert_title' => $item->cert_title,
@@ -634,7 +634,7 @@ class ApplicantProfileController extends Controller
 
                 DB::table('tbl201_certificate')->insert($insert_rec);
 
-                $insert_rec = $applicant?->employmentRec->map(function ($item) use($validated){
+                $insert_rec = $applicant?->employmentRec->map(function ($item) use ($validated) {
                     return [
                         'empl_empno' => $validated['hire-empno'],
                         'empl_from' => $item->empl_from,
@@ -651,7 +651,7 @@ class ApplicantProfileController extends Controller
 
                 DB::table('tbl201_employment')->insert($insert_rec);
 
-                $insert_rec = $applicant?->characterRef->map(function ($item) use($validated){
+                $insert_rec = $applicant?->characterRef->map(function ($item) use ($validated) {
                     return [
                         'ref_empno' => $validated['hire-empno'],
                         'ref_fullname' => $item->ref_fullname,

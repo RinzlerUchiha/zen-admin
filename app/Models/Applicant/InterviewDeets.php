@@ -19,6 +19,7 @@ class InterviewDeets extends Model
         'company',
         'position',
         'remarks',
+        'recommendation',
         'verdict',
     ];
 
