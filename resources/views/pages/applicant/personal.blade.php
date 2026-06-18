@@ -83,8 +83,12 @@
     }
 
     /* ── Accordion tweaks ───────────────────────────────────────── */
+    .info-accordion {
+        --bs-accordion-bg: #e9ecf3;
+    }
+
     .info-accordion .accordion-button {
-        font-size: 11px;
+        font-size: 14px;
         font-weight: 600;
         color: #495057;
         background: transparent;
@@ -161,12 +165,12 @@
                         $applicant?->app_lname,
                     ])->filter()->implode(' ')) ?: '—' }}
                     @if($applicant?->app_suffix)
-                        <span class="text-muted fw-normal" style="font-size:11px;">{{ $applicant->app_suffix }}</span>
+                        <span class="text-muted fw-normal" style="font-size:16px;">{{ $applicant->app_suffix }}</span>
                     @endif
                 </div>
 
                 {{-- Position applied --}}
-                <div class="text-muted mb-1" style="font-size:11px;">
+                <div class="text-muted mb-1" style="font-size:14px;">
                     Applied for: <strong>{{ $applicant?->app_posapplied ?: '—' }}</strong>
                 </div>
 
@@ -186,7 +190,7 @@
 
                 {{-- Record date --}}
                 @if($applicant?->app_date)
-                    <div class="text-muted mt-1" style="font-size:10px;">
+                    <div class="text-muted mt-1" style="font-size:12px;">
                         Record created: {{ \Carbon\Carbon::parse($applicant->app_date)->format('M d, Y') }}
                     </div>
                 @endif
