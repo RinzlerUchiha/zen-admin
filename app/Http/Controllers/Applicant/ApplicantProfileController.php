@@ -18,15 +18,18 @@ class ApplicantProfileController extends Controller
         // If request is AJAX (DataTables)
         if ($request->ajax()) {
 
-            $query = ApplicantPersonal::query()
-                ->leftJoin('tblapp_address', 'tblapp_address.app_id', '=', 'tblapp_persinfo.app_id')
+        $query = ApplicantPersonal::query()
+        ->leftJoin('tblapp_address', 'tblapp_address.app_id', '=', 'tblapp_persinfo.app_id')
+        ->leftJoin('tbl_user2', 'tbl_user2.U_Name', '=', 'tblapp_persinfo.app_email')
+                ->groupBy('tblapp_persinfo.app_id')
                 ->select([
-                    'tblapp_persinfo.app_id',
-                    DB::raw("CONCAT_WS(
+            'tblapp_persinfo.app_id',
+            'tbl_user2.U_Remarks as user_status',
+                DB::raw("CONCAT_WS(
                     ' ',
-                    CONCAT(app_lname, ','),
                     app_fname,
-                    app_suffix
+                    NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'),
+                    app_lname
                 ) AS name"),
                     'app_date as date_created',
                     'app_email as email',
@@ -34,10 +37,15 @@ class ApplicantProfileController extends Controller
                     'app_posapplied as position',
                 ]);
 
-            // 🔽 Custom status filter
-            if ($request->filled('status')) {
-                $query->where('app_status', $request->status);
-            }
+                // 🔽 Custom status filter
+                if ($request->filled('status')) {
+                    $query->where('app_status', $request->status);
+                }
+    
+                // 🔽 User active/inactive filter
+                if ($request->filled('user_status')) {
+                    $query->where('tbl_user2.U_Remarks', $request->user_status);
+                }
 
             // 🔍 Search
             if ($request->search['value'] ?? false) {
@@ -45,9 +53,9 @@ class ApplicantProfileController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->whereRaw("CONCAT_WS(
                             ' ',
-                            CONCAT(app_lname, ','),
                             app_fname,
-                            app_suffix
+                            NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'),
+                            app_lname
                         ) LIKE ?", ["%{$search}%"])
                         ->orWhere('app_date', 'like', "%{$search}%")
                         ->orWhere('app_email', 'like', "%{$search}%")
@@ -363,6 +371,46 @@ class ApplicantProfileController extends Controller
                 '2nd Prelim' => $records->get('2nd Prelim'),
                 'Final' => $records->get('Final'),
             ];
+
+            $params['employees'] = DB::connection('hrd2')
+                ->table('tbl201_basicinfo')
+                ->join('tbl_user2', 'tbl_user2.Emp_No', '=', 'tbl201_basicinfo.bi_empno')
+                ->where('tbl_user2.U_Remarks', 'Active')
+                ->select('bi_empno', 'bi_empfname', 'bi_empmname', 'bi_emplname')
+                ->orderBy('bi_empfname')
+                ->orderBy('bi_emplname')
+                ->distinct()
+                ->get()
+                ->map(function ($emp) {
+                    $mInitial = $emp->bi_empmname ? substr($emp->bi_empmname, 0, 1) . '.' : '';
+                    return [
+                        'empno' => $emp->bi_empno,
+                        'name'  => trim("{$emp->bi_empfname} {$mInitial} {$emp->bi_emplname}"),
+                    ];
+                });
+
+            $params['employeeJobMap'] = DB::connection('hrd2')
+                ->table('tbl201_jobrec')
+                ->select('jrec_empno', 'jrec_company', 'jrec_department')
+                ->where('jrec_status', 'Primary')
+                ->get()
+                ->keyBy('jrec_empno')
+                ->map(fn ($job) => [
+                    'company'    => $job->jrec_company,
+                    'department' => $job->jrec_department,
+                ]);
+
+            $params['companyOptions'] = DB::connection('hrd2')
+                ->table('tbl201_jobrec')
+                ->where('jrec_status', 'Primary')
+                ->whereNotNull('jrec_company')->where('jrec_company', '!=', '')
+                ->distinct()->orderBy('jrec_company')->pluck('jrec_company');
+
+            $params['departmentOptions'] = DB::connection('hrd2')
+                ->table('tbl201_jobrec')
+                ->where('jrec_status', 'Primary')
+                ->whereNotNull('jrec_department')->where('jrec_department', '!=', '')
+                ->distinct()->orderBy('jrec_department')->pluck('jrec_department');
         }
 
         if (view()->exists("pages.applicant.{$tab}")) {
@@ -379,8 +427,10 @@ class ApplicantProfileController extends Controller
         $validated = $request->validate([
             'interview_type' => 'nullable|string',
             'interview_date' => 'nullable|date',
+            'interviewer_empno' => 'nullable|string',
             'interviewer_name' => 'nullable|string',
             'company' => 'nullable|string',
+            'department' => 'nullable|string',
             'position' => 'nullable|string',
             'remarks' => 'nullable|string',
             'recommendation' => 'nullable|string',
