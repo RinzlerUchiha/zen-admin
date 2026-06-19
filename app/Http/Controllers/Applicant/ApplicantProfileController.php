@@ -18,24 +18,25 @@ class ApplicantProfileController extends Controller
         // If request is AJAX (DataTables)
         if ($request->ajax()) {
 
+        $userStatusEmails = collect();
+        if ($request->filled('user_status')) {
+            $userStatusEmails = User::where('U_Remarks', $request->user_status)->pluck('U_Name');
+        }
+
         $query = ApplicantPersonal::query()
-        ->leftJoin('tblapp_address', 'tblapp_address.app_id', '=', 'tblapp_persinfo.app_id')
-        ->leftJoin('tbl_user2', 'tbl_user2.U_Name', '=', 'tblapp_persinfo.app_email')
-                ->groupBy('tblapp_persinfo.app_id')
-                ->select([
-            'tblapp_persinfo.app_id',
-            'tbl_user2.U_Remarks as user_status',
+            ->select([
+                'tblapp_persinfo.app_id',
                 DB::raw("CONCAT_WS(
                     ' ',
                     app_fname,
                     NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'),
                     app_lname
                 ) AS name"),
-                    'app_date as date_created',
-                    'app_email as email',
-                    DB::raw("IFNULL(app_mobile, app_telephone) as contact"),
-                    'app_posapplied as position',
-                ]);
+                'app_date as date_created',
+                'app_email as email',
+                DB::raw("IFNULL(app_mobile, app_telephone) as contact"),
+                'app_posapplied as position',
+            ]);
 
                 // 🔽 Custom status filter
                 if ($request->filled('status')) {
@@ -44,7 +45,7 @@ class ApplicantProfileController extends Controller
     
                 // 🔽 User active/inactive filter
                 if ($request->filled('user_status')) {
-                    $query->where('tbl_user2.U_Remarks', $request->user_status);
+                    $query->whereIn('tblapp_persinfo.app_email', $userStatusEmails);
                 }
 
             // 🔍 Search
@@ -59,7 +60,7 @@ class ApplicantProfileController extends Controller
                         ) LIKE ?", ["%{$search}%"])
                         ->orWhere('app_date', 'like', "%{$search}%")
                         ->orWhere('app_email', 'like', "%{$search}%")
-                        ->orWhereRaw("IFNULL(app_mobile, app_telephone) LIKE ?", "%{$search}%");
+                        ->orWhereRaw("IFNULL(app_mobile, app_telephone) LIKE ?", ["%{$search}%"]);
                 });
             }
 
