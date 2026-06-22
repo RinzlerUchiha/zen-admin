@@ -9,12 +9,19 @@ class ApplicantCertificate extends Model
 {
     use HasFactory;
 
-    // protected $guarded = [];
-
     protected $connection = 'applicant';
     protected $table = 'tblapp_certificate';
     protected $primaryKey = 'cert_id';
     public $timestamps = false;
+
+    protected $fillable = [
+        'app_id',
+        'cert_title',
+        'cert_date',
+        'cert_address',
+        'cert_speaker',
+        'cert_file',
+    ];
 
     public function profile()
     {

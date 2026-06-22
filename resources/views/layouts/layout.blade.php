@@ -178,6 +178,8 @@
         //     }
         // });
     </script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+@stack('styles')
 </head>
 
 <body>

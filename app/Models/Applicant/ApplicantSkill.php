@@ -9,7 +9,7 @@ class ApplicantSkill extends Model
 {
     use HasFactory;
 
-    // protected $guarded = [];
+    const CATEGORY_OTHERS = 7;
 
     protected $connection = 'applicant';
     protected $table = 'tblapp_skills';
@@ -19,5 +19,16 @@ class ApplicantSkill extends Model
     public function profile()
     {
         return $this->belongsTo(ApplicantPersonal::class, 'app_id');
+    }
+
+    /**
+     * Returns the display name, falling back to skill_others
+     * when the category is "Others".
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->skill_category === self::CATEGORY_OTHERS
+            ? ($this->skill_others ?? '')
+            : ($this->skill_name ?? '');
     }
 }
