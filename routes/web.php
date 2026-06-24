@@ -52,7 +52,7 @@ use Illuminate\Support\Facades\Hash;
 //         $user->save();
 //         echo "Hashed password for user: {$user->U_ID} <br>";
 //     }
-    
+
 //     return $users->count().' changed';
 // });
 
@@ -131,18 +131,18 @@ Route::middleware(['auth'])->group(function () {
 
 
 
-    Route::get('/applicant', function(){
+    Route::get('/applicant', function () {
         return redirect()->route('applicant.index', [], 302);
     });
     Route::prefix('applicant')
-    ->name('applicant.')
-    ->group(function () {
-        Route::get('list', [ApplicantProfileController::class, 'index'])->name('index');
-        Route::get('info/{id}/{tab?}', [ApplicantProfileController::class, 'show'])->name('show');
-        Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])->name('form.hire');
-        Route::post('hire/{id}', [ApplicantProfileController::class, 'hire'])->name('hire');
-        Route::post('interview-details/save/{id}', [ApplicantProfileController::class, 'saveInterviewDetails'])->name('interview.save');
-    });
+        ->name('applicant.')
+        ->group(function () {
+            Route::get('list', [ApplicantProfileController::class, 'index'])->name('index');
+            Route::get('info/{id}/{tab?}', [ApplicantProfileController::class, 'show'])->name('show');
+            Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])->name('form.hire');
+            Route::post('hire/{id}', [ApplicantProfileController::class, 'hire'])->name('hire');
+            Route::post('interview-details/save/{id}', [ApplicantProfileController::class, 'saveInterviewDetails'])->name('interview.save');
+        });
 
 
 
@@ -209,14 +209,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('13b/list/{stat}', [Grievance13BController::class, 'loadList']);
         Route::get('13b/view/{id?}', [Grievance13BController::class, 'show']);
         Route::get('13b/notifications', [Grievance13BController::class, 'getNotification']);
-        
+
         Route::post('13b/save', [Grievance13BController::class, 'save13B']);
         Route::post('13b/set/witness', [Grievance13BController::class, 'save13BWitness']);
         Route::post('13b/cancel', [Grievance13BController::class, 'cancel13B']);
         Route::post('13b/sign', [Grievance13BController::class, 'sign13B']);
         Route::post('13b/issue', [Grievance13BController::class, 'issue13B']);
         Route::post('13b/refuse', [Grievance13BController::class, 'refuse13B']);
-        
+
         Route::delete('13b/delete/{id}', [Grievance13BController::class, 'delete13B']);
     });
 
@@ -226,7 +226,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/contracts/save', [ContractController::class, 'store']);
     Route::get('/contracts/file/{filename}', [ContractController::class, 'serveAttachment']);
     Route::delete('/contracts/{id}', [ContractController::class, 'delete']);
-    
+
 
 
     Route::get('/announcement/{type?}', [AnnouncementController::class, 'index']);
@@ -250,7 +250,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/events/holiday/delete/{id}', [HolidayController::class, 'delete']);
 
 
-    
+
     Route::get('/memo', [MemoController::class, 'index']);
     Route::get('/memo/list', [MemoController::class, 'list']);
     Route::post('/memo/save', [MemoController::class, 'store']);
@@ -262,17 +262,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);
     Route::get('/manpower/jobspec/{pos}', [ManpowerRequestController::class, 'viewSpec']);
     Route::get('/manpower/list/{stat}', [ManpowerRequestController::class, 'showList']);
+    Route::get('/manpower/counts', [ManpowerRequestController::class, 'counts']);
     Route::post('/manpower/save', [ManpowerRequestController::class, 'store']);
     Route::post('/manpower/fill', [ManpowerRequestController::class, 'fillRequest']);
     Route::post('/manpower/stat', [ManpowerRequestController::class, 'updateStat']);
     Route::post('/manpower/update', [ManpowerRequestController::class, 'updateRequest']);
     Route::post('/manpower/update/approve/{id}', [ManpowerRequestController::class, 'approveUpdate']);
-    Route::post('/manpower/update//decline/{id}', [ManpowerRequestController::class, 'declineUpdate']);
+    Route::post('/manpower/update/decline/{id}', [ManpowerRequestController::class, 'declineUpdate']);
     Route::delete('/manpower/delete/{id}', [ManpowerRequestController::class, 'delete']);
     Route::post('/manpower/jobspec/save', [ManpowerRequestController::class, 'saveSpec']);
     Route::get('/manpower/jobspec/{id}', [ManpowerRequestController::class, 'viewSpec']);
 
-    
+
 
     Route::get('/clearance/{page?}', [ClearanceController::class, 'index']);
     Route::get('/clearance/info/{id}', [ClearanceController::class, 'showInfoById']);
@@ -344,7 +345,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile/img/{filename}', function ($filename) {
         return FileController::serveFileFromS3('emp-img', $filename);
     });
-    
+
     Route::get('/file/get/{src}/{filename}', [FileController::class, 'serveFileFromS3']);
     Route::get('/file/get/applicant/{src}/{filename}', [FileController::class, 'serveFileFromS3ForApplicant'])->name('applicant.file');
 });

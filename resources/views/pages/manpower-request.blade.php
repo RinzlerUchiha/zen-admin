@@ -1,187 +1,957 @@
 @extends('layouts.layout')
 
 @section('content')
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css">
-    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css">
+<script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.min.js"></script>
 
-    <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/css/bootstrap-select.min.css">
-    <!-- Latest compiled and minified JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/js/bootstrap-select.min.js"></script>
-    <!-- (Optional) Latest compiled and minified JavaScript translation files -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/js/i18n/defaults-*.min.js"></script>
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/css/bootstrap-select.min.css">
+<!-- Latest compiled and minified JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/js/bootstrap-select.min.js"></script>
+<!-- (Optional) Latest compiled and minified JavaScript translation files -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.14.0-beta2/dist/js/i18n/defaults-*.min.js"></script>
 
-    <style>
-        #mprTabContent,
-        #modal-mpr,
-        #modal-view-mpr,
-        .mpr-fill-td input {
-            font-size: 12px;
-        }
+<style>
+    /* ============================================================
+           MPR module — scoped dark theme
+           Everything lives under #mpr-app so the rest of the app
+           (layout, sidebar, other pages) is untouched.
+           ============================================================ */
+    #mpr-app {
+        --mpr-page-bg: #f7f7f5;
+        --mpr-bg-raised: #ffffff;
+        --mpr-bg-input: #f4f4f2;
+        --mpr-border: #ececea;
+        --mpr-border-strong: #dcdbd6;
+        --mpr-text: #18181b;
+        --mpr-text-muted: #6b6b66;
+        --mpr-accent: #0c7bd1;
+        --mpr-accent-soft: #e6f1fb;
+        --mpr-green: #1a7f37;
+        --mpr-green-soft: #e6f6ea;
+        --mpr-amber: #b5800b;
+        --mpr-purple: #534ab7;
+        --mpr-red: #dc2626;
+        --mpr-red-soft: #fdecec;
+        --mpr-radius: 12px;
+        --mpr-radius-sm: 6px;
+        color: var(--mpr-text);
+        font-size: 14px;
+    }
 
-        .bootstrap-select{
-            max-width: 100% !important;
-        }
+    #mpr-app,
+    #mpr-app input,
+    #mpr-app select,
+    #mpr-app textarea,
+    #mpr-app button {
+        font-size: 14px;
+    }
 
-        #form-mpr-jobspec [type="checkbox"],
-        #form-mpr-jobspec [type="radio"] {
-            border: 1px solid var(--bs-dark);
-        }
-    </style>
+    #mpr-app .mpr-shell {
+        background: var(--mpr-page-bg);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius);
+        overflow: hidden;
+    }
 
-    <div class="row justify-content-center" id="mpr-content">
-        <div class="col-md-7">
-            <div class="d-flex justify-content-end">
-                <button class="ms-auto btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-mpr">New Request</button>
-                <button class="ms-1 btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modal-mpr-jobspec">Job Specification</button>
+    /* ---------- Header ---------- */
+    #mpr-app .mpr-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 20px;
+        background: var(--mpr-bg-raised);
+        border-bottom: 1px solid var(--mpr-border);
+        flex-wrap: wrap;
+    }
+
+    #mpr-app .mpr-header-titlerow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 2px;
+    }
+
+    #mpr-app .mpr-header-titlerow i {
+        font-size: 16px;
+        color: var(--mpr-text-muted);
+    }
+
+    #mpr-app .mpr-header-title h1 {
+        font-size: 16px;
+        font-weight: 500;
+        margin: 0;
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-header-title p {
+        font-size: 12px;
+        margin: 0;
+        padding-left: 24px;
+        color: var(--mpr-text-muted);
+    }
+
+    #mpr-app .mpr-header-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    #mpr-app .btn-mpr-outline,
+    #mpr-app .btn-mpr-solid {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    #mpr-app .btn-mpr-outline {
+        background: transparent;
+        border: 1px solid var(--mpr-border-strong);
+        color: var(--mpr-text);
+        border-radius: var(--mpr-radius-sm);
+        padding: 7px 14px;
+        font-weight: 500;
+    }
+
+    #mpr-app .btn-mpr-outline:hover {
+        background: var(--mpr-bg-input);
+    }
+
+    #mpr-app .btn-mpr-solid {
+        background: var(--mpr-text);
+        border: 1px solid var(--mpr-text);
+        color: #ffffff;
+        border-radius: var(--mpr-radius-sm);
+        padding: 7px 14px;
+        font-weight: 600;
+    }
+
+    #mpr-app .btn-mpr-solid:hover {
+        background: #000000;
+        border-color: #000000;
+    }
+
+    /* ---------- Tab strip ---------- */
+    #mpr-app .mpr-tabstrip {
+        display: flex;
+        gap: 2px;
+        padding: 0 12px;
+        background: var(--mpr-bg-raised);
+        border-bottom: 1px solid var(--mpr-border);
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    #mpr-app .mpr-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 10px 14px 9px;
+        color: var(--mpr-text-muted);
+        font-weight: 400;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    #mpr-app .mpr-tab:hover {
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-tab.active {
+        color: var(--mpr-text);
+        font-weight: 500;
+        border-bottom-color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-tab-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    #mpr-app .mpr-tab[data-stat="draft"] .mpr-tab-dot {
+        background: #888780;
+    }
+
+    #mpr-app .mpr-tab[data-stat="pending"] .mpr-tab-dot {
+        background: var(--mpr-amber);
+    }
+
+    #mpr-app .mpr-tab[data-stat="approved"] .mpr-tab-dot {
+        background: var(--mpr-green);
+    }
+
+    #mpr-app .mpr-tab[data-stat="update"] .mpr-tab-dot {
+        background: var(--mpr-purple);
+    }
+
+    #mpr-app .mpr-tab[data-stat="cancelled"] .mpr-tab-dot {
+        background: #888780;
+    }
+
+    #mpr-app .mpr-tab[data-stat="declined"] .mpr-tab-dot {
+        background: var(--mpr-red);
+    }
+
+    #mpr-app .mpr-tab[data-stat="jobspec"] .mpr-tab-dot {
+        background: var(--mpr-accent);
+    }
+
+    #mpr-app .mpr-tab-count {
+        background: var(--mpr-bg-input);
+        border-radius: 999px;
+        padding: 1px 7px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--mpr-text-muted);
+    }
+
+    /* ---------- Content area / card wrapper ---------- */
+    #mpr-app .mpr-content-area {
+        padding: 16px 20px;
+    }
+
+    #mpr-app .mpr-card {
+        background: var(--mpr-bg-raised);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius);
+        overflow: hidden;
+    }
+
+    /* ---------- Toolbar (search / per-page) ---------- */
+    #mpr-app .mpr-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--mpr-border);
+        flex-wrap: wrap;
+    }
+
+    #mpr-app .mpr-toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #mpr-app .mpr-toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #mpr-app .mpr-pp-label {
+        font-size: 12px;
+        color: var(--mpr-text-muted);
+    }
+
+    #mpr-app .mpr-pp-select {
+        font-size: 12px;
+        padding: 4px 6px;
+        width: auto;
+        background: var(--mpr-bg-raised);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius-sm);
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-search {
+        position: relative;
+        flex: 1;
+        min-width: 200px;
+        max-width: 320px;
+    }
+
+    #mpr-app .mpr-search input {
+        width: 100%;
+        background: var(--mpr-bg-raised);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius-sm);
+        color: var(--mpr-text);
+        padding: 7px 12px 7px 30px;
+    }
+
+    #mpr-app .mpr-search input::placeholder {
+        color: var(--mpr-text-muted);
+    }
+
+    #mpr-app .mpr-search i {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--mpr-text-muted);
+        font-size: 12px;
+    }
+
+    #mpr-app .mpr-results-count {
+        color: var(--mpr-text-muted);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    /* ---------- Table area ---------- */
+    #mpr-app .mpr-table-wrap {
+        padding: 0;
+    }
+
+    #mpr-app table.mpr-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #mpr-app table.mpr-table thead th {
+        text-align: left;
+        font-size: 11px;
+        color: var(--mpr-text-muted);
+        font-weight: 500;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--mpr-border);
+        background: var(--mpr-bg-input);
+    }
+
+    #mpr-app table.mpr-table tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--mpr-border);
+        vertical-align: middle;
+        color: var(--mpr-text);
+    }
+
+    #mpr-app table.mpr-table tbody tr {
+        cursor: pointer;
+    }
+
+    #mpr-app table.mpr-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    #mpr-app table.mpr-table tbody tr:hover {
+        background: var(--mpr-bg-input);
+    }
+
+    #mpr-app .mpr-ref {
+        color: var(--mpr-accent);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        cursor: pointer;
+    }
+
+    #mpr-app .mpr-requestor {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #mpr-app .mpr-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 500;
+        flex-shrink: 0;
+    }
+
+    /* Cycle these per row, e.g. avatar class = 'av' + (employee_id % 5) */
+    #mpr-app .mpr-avatar.av0 {
+        background: #E6F1FB;
+        color: #0C447C;
+    }
+
+    #mpr-app .mpr-avatar.av1 {
+        background: #FAEEDA;
+        color: #633806;
+    }
+
+    #mpr-app .mpr-avatar.av2 {
+        background: #EAF3DE;
+        color: #27500A;
+    }
+
+    #mpr-app .mpr-avatar.av3 {
+        background: #EEEDFE;
+        color: #3C3489;
+    }
+
+    #mpr-app .mpr-avatar.av4 {
+        background: #FAECE7;
+        color: #993C1D;
+    }
+
+    #mpr-app .mpr-requestor-name {
+        font-weight: 500;
+        font-size: 13px;
+        line-height: 1.2;
+    }
+
+    #mpr-app .mpr-requestor-dept {
+        color: var(--mpr-text-muted);
+        font-size: 11px;
+    }
+
+    #mpr-app .mpr-pill {
+        display: inline-block;
+        background: var(--mpr-accent-soft);
+        color: var(--mpr-accent);
+        border-radius: var(--mpr-radius-sm);
+        padding: 2px 7px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 1px 2px 1px 0;
+    }
+
+    #mpr-app .mpr-pill-more {
+        background: var(--mpr-bg-input);
+        color: var(--mpr-text-muted);
+    }
+
+    #mpr-app .mpr-row-actions {
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity .12s ease;
+        justify-content: flex-end;
+    }
+
+    #mpr-app table.mpr-table tbody tr:hover .mpr-row-actions {
+        opacity: 1;
+    }
+
+    #mpr-app .mpr-row-actions button {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--mpr-bg-raised);
+        border: 1px solid var(--mpr-border-strong);
+        color: var(--mpr-text-muted);
+        border-radius: var(--mpr-radius-sm);
+        font-size: 13px;
+    }
+
+    #mpr-app .mpr-row-actions button:hover {
+        background: var(--mpr-bg-input);
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-row-actions button.decline:hover {
+        background: var(--mpr-red-soft);
+        color: var(--mpr-red);
+        border-color: var(--mpr-red);
+    }
+
+    #mpr-app .mpr-row-actions button.approve:hover {
+        background: var(--mpr-green-soft);
+        color: var(--mpr-green);
+        border-color: var(--mpr-green);
+    }
+
+    /* ---------- Empty state ---------- */
+    #mpr-app .mpr-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        color: var(--mpr-text-muted);
+        text-align: center;
+    }
+
+    #mpr-app .mpr-empty i {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--mpr-bg-input);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        font-size: 18px;
+        color: var(--mpr-text-muted);
+    }
+
+    /* ---------- Pagination footer ---------- */
+    #mpr-app .mpr-pager {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px;
+        border-top: 1px solid var(--mpr-border);
+        color: var(--mpr-text-muted);
+        font-size: 12px;
+    }
+
+    #mpr-app .mpr-pager-buttons {
+        display: flex;
+        gap: 3px;
+    }
+
+    #mpr-app .mpr-pager-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--mpr-bg-raised);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius-sm);
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-pager-btn:hover {
+        background: var(--mpr-bg-input);
+    }
+
+    #mpr-app .mpr-pager-btn.active {
+        background: var(--mpr-text);
+        color: #fff;
+        border-color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-pager-btn:disabled {
+        opacity: .4;
+        cursor: default;
+    }
+
+    /* ---------- Modal chrome ---------- */
+    #mpr-app .modal-content {
+        background: var(--mpr-bg-raised);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius);
+    }
+
+    #mpr-app .modal-header {
+        align-items: flex-start;
+        border-color: var(--mpr-border);
+    }
+
+    #mpr-app .modal-footer {
+        border-color: var(--mpr-border);
+    }
+
+    #mpr-app .mpr-modal-subtitle {
+        font-size: 12px;
+        color: var(--mpr-text-muted);
+        margin: 3px 0 0;
+    }
+
+    #mpr-app .form-control,
+    #mpr-app .form-select,
+    #mpr-app textarea.form-control {
+        border-color: var(--mpr-border-strong);
+        border-radius: var(--mpr-radius-sm);
+        font-size: 13px;
+    }
+
+    #mpr-app .form-control:focus,
+    #mpr-app .form-select:focus {
+        border-color: var(--mpr-accent);
+        box-shadow: 0 0 0 2px var(--mpr-accent-soft);
+    }
+
+    #mpr-app .form-check-input:checked {
+        background-color: var(--mpr-accent);
+        border-color: var(--mpr-accent);
+    }
+
+    #mpr-app .input-group-text {
+        background-color: var(--mpr-bg-input);
+        border-color: var(--mpr-border-strong);
+        color: var(--mpr-text-muted);
+    }
+
+    /* ---------- Modal form sections ---------- */
+    #mpr-app .mpr-section-divider {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0 10px;
+        font-weight: 500;
+        font-size: 12px;
+        color: var(--mpr-text-muted);
+    }
+
+    #mpr-app .mpr-section-divider .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+    }
+
+    #mpr-app .mpr-section-divider.replacement .dot {
+        background: var(--mpr-amber);
+    }
+
+    #mpr-app .mpr-section-divider.additional .dot {
+        background: var(--mpr-accent);
+    }
+
+    #mpr-app .mpr-section-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--mpr-border);
+        order: 1;
+    }
+
+    #mpr-app .mpr-section-hint {
+        order: 2;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--mpr-text-muted);
+        white-space: nowrap;
+    }
+
+    #mpr-app .mpr-card-table {
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius-sm);
+        overflow: hidden;
+    }
+
+    #mpr-app .mpr-card-table table {
+        margin-bottom: 0;
+    }
+
+    #mpr-app .mpr-card-table thead th {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--mpr-text-muted);
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--mpr-border);
+        background: var(--mpr-bg-input);
+    }
+
+    #mpr-app .mpr-card-table tbody td {
+        padding: 5px 6px;
+        border-bottom: 1px solid var(--mpr-border);
+        vertical-align: middle;
+    }
+
+    #mpr-app .mpr-card-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    #mpr-app .mpr-card-table .form-control,
+    #mpr-app .mpr-card-table .form-select {
+        font-size: 12px;
+        border-radius: var(--mpr-radius-sm);
+    }
+
+    #mpr-app .btn-add-row-full {
+        width: 100%;
+        border: none;
+        border-top: 1px solid var(--mpr-border);
+        background: transparent;
+        color: var(--mpr-text-muted);
+        border-radius: 0;
+        padding: 8px 10px;
+        font-weight: 400;
+        font-size: 12px;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    #mpr-app .btn-add-row-full:hover {
+        background: var(--mpr-bg-input);
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .modal-footer.mpr-footer-tone {
+        background: var(--mpr-bg-input);
+    }
+
+    #mpr-app .modal-footer .btn-primary {
+        background: var(--mpr-text);
+        border-color: var(--mpr-text);
+    }
+
+    #mpr-app .modal-footer .btn-primary:hover {
+        background: #000;
+        border-color: #000;
+    }
+
+    #mpr-app .modal-footer .btn-secondary {
+        background: transparent;
+        border: 1px solid var(--mpr-border-strong);
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .modal-footer .btn-secondary:hover {
+        background: var(--mpr-bg-raised);
+    }
+
+    #mprTabContent,
+    #modal-mpr,
+    #modal-view-mpr,
+    .mpr-fill-td input {
+        font-size: 12px;
+    }
+
+    .bootstrap-select {
+        max-width: 100% !important;
+    }
+
+    #form-mpr-jobspec [type="checkbox"],
+    #form-mpr-jobspec [type="radio"] {
+        border: 1px solid var(--bs-dark);
+    }
+</style>
+
+<div id="mpr-app">
+    <div class="mpr-shell" id="mpr-content">
+
+        <!-- Header -->
+        <div class="mpr-header">
+            <div class="mpr-header-title">
+                <div class="mpr-header-titlerow">
+                    <i class="fa fa-users" aria-hidden="true"></i>
+                    <h1>Manpower requests</h1>
+                </div>
+                <p>Submit and track staffing requests for your department</p>
             </div>
-            <ul class="nav nav-underline" id="mprTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="draft-tab" data-bs-toggle="tab" data-bs-target="#draft-tab-pane" type="button" role="tab" aria-controls="draft-tab-pane" aria-selected="false">Draft</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-tab-pane" type="button" role="tab" aria-controls="pending-tab-pane" aria-selected="true">Pending</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved-tab-pane" type="button" role="tab" aria-controls="approved-tab-pane" aria-selected="false">Approved</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="update-tab" data-bs-toggle="tab" data-bs-target="#update-tab-pane" type="button" role="tab" aria-controls="update-tab-pane" aria-selected="false">Update</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="cancelled-tab" data-bs-toggle="tab" data-bs-target="#cancelled-tab-pane" type="button" role="tab" aria-controls="cancelled-tab-pane" aria-selected="false">Cancelled</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="declined-tab" data-bs-toggle="tab" data-bs-target="#declined-tab-pane" type="button" role="tab" aria-controls="declined-tab-pane" aria-selected="false">Declined</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="jobspec-tab" data-bs-toggle="tab" data-bs-target="#jobspec-tab-pane" type="button" role="tab" aria-controls="jobspec-tab-pane" aria-selected="false">Job Specification</button>
-                </li>
-            </ul>
-            <div class="tab-content" id="mprTabContent">
-                <div class="pt-3 tab-pane fade" id="draft-tab-pane" role="tabpanel" aria-labelledby="draft-tab" tabindex="0"></div>
-                <div class="pt-3 tab-pane fade show active" id="pending-tab-pane" role="tabpanel" aria-labelledby="pending-tab" tabindex="0"></div>
-                <div class="pt-3 tab-pane fade" id="approved-tab-pane" role="tabpanel" aria-labelledby="approved-tab" tabindex="0"></div>
-                <div class="pt-3 tab-pane fade" id="update-tab-pane" role="tabpanel" aria-labelledby="update-tab" tabindex="0"></div>
-                <div class="pt-3 tab-pane fade" id="cancelled-tab-pane" role="tabpanel" aria-labelledby="cancelled-tab" tabindex="0"></div>
-                <div class="pt-3 tab-pane fade" id="declined-tab-pane" role="tabpanel" aria-labelledby="declined-tab" tabindex="0"></div>
-                <div class="pt-3 tab-pane fade" id="jobspec-tab-pane" role="tabpanel" aria-labelledby="jobspec-tab" tabindex="0"></div>
+            <div class="mpr-header-actions">
+                <button class="btn-mpr-outline" data-bs-toggle="modal" data-bs-target="#modal-mpr-jobspec">
+                    <i class="fa fa-file-text-o" aria-hidden="true"></i> Job specification
+                </button>
+                <button class="btn-mpr-solid" data-bs-toggle="modal" data-bs-target="#modal-mpr">
+                    <i class="fa fa-plus" aria-hidden="true"></i> New request
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab strip -->
+        <ul class="nav mpr-tabstrip" id="mprTab" role="tablist" style="list-style:none; margin:0;">
+            <li class="mpr-tab" data-stat="draft" id="draft-tab" role="tab" aria-controls="draft-tab-pane" aria-selected="false">
+                <span class="mpr-tab-dot"></span> Draft <span class="mpr-tab-count" data-count="draft">–</span>
+            </li>
+            <li class="mpr-tab active" data-stat="pending" id="pending-tab" role="tab" aria-controls="pending-tab-pane" aria-selected="true">
+                <span class="mpr-tab-dot"></span> Pending <span class="mpr-tab-count" data-count="pending">–</span>
+            </li>
+            <li class="mpr-tab" data-stat="approved" id="approved-tab" role="tab" aria-controls="approved-tab-pane" aria-selected="false">
+                <span class="mpr-tab-dot"></span> Approved <span class="mpr-tab-count" data-count="approved">–</span>
+            </li>
+            <li class="mpr-tab" data-stat="update" id="update-tab" role="tab" aria-controls="update-tab-pane" aria-selected="false">
+                <span class="mpr-tab-dot"></span> Update <span class="mpr-tab-count" data-count="update">–</span>
+            </li>
+            <li class="mpr-tab" data-stat="cancelled" id="cancelled-tab" role="tab" aria-controls="cancelled-tab-pane" aria-selected="false">
+                <span class="mpr-tab-dot"></span> Cancelled <span class="mpr-tab-count" data-count="cancelled">–</span>
+            </li>
+            <li class="mpr-tab" data-stat="declined" id="declined-tab" role="tab" aria-controls="declined-tab-pane" aria-selected="false">
+                <span class="mpr-tab-dot"></span> Declined <span class="mpr-tab-count" data-count="declined">–</span>
+            </li>
+            <li class="mpr-tab" data-stat="jobspec" id="jobspec-tab" role="tab" aria-controls="jobspec-tab-pane" aria-selected="false">
+                <span class="mpr-tab-dot"></span> Job specification <span class="mpr-tab-count" data-count="jobspec">–</span>
+            </li>
+        </ul>
+
+        <!-- Toolbar: search + count + page size (DataTables' own controls are hidden; these drive it) -->
+        <div class="mpr-content-area">
+            <div class="mpr-card">
+                <div class="mpr-toolbar">
+                    <div class="mpr-toolbar-left">
+                        <div class="mpr-search">
+                            <i class="fa fa-search"></i>
+                            <input type="text" id="mpr-global-search" placeholder="Search requests...">
+                        </div>
+                        <span class="mpr-results-count" id="mpr-results-count"></span>
+                    </div>
+                    <div class="mpr-toolbar-right">
+                        <span class="mpr-pp-label">Show</span>
+                        <select id="mpr-page-length" class="mpr-pp-select">
+                            <option value="50">50 per page</option>
+                            <option value="100">100 per page</option>
+                            <option value="-1">All</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mpr-table-wrap" id="mprTabContent">
+                    <div class="tab-pane" id="draft-tab-pane" aria-labelledby="draft-tab" tabindex="0" style="display:none;"></div>
+                    <div class="tab-pane" id="pending-tab-pane" aria-labelledby="pending-tab" tabindex="0"></div>
+                    <div class="tab-pane" id="approved-tab-pane" aria-labelledby="approved-tab" tabindex="0" style="display:none;"></div>
+                    <div class="tab-pane" id="update-tab-pane" aria-labelledby="update-tab" tabindex="0" style="display:none;"></div>
+                    <div class="tab-pane" id="cancelled-tab-pane" aria-labelledby="cancelled-tab" tabindex="0" style="display:none;"></div>
+                    <div class="tab-pane" id="declined-tab-pane" aria-labelledby="declined-tab" tabindex="0" style="display:none;"></div>
+                    <div class="tab-pane" id="jobspec-tab-pane" aria-labelledby="jobspec-tab" tabindex="0" style="display:none;"></div>
+                </div>
+
+                <div class="mpr-pager" id="mpr-pager" style="display:none;">
+                    <span id="mpr-pager-summary"></span>
+                    <div class="mpr-pager-buttons" id="mpr-pager-buttons"></div>
+                </div>
             </div>
         </div>
     </div>
+    <!-- #mpr-app itself closes after the modals below, not here -->
+
+    <!--
+        NOTE ON THE TABLE PARTIAL
+        =========================
+        The actual <tr> markup for each MPR list comes from the server response
+        of GET /manpower/list/{stat} (a separate Blade partial not included in
+        the file you shared), so I can't restyle those rows from here directly.
+
+        To match the mockup, that partial's <table> should use:
+          <table class="mpr-table">
+            <thead><tr><th>Reference</th><th>Requested by</th><th>Positions</th><th>Date filed</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="mpr-ref" data-bs-toggle="modal" data-bs-target="#modal-view-mpr" ...>MPR-2025-007</td>
+                <td>
+                  <div class="mpr-requestor">
+                    <div class="mpr-avatar" style="background:#3b5bdb;">JD</div>
+                    <div>
+                      <div class="mpr-requestor-name">Juan Dela Cruz</div>
+                      <div class="mpr-requestor-dept">Finance</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="mpr-pill">Accountant</span>
+                  <span class="mpr-pill">Bookkeeper</span>
+                </td>
+                <td>Jun 18, 2025</td>
+                <td>
+                  <div class="mpr-row-actions">
+                    <button class="approve" onclick="approve(7)"><i class="fa fa-check"></i></button>
+                    <button class="decline" onclick="decline(7)"><i class="fa fa-times"></i></button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+        Avatar background colors can rotate through a small palette keyed off
+        employee id, e.g.: ['#3b5bdb','#c2410c','#15803d','#7e22ce','#0e7490'].
+
+        Empty state (when the list is empty), drop this in place of the table:
+          <div class="mpr-empty">
+            <i class="fa fa-inbox"></i>
+            <div>No requests in this tab yet.</div>
+          </div>
+    -->
 
     <div class="modal fade" id="modal-mpr" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="modal-mpr-label" aria-hidden="true">
+        aria-labelledby="modal-mpr-label" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="modal-mpr-label">Manpower Request</h1>
+                    <div>
+                        <h1 class="modal-title fs-5" id="modal-mpr-label">New manpower request</h1>
+                        <p class="mpr-modal-subtitle">Specify positions needed for your department</p>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="form-mpr">
                     <div class="modal-body">
                         <div class="row" id="mpr-err"></div>
                         <input type="hidden" id="mpr-id" value="">
-                        <div class="row mb-3">
-                            <label class="col-form-label col-12 fs-6">REPLACEMENT</label>
+
+                        <div class="mpr-section-divider replacement"><span class="dot"></span> Replacement</div>
+                        <div class="row mb-4">
                             <div class="col-12">
-                                <table class="table table-sm table-bordered w-100" id="mpr-replacement-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Subject/Position</th>
-                                            <th>Number Needed</th>
-                                            <th>Reason</th>
-                                            <th>Date Needed</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                <select class="border-0 form-select form-select-sm mpr-replacement-position" required>
-                                                    <option value disabled selected>-</option>
-                                                    @foreach ($jobspec->where('jspec_department', $userJobInfo?->jrec_department) as $j)
+                                <div class="mpr-card-table">
+                                    <table class="table table-sm table-borderless w-100 mb-0" id="mpr-replacement-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Subject/Position</th>
+                                                <th>Number Needed</th>
+                                                <th>Reason</th>
+                                                <th>Date Needed</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <select class="form-select form-select-sm mpr-replacement-position" required>
+                                                        <option value disabled selected>-</option>
+                                                        @foreach ($jobspec->where('jspec_department', $userJobInfo?->jrec_department) as $j)
                                                         <option value="{{ $j->jspec_position }}">{{ $j->jd_title }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td style="max-width: 100px;">
-                                                <input type="number" class="border-0  mpr-replacement-number form-control form-control-sm" min="1">
-                                                <input type="hidden" class="mpr-replacement-fill">
-                                            </td>
-                                            <td>
-                                                <select class="border-0  mpr-replacement-reason form-select form-select-sm">
-                                                    <option value="Resignation">Resignation</option>
-                                                    <option value="Terminated w/ cause">Terminated w/ cause</option>
-                                                    <option value="End of contract">End of contract</option>
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <input type="date" class="border-0  mpr-replacement-dateneed form-control form-control-sm">
-                                            </td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-danger btn-del"><i class="fa fa-times"></i></button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot class="border-0">
-                                        <tr class="border-0">
-                                            <th colspan="5" class="border-0">
-                                                <button type="button" class="btn btn-sm btn-outline-primary btn-add-row"><i class="fa fa-plus"></i></button>
-                                            </th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                                        @endforeach
+                                                    </select>
+                                                </td>
+                                                <td style="max-width: 100px;">
+                                                    <input type="number" class="mpr-replacement-number form-control form-control-sm" min="1">
+                                                    <input type="hidden" class="mpr-replacement-fill">
+                                                </td>
+                                                <td>
+                                                    <select class="mpr-replacement-reason form-select form-select-sm">
+                                                        <option value="Resignation">Resignation</option>
+                                                        <option value="Terminated w/ cause">Terminated w/ cause</option>
+                                                        <option value="End of contract">End of contract</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="date" class="mpr-replacement-dateneed form-control form-control-sm">
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-danger btn-del"><i class="fa fa-times"></i></button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn-add-row-full btn-add-row"><i class="fa fa-plus" aria-hidden="true"></i> Add replacement position</button>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <label class="col-form-label col-12 fs-6">ADDITIONAL</label>
+                        <div class="mpr-section-divider additional"><span class="dot"></span> Additional</div>
+                        <div class="row mb-4">
                             <div class="col-12">
-                                <table class="table table-sm table-bordered w-100" id="mpr-additional-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Subject/Position</th>
-                                            <th>Number Needed</th>
-                                            <th>Reason</th>
-                                            <th>Date Needed</th>
-                                            <th></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                <select class="border-0  form-select form-select-sm mpr-additional-position" required>
-                                                    <option value disabled selected>-</option>
-                                                    @foreach ($jobspec->where('jspec_department', $userJobInfo?->jrec_department) as $j)
+                                <div class="mpr-card-table">
+                                    <table class="table table-sm table-borderless w-100 mb-0" id="mpr-additional-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Subject/Position</th>
+                                                <th>Number Needed</th>
+                                                <th>Reason</th>
+                                                <th>Date Needed</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <select class="form-select form-select-sm mpr-additional-position" required>
+                                                        <option value disabled selected>-</option>
+                                                        @foreach ($jobspec->where('jspec_department', $userJobInfo?->jrec_department) as $j)
                                                         <option value="{{ $j->jspec_position }}">{{ $j->jd_title }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td style="max-width: 100px;">
-                                                <input type="number" class="border-0  mpr-additional-number form-control form-control-sm" min="1">
-                                                <input type="hidden" class="mpr-additional-fill">
-                                            </td>
-                                            <td>
-                                                <input type="text" class="border-0  mpr-additional-reason form-control form-control-sm">
-                                            </td>
-                                            <td>
-                                                <input type="date" class="border-0  mpr-additional-dateneed form-control form-control-sm">
-                                            </td>
-                                            <td>
-                                                <button type="button" class="btn btn-sm btn-danger btn-del"><i class="fa fa-times"></i></button>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                    <tfoot class="border-0">
-                                        <tr class="border-0">
-                                            <th colspan="5" class="border-0">
-                                                <button type="button" class="btn btn-sm btn-outline-primary btn-add-row"><i class="fa fa-plus"></i></button>
-                                            </th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                                        @endforeach
+                                                    </select>
+                                                </td>
+                                                <td style="max-width: 100px;">
+                                                    <input type="number" class="mpr-additional-number form-control form-control-sm" min="1">
+                                                    <input type="hidden" class="mpr-additional-fill">
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="mpr-additional-reason form-control form-control-sm">
+                                                </td>
+                                                <td>
+                                                    <input type="date" class="mpr-additional-dateneed form-control form-control-sm">
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-danger btn-del"><i class="fa fa-times"></i></button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn-add-row-full btn-add-row"><i class="fa fa-plus" aria-hidden="true"></i> Add additional position</button>
+                                </div>
                             </div>
                         </div>
 
@@ -195,13 +965,13 @@
                         <div class="row mb-3">
                             <label class="col-form-label col-md-3">Requested by:</label>
                             <div class="col-md-9">
-                                <labe class="col-form-label"></labe>
+                                <label class="col-form-label"></label>
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer mpr-footer-tone">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="btn-post-mpr">Post</button>
+                        <button type="submit" class="btn btn-primary" id="btn-post-mpr"><i class="fa fa-paper-plane" aria-hidden="true"></i> Post request</button>
                     </div>
                 </form>
             </div>
@@ -209,7 +979,7 @@
     </div>
 
     <div class="modal fade" id="modal-view-mpr" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="modal-view-mpr-label" aria-hidden="true">
+        aria-labelledby="modal-view-mpr-label" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -220,39 +990,44 @@
                     <div class="modal-body">
                         <div class="row" id="view-mpr-err"></div>
                         <input type="hidden" id="view-mpr-id" value="">
-                        <div class="row mb-3">
-                            <label class="col-form-label col-12 fs-6">REPLACEMENT</label>
+
+                        <div class="mpr-section-divider replacement"><span class="dot"></span> Replacement positions<span class="mpr-section-hint">Vacated roles</span></div>
+                        <div class="row mb-4">
                             <div class="col-12">
-                                <table class="table table-sm table-bordered w-100" id="view-mpr-replacement-table">
-                                    <thead>
-                                        <tr>
-                                            <th width="30%">Subject/Position</th>
-                                            <th width="70px">Number Needed</th>
-                                            <th>Reason</th>
-                                            <th width="100px">Date Needed</th>
-                                            <th width="100px">Fill</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
+                                <div class="mpr-card-table">
+                                    <table class="table table-sm table-borderless w-100 mb-0" id="view-mpr-replacement-table">
+                                        <thead>
+                                            <tr>
+                                                <th width="30%">Subject/Position</th>
+                                                <th width="70px">Number Needed</th>
+                                                <th>Reason</th>
+                                                <th width="100px">Date Needed</th>
+                                                <th width="100px">Fill</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <label class="col-form-label col-12 fs-6">ADDITIONAL</label>
+                        <div class="mpr-section-divider additional"><span class="dot"></span> Additional positions<span class="mpr-section-hint">New or expanded roles</span></div>
+                        <div class="row mb-4">
                             <div class="col-12">
-                                <table class="table table-sm table-bordered w-100" id="view-mpr-additional-table">
-                                    <thead>
-                                        <tr>
-                                            <th width="30%">Subject/Position</th>
-                                            <th width="70px">Number Needed</th>
-                                            <th>Reason</th>
-                                            <th width="100px">Date Needed</th>
-                                            <th width="100px">Fill</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
+                                <div class="mpr-card-table">
+                                    <table class="table table-sm table-borderless w-100 mb-0" id="view-mpr-additional-table">
+                                        <thead>
+                                            <tr>
+                                                <th width="30%">Subject/Position</th>
+                                                <th width="70px">Number Needed</th>
+                                                <th>Reason</th>
+                                                <th width="100px">Date Needed</th>
+                                                <th width="100px">Fill</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
@@ -268,7 +1043,7 @@
                             <label id="view-mpr-requestby" class="col-form-label col-md"></label>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer mpr-footer-tone">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                         <button type="submit" class="btn btn-primary" id="btn-save-view-mpr">Save</button>
                     </div>
@@ -278,7 +1053,7 @@
     </div>
 
     <div class="modal fade" id="modal-decline-mpr" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="modal-decline-mpr-label" aria-hidden="true">
+        aria-labelledby="modal-decline-mpr-label" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -296,7 +1071,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer mpr-footer-tone">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Confirm</button>
                     </div>
@@ -306,7 +1081,7 @@
     </div>
 
     <div class="modal fade" id="modal-mpr-update" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-    aria-labelledby="modal-mpr-update-label" aria-hidden="true">
+        aria-labelledby="modal-mpr-update-label" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -329,7 +1104,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer mpr-footer-tone">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Confirm</button>
                     </div>
@@ -339,7 +1114,7 @@
     </div>
 
     <div class="modal fade" id="modal-mpr-jobspec" data-bs-backdrop="static" data-bs-keyboard="true" tabindex="-1"
-    aria-labelledby="modal-mpr-jobspec-label" aria-hidden="true">
+        aria-labelledby="modal-mpr-jobspec-label" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -358,9 +1133,9 @@
                                         <div class="col-9">
                                             <select class="form-control form-control-sm selectpicker" data-width="auto" id="mpr-jobspec-dept" title="Select Department" data-live-search="true" required>
                                                 @foreach ($department as $v)
-                                                    @if($v->Dept_Stat == 'active' || strpos(check_assign($user_empno, 'PR', true), $v->Dept_Code) !== false || $userJobInfo->jd_code == $v->Dept_Code)
-                                                        <option value="{{ $v->Dept_Code }}">{{ $v->Dept_Name }}</option>
-                                                    @endif
+                                                @if($v->Dept_Stat == 'active' || strpos(check_assign($user_empno, 'PR', true), $v->Dept_Code) !== false || $userJobInfo->jd_code == $v->Dept_Code)
+                                                <option value="{{ $v->Dept_Code }}">{{ $v->Dept_Name }}</option>
+                                                @endif
                                                 @endforeach
                                             </select>
                                         </div>
@@ -372,9 +1147,9 @@
                                         <div class="col-9">
                                             <select class="form-control form-control-sm selectpicker" data-width="auto" id="mpr-jobspec-section" title="Select Section" data-live-search="true" required>
                                                 @foreach ($section as $v)
-                                                    {{-- @if($v->sec_stat == 'active') --}}
-                                                        <option value="{{ $v->sec_code }}">{{ $v->sec_name }}</option>
-                                                    {{-- @endif --}}
+                                                {{-- @if($v->sec_stat == 'active') --}}
+                                                <option value="{{ $v->sec_code }}">{{ $v->sec_name }}</option>
+                                                {{-- @endif --}}
                                                 @endforeach
                                             </select>
                                         </div>
@@ -388,7 +1163,7 @@
                                         <div class="col-9">
                                             <select class="form-control form-control-sm selectpicker" data-width="auto" id="mpr-jobspec-pos" title="Select Position" data-live-search="true" required>
                                                 @foreach ($position as $v)
-                                                    <option value="{{ $v->jd_code }}">{{ $v->jd_title }}</option>
+                                                <option value="{{ $v->jd_code }}">{{ $v->jd_title }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -400,7 +1175,7 @@
                                         <div class="col-9">
                                             <select class="form-select form-select-sm" id="mpr-jobspec-emplstat" required>
                                                 @foreach ($emplstat as $v)
-                                                    <option value="{{ $v->es_name }}">{{ $v->es_name }}</option>
+                                                <option value="{{ $v->es_name }}">{{ $v->es_name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -1111,7 +1886,7 @@
                             </div>
                         </fieldset>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer mpr-footer-tone">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Confirm</button>
                     </div>
@@ -1121,7 +1896,7 @@
     </div>
 
     <div class="modal fade" id="modal-mpr-view-jobspec" data-bs-keyboard="true" tabindex="-1"
-    aria-labelledby="modal-mpr-view-jobspec-label" aria-hidden="true">
+        aria-labelledby="modal-mpr-view-jobspec-label" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1332,747 +2107,888 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer mpr-footer-tone">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
+</div><!-- /#mpr-app -->
 
-    <script>
-        let curtab = 'pending';
-        $(function(){
-            const tr_replacement = $('#mpr-replacement-table').find('tbody tr').first();
-            const tr_additional = $('#mpr-additional-table').find('tbody tr').first();
+<script>
+    let curtab = 'pending';
 
-            $('#mprTab .nav-item .nav-link').click(function(){
-                let stat = $(this).attr('id').replace('-tab', '');
-                if((curtab == stat && !$('#' + stat + '-tab-pane').is(':empty')) || (curtab != stat && $('#' + stat + '-tab-pane').is(':empty'))){
-                    loadMPR(stat);
+    /**
+     * Centralized POST helper used by every modal form on this page.
+     * Handles CSRF header, error rendering, double-submit prevention,
+     * and tab reload on success.
+     */
+    async function postForm({
+        url,
+        formData,
+        errSelector,
+        submitBtn,
+        successMsg,
+        onSuccess,
+        method = 'POST'
+    }) {
+        $(errSelector).html('');
+        if (submitBtn) submitBtn.prop('disabled', true);
+
+        try {
+            const response = await fetch(url, {
+                method,
+                body: formData,
+                headers: {
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
                 }
-                curtab = stat;
             });
 
-            $('#mpr-replacement-table .btn-add-row').click(function(){
-                $(this).closest('table').find('tbody').append(tr_replacement);
+            let result = {};
+            try {
+                result = await response.json();
+            } catch (parseErr) {
+                result = {
+                    success: false,
+                    error: 'Unexpected server response.'
+                };
+            }
+
+            if (response.ok && result.success) {
+                if (typeof onSuccess === 'function') {
+                    onSuccess(result);
+                } else {
+                    $(submitBtn ? submitBtn.closest('.modal') : '.modal').modal('hide');
+                }
+                if (successMsg) alert(successMsg);
+                reloadActiveTab();
+                return true;
+            }
+
+            $(errSelector).html(`<p style="color: red;">Error: ${result.error ?? 'Unknown error.'}</p>`);
+            return false;
+
+        } catch (error) {
+            console.error('Request failed:', error);
+            $(errSelector).html('<p style="color: red;">Request failed. Please try again.</p>');
+            return false;
+        } finally {
+            if (submitBtn) submitBtn.prop('disabled', false);
+        }
+    }
+
+    /** Escape text before injecting into HTML strings built via string concatenation. */
+    function escapeHtml(value) {
+        return $('<div>').text(value ?? '').html();
+    }
+
+    function reloadActiveTab() {
+        const $active = $('#mprTab .mpr-tab.active');
+        if ($active.length) loadMPR($active.data('stat'));
+    }
+
+    function activeDataTable() {
+        const $table = $('#mprTabContent .tab-pane:visible > table').first();
+        return ($table.length && $.fn.DataTable.isDataTable($table)) ? $table.DataTable() : null;
+    }
+
+    function renderPager(api) {
+        const info = api.page.info();
+        const $pager = $('#mpr-pager');
+
+        if (info.pages <= 1) {
+            $pager.hide();
+            return;
+        }
+        $pager.show();
+
+        const start = info.recordsDisplay === 0 ? 0 : info.start + 1;
+        const end = Math.min(info.start + info.length, info.recordsDisplay);
+        $('#mpr-pager-summary').text('Showing ' + start + '–' + end + ' of ' + info.recordsDisplay);
+
+        const $btns = $('#mpr-pager-buttons').empty();
+        const current = info.page;
+        for (let p = 0; p < info.pages; p++) {
+            $('<button>').addClass('mpr-pager-btn').toggleClass('active', p === current)
+                .text(p + 1)
+                .on('click', () => {
+                    api.page(p).draw('page');
+                })
+                .appendTo($btns);
+        }
+        $('<button>').addClass('mpr-pager-btn').html('<i class="fa fa-chevron-right"></i>')
+            .prop('disabled', current >= info.pages - 1)
+            .on('click', () => {
+                api.page('next').draw('page');
+            })
+            .appendTo($btns);
+    }
+
+    $(function() {
+        const tr_replacement = $('#mpr-replacement-table').find('tbody tr').first();
+        const tr_additional = $('#mpr-additional-table').find('tbody tr').first();
+
+        /* Tab switching — same lazy-load behavior as before, but driven
+           by plain divs/clicks instead of Bootstrap's nav-link/tab-pane
+           machinery (since the visual redesign replaces that markup). */
+        $('#mprTab .mpr-tab').click(function() {
+            let stat = $(this).data('stat');
+
+            $('#mprTab .mpr-tab').removeClass('active').attr('aria-selected', 'false');
+            $(this).addClass('active').attr('aria-selected', 'true');
+
+            $('#mprTabContent .tab-pane').hide();
+            $('#' + stat + '-tab-pane').show();
+
+            if ((curtab == stat && !$('#' + stat + '-tab-pane').is(':empty')) || (curtab != stat && $('#' + stat + '-tab-pane').is(':empty'))) {
+                loadMPR(stat);
+            }
+            curtab = stat;
+        });
+
+        // FIX: button is a sibling of the table, not a child — use closest().find() instead
+        $('#mpr-replacement-table').closest('.mpr-card-table').find('.btn-add-row').click(function() {
+            $(this).closest('.mpr-card-table').find('table tbody').append(tr_replacement.clone());
+        });
+
+        $('#mpr-additional-table').closest('.mpr-card-table').find('.btn-add-row').click(function() {
+            $(this).closest('.mpr-card-table').find('table tbody').append(tr_additional.clone());
+        });
+
+        $('#form-mpr').on('click', '.btn-del', function() {
+            $(this).closest('tr').remove();
+        });
+
+        /* Simple client-side filter wired to the new search box; relies on
+           DataTables' search() if the active table is a DataTable. */
+        $('#mpr-global-search').on('keyup', function() {
+            const val = $(this).val();
+            const $table = $('#mprTabContent .tab-pane:visible > table');
+            if ($table.length && $.fn.DataTable.isDataTable($table)) {
+                $table.DataTable().search(val).draw();
+            }
+        });
+
+        $('#mpr-page-length').on('change', function() {
+            const api = activeDataTable();
+            if (api) api.page.len(parseInt(this.value, 10)).draw();
+        });
+
+        $('#modal-mpr').on('show.bs.modal', function(e) {
+            let btn = $(e.relatedTarget);
+            $('#mpr-replacement-table').find('tbody').empty();
+            $('#mpr-additional-table').find('tbody').empty();
+
+            let replacement = (btn.data('replacement') || '').match(/\[([^\]]+)\]/g);
+            replacement = (replacement || []).map(group =>
+                group.replace(/[\[\]]/g, '').split('|')
+            );
+
+            let additional = (btn.data('additional') || '').match(/\[([^\]]+)\]/g);
+            additional = (additional || []).map(group =>
+                group.replace(/[\[\]]/g, '').split('|')
+            );
+
+            $('#mpr-id').val(btn.data('id') || '');
+            $('#mpr-nonnegotiable').val(btn.data('nonnegotiable') || '');
+
+            replacement.forEach(i => {
+                const tr = tr_replacement.clone();
+                tr.find('.mpr-replacement-position').val(i[0]);
+                tr.find('.mpr-replacement-number').val(i[1]);
+                tr.find('.mpr-replacement-reason').val(i[2]);
+                tr.find('.mpr-replacement-dateneed').val(i[3]);
+                $('#mpr-replacement-table').find('tbody').append(tr);
             });
 
-            $('#mpr-additional-table .btn-add-row').click(function(){
-                $(this).closest('table').find('tbody').append(tr_additional);
+            additional.forEach(i => {
+                const tr = tr_additional.clone();
+                tr.find('.mpr-additional-position').val(i[0]);
+                tr.find('.mpr-additional-number').val(i[1]);
+                tr.find('.mpr-additional-reason').val(i[2]);
+                tr.find('.mpr-additional-dateneed').val(i[3]);
+                $('#mpr-additional-table').find('tbody').append(tr);
             });
 
-            $('#form-mpr').on('click', '.btn-del', function(){
-                $(this).closest('tr').remove();
+            if ($('#mpr-replacement-table').find('tbody tr').length === 0) {
+                $('#mpr-replacement-table').find('tbody').append(tr_replacement.clone());
+            }
+            if ($('#mpr-additional-table').find('tbody tr').length === 0) {
+                $('#mpr-additional-table').find('tbody').append(tr_additional.clone());
+            }
+        });
+
+        $('#form-mpr').submit(async function(e) {
+            e.preventDefault();
+
+            let replacement = [];
+            $(this).find('.mpr-replacement-position').each(function() {
+                if (this.value) {
+                    replacement.push({
+                        position: this.value,
+                        count: $(this).closest('tr').find('.mpr-replacement-number').val(),
+                        reason: $(this).closest('tr').find('.mpr-replacement-reason').val(),
+                        date: $(this).closest('tr').find('.mpr-replacement-dateneed').val()
+                    });
+                }
             });
 
-            $('#modal-mpr').on('show.bs.modal', function(e){
-                let btn = $(e.relatedTarget);
-                // tr_replacement.find('input, select').val('');
-                // tr_additional.find('input, select').val('');
-                $('#mpr-replacement-table').find('tbody').empty();
-                $('#mpr-additional-table').find('tbody').empty();
+            let additional = [];
+            $(this).find('.mpr-additional-position').each(function() {
+                if (this.value) {
+                    additional.push({
+                        position: this.value,
+                        count: $(this).closest('tr').find('.mpr-additional-number').val(),
+                        reason: $(this).closest('tr').find('.mpr-additional-reason').val(),
+                        date: $(this).closest('tr').find('.mpr-additional-dateneed').val()
+                    });
+                }
+            });
 
-                let replacement = (btn.data('replacement') || '').match(/\[([^\]]+)\]/g);
-                replacement = (replacement || []).map(group =>
-                    group.replace(/[\[\]]/g, '').split('|')
+            let formData = new FormData();
+            formData.append('id', $('#mpr-id').val());
+            formData.append('replacement', JSON.stringify(replacement));
+            formData.append('additional', JSON.stringify(additional));
+            formData.append('nonnegotiable', $('#mpr-nonnegotiable').val());
+
+            await postForm({
+                url: '/manpower/save',
+                formData,
+                errSelector: '#mpr-err',
+                submitBtn: $('#btn-post-mpr'),
+                successMsg: 'Saved',
+                onSuccess: () => $('#modal-mpr').modal('hide')
+            });
+        });
+
+        $('#form-decline-mpr').submit(async function(e) {
+            e.preventDefault();
+
+            let formData = new FormData();
+            formData.append('id', $('#decline-mpr-id').val());
+            formData.append('stat', 'declined');
+            formData.append('reason', $('#decline-mpr-reason').val());
+
+            await postForm({
+                url: '/manpower/stat',
+                formData,
+                errSelector: '#decline-mpr-err',
+                submitBtn: $(this).find('[type="submit"]'),
+                successMsg: 'Declined',
+                onSuccess: () => $('#modal-decline-mpr').modal('hide')
+            });
+        });
+
+        $('#modal-view-mpr').on('show.bs.modal', function(e) {
+            if ($(e.relatedTarget).is('button')) return;
+
+            let main_tr = $(e.relatedTarget);
+            $('#view-mpr-replacement-table').find('tbody').empty();
+            $('#view-mpr-additional-table').find('tbody').empty();
+
+            let replacement = (main_tr.data('replacement') || []);
+            let additional = (main_tr.data('additional') || []);
+
+            $('#view-mpr-id').val(main_tr.data('id') || '');
+            $('#view-mpr-nonnegotiable').html((main_tr.data('nonnegotiable') || '').replace(/\r?\n/g, '<br>'));
+
+            replacement.forEach(i => {
+                const tr = $('<tr/>').addClass('view-mpr-replacement-item')
+                    .attr('position', i[1])
+                    .attr('number', i[2])
+                    .attr('reason', i[3])
+                    .attr('dateneed', i[4]);
+
+                tr.append(
+                    $('<td>').css('cursor', 'pointer').text(i[0]).on('click', () => view_jobspec(i[1]))
                 );
-
-                let additional = (btn.data('additional') || '').match(/\[([^\]]+)\]/g);
-                additional = (additional || []).map(group =>
-                    group.replace(/[\[\]]/g, '').split('|')
+                tr.append($('<td>').text(i[2]));
+                tr.append($('<td>').text(i[3]));
+                tr.append($('<td>').text(i[4]));
+                tr.append(
+                    $('<td>').addClass('mpr-fill-td').append(
+                        $('<input type="number">')
+                        .attr('min', 0)
+                        .attr('max', i[2])
+                        .addClass('form-control form-control-sm view-mpr-replacement-fill')
+                        .val(i[5])
+                    )
                 );
-                
-                $('#mpr-id').val(btn.data('id') || '');
-                $('#mpr-nonnegotiable').val(btn.data('nonnegotiable') || '');
-                
-                replacement.forEach(i => {
-                    const tr = tr_replacement.clone();
-                    tr.find('.mpr-replacement-position').val(i[0]);
-                    tr.find('.mpr-replacement-number').val(i[1]);
-                    tr.find('.mpr-replacement-reason').val(i[2]);
-                    tr.find('.mpr-replacement-dateneed').val(i[3]);
-                    $('#mpr-replacement-table').find('tbody').append(tr);
-                });
-
-                additional.forEach(i => {
-                    const tr = tr_additional.clone();
-                    tr.find('.mpr-additional-position').val(i[0]);
-                    tr.find('.mpr-additional-number').val(i[1]);
-                    tr.find('.mpr-additional-reason').val(i[2]);
-                    tr.find('.mpr-additional-dateneed').val(i[3]);
-                    $('#mpr-additional-table').find('tbody').append(tr);
-                });
+                $('#view-mpr-replacement-table').find('tbody').append(tr);
             });
 
-            $('#form-mpr').submit(async function(e){
-                e.preventDefault();
+            additional.forEach(i => {
+                const tr = $('<tr/>').addClass('view-mpr-additional-item')
+                    .attr('position', i[1])
+                    .attr('number', i[2])
+                    .attr('reason', i[3])
+                    .attr('dateneed', i[4]);
 
-                $('#mpr-err').html("");
+                tr.append(
+                    $('<td>').css('cursor', 'pointer').text(i[0]).on('click', () => view_jobspec(i[1]))
+                );
+                tr.append($('<td>').text(i[2]));
+                tr.append($('<td>').text(i[3]));
+                tr.append($('<td>').text(i[4]));
+                tr.append(
+                    $('<td>').addClass('mpr-fill-td').append(
+                        $('<input type="number">')
+                        .attr('min', 0)
+                        .attr('max', i[2])
+                        .addClass('form-control form-control-sm view-mpr-additional-fill')
+                        .val(i[5])
+                    )
+                );
+                $('#view-mpr-additional-table').find('tbody').append(tr);
+            });
 
-                let replacement = [];
-                $(this).find('.mpr-replacement-position').each(function(){
-                    if(this.value){
-                        replacement.push({
-                            position: this.value,
-                            count: $(this).closest('tr').find('.mpr-replacement-number').val(),
-                            reason: $(this).closest('tr').find('.mpr-replacement-reason').val(),
-                            date: $(this).closest('tr').find('.mpr-replacement-dateneed').val()
-                        });
-                    }
-                });
+            $('#view-mpr-requestby').text(main_tr.find('td').eq(1).text());
+        });
 
-                let additional = [];
-                $(this).find('.mpr-additional-position').each(function(){
-                    if(this.value){
-                        additional.push({
-                            position: this.value,
-                            count: $(this).closest('tr').find('.mpr-additional-number').val(),
-                            reason: $(this).closest('tr').find('.mpr-additional-reason').val(),
-                            date: $(this).closest('tr').find('.mpr-additional-dateneed').val()
-                        });
-                    }
-                });
-            
-                let formData = new FormData();
-                formData.append('id', $('#mpr-id').val());
-                formData.append('replacement', JSON.stringify(replacement));
-                formData.append('additional', JSON.stringify(additional));
-                formData.append('nonnegotiable', $('#mpr-nonnegotiable').val());
+        $('#form-view-mpr').submit(async function(e) {
+            e.preventDefault();
 
-                let response = await fetch('/manpower/save', {
-                    method: "POST",
-                    body: formData,
-                    headers: {
-                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-
-                let result = await response.json();
-
-                if (response.ok && result.success) {
-                    $('.modal').modal('hide');
-                    alert('Saved');
-                    $('#mprTab button.active').click();
-                } else {
-                    $('#mpr-err').html(`<p style="color: red;">Error: ${result.error}</p>`);
+            let replacement = [];
+            $(this).find('.view-mpr-replacement-item').each(function() {
+                if ($(this).attr('position')) {
+                    replacement.push({
+                        position: $(this).attr('position'),
+                        count: $(this).attr('number'),
+                        reason: $(this).attr('reason'),
+                        date: $(this).attr('dateneed'),
+                        fill: $(this).find('.view-mpr-replacement-fill').val()
+                    });
                 }
             });
 
-            $('#form-decline-mpr').submit(async function(e){
-                e.preventDefault();
-
-                $('#decline-mpr-err').html("");
-
-                let formData = new FormData();
-                formData.append('id', $('#decline-mpr-id').val());
-                formData.append('stat', 'declined');
-                formData.append('reason', $('#decline-mpr-reason').val());
-
-                let response = await fetch('/manpower/stat', {
-                    method: "POST",
-                    body: formData,
-                    headers: {
-                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-
-                let result = await response.json();
-
-                if (response.ok && result.success) {
-                    $('.modal').modal('hide');
-                    alert('Declined');
-                    $('#mprTab button.active').click();
-                } else {
-                    $('#decline-mpr-err').html(`<p style="color: red;">Error: ${result.error}</p>`);
+            let additional = [];
+            $(this).find('.view-mpr-additional-item').each(function() {
+                if ($(this).attr('position')) {
+                    additional.push({
+                        position: $(this).attr('position'),
+                        count: $(this).attr('number'),
+                        reason: $(this).attr('reason'),
+                        date: $(this).attr('dateneed'),
+                        fill: $(this).find('.view-mpr-additional-fill').val()
+                    });
                 }
             });
 
+            let formData = new FormData();
+            formData.append('id', $('#view-mpr-id').val());
+            formData.append('replacement', JSON.stringify(replacement));
+            formData.append('additional', JSON.stringify(additional));
 
-            $('#modal-view-mpr').on('show.bs.modal', function(e){
-                if ($(e.relatedTarget).is('button')) return;
+            await postForm({
+                url: '/manpower/fill',
+                formData,
+                errSelector: '#view-mpr-err',
+                submitBtn: $('#btn-save-view-mpr'),
+                successMsg: 'Saved',
+                onSuccess: () => $('#modal-view-mpr').modal('hide')
+            });
+        });
 
-                let main_tr = $(e.relatedTarget);
-                $('#view-mpr-replacement-table').find('tbody').empty();
-                $('#view-mpr-additional-table').find('tbody').empty();
+        $('#modal-mpr-update').on('show.bs.modal', function(e) {
+            let btn = $(e.relatedTarget);
+            $('#mpr-update-id').val(btn.data('id') || '');
+            $('#mpr-update-action').val(btn.data('action') || '');
+            $('#mpr-update-action-label').text((btn.data('action') || '').toUpperCase());
+        });
 
-                let replacement = (main_tr.data('replacement') || []);
-                let additional = (main_tr.data('additional') || []);
-                
-                $('#view-mpr-id').val(main_tr.data('id') || '');
-                $('#view-mpr-nonnegotiable').html((main_tr.data('nonnegotiable') || '').replace(/\r?\n/g, '<br>'));
-                
-                replacement.forEach(i => {
-                    const tr = $('<tr/>');
-                    tr.addClass('view-mpr-replacement-item');
-                    tr.attr('position', i[1]);
-                    tr.attr('number', i[2]);
-                    tr.attr('reason', i[3]);
-                    tr.attr('dateneed', i[4]);
-                    tr.append('<td onclick="view_jobspec(\'' + i[1] + '\')" style="cursor: pointer;">'+i[0]+'</td>');
-                    tr.append('<td>'+i[2]+'</td>');
-                    tr.append('<td>'+i[3]+'</td>');
-                    tr.append('<td>'+i[4]+'</td>');
-                    tr.append('<td class="mpr-fill-td"><input type="number" min="0" max="'+i[2]+'" class="form-cotrol form-control-sm view-mpr-replacement-fill" value="'+i[5]+'"></td>');
-                    $('#view-mpr-replacement-table').find('tbody').append(tr);
+        $('#form-mpr-update').submit(async function(e) {
+            e.preventDefault();
+
+            let formData = new FormData();
+            formData.append('id', $('#mpr-update-id').val());
+            formData.append('action', $('#mpr-update-action').val());
+            formData.append('reason', $('#mpr-update-reason').val());
+
+            await postForm({
+                url: '/manpower/update',
+                formData,
+                errSelector: '#mpr-update-err',
+                submitBtn: $(this).find('[type="submit"]'),
+                successMsg: 'Saved',
+                onSuccess: () => $('#modal-mpr-update').modal('hide')
+            });
+        });
+
+        $('#form-mpr-jobspec').submit(async function(e) {
+            e.preventDefault();
+
+            let edu = [];
+            $('.mpr-jobspec-edu [type="checkbox"]:checked').each(function() {
+                const detail = $(this).closest('.mpr-jobspec-edu').find('.edu-detail').val();
+                edu.push({
+                    value: $(this).val(),
+                    detail: detail || null
                 });
-
-                additional.forEach(i => {
-                    const tr = $('<tr/>');
-                    tr.addClass('view-mpr-additional-item');
-                    tr.attr('position', i[1]);
-                    tr.attr('number', i[2]);
-                    tr.attr('reason', i[3]);
-                    tr.attr('dateneed', i[4]);
-                    tr.append('<td onclick="view_jobspec(\'' + i[1] + '\')" style="cursor: pointer;">'+i[0]+'</td>');
-                    tr.append('<td>'+i[2]+'</td>');
-                    tr.append('<td>'+i[3]+'</td>');
-                    tr.append('<td>'+i[4]+'</td>');
-                    tr.append('<td class="mpr-fill-td"><input type="number" min="0" max="'+i[2]+'" class="form-cotrol form-control-sm view-mpr-additional-fill" value="'+i[5]+'"></td>');
-                    $('#view-mpr-additional-table').find('tbody').append(tr);
-                });
-
-                $('#view-mpr-requestby').text(main_tr.find('td').eq(1).text());
             });
 
-            $('#form-view-mpr').submit(async function(e){
-                e.preventDefault();
+            let formData = new FormData();
+            formData.append('id', $('#mpr-jobspec-id').val());
+            formData.append('department', $('#mpr-jobspec-dept').val());
+            formData.append('section', $('#mpr-jobspec-section').val());
+            formData.append('position', $('#mpr-jobspec-pos').val());
+            formData.append('emplstat', $('#mpr-jobspec-emplstat').val());
+            formData.append('sex', $('#mpr-jobspec-gender').val());
+            formData.append('agerange', JSON.stringify([$('#mpr-jobspec-agemin').val(), $('#mpr-jobspec-agemax').val()]));
+            formData.append('education', JSON.stringify(edu));
+            formData.append('workexp', JSON.stringify($('.mpr-jobspec-workexp:checked').map((_, el) => el.value).get()));
+            formData.append('duties', $('#mpr-jobspec-duties').val());
+            formData.append('techcompetencies', $('#mpr-jobspec-technical').val());
+            formData.append('competencies', $('#mpr-jobspec-competenciesneeded').val());
+            formData.append('computerskill', JSON.stringify($('.mpr-jobspec-compskill:checked').map((_, el) => el.value).get()));
+            formData.append('otherskill', $('#mpr-jobspec-otherskill').val());
+            formData.append('mpa', $('[name="mpr-jobspec-metaprog-a"]:checked').val() || '');
+            formData.append('mpb', JSON.stringify([
+                $('[name="mpr-jobspec-metaprog-b1"]:checked').val() || '',
+                $('[name="mpr-jobspec-metaprog-b2"]:checked').val() || ''
+            ]));
+            formData.append('mpc', $('[name="mpr-jobspec-metaprog-c"]:checked').val() || '');
+            formData.append('mpd', $('[name="mpr-jobspec-metaprog-d"]:checked').val() || '');
+            formData.append('mpe', $('[name="mpr-jobspec-metaprog-e"]:checked').val() || '');
+            formData.append('mpf', JSON.stringify([
+                $('[name="mpr-jobspec-metaprog-f1"]:checked').val() || '',
+                $('[name="mpr-jobspec-metaprog-f2"]:checked').val() || ''
+            ]));
+            formData.append('mpg', $('[name="mpr-jobspec-metaprog-g"]:checked').val() || '');
+            formData.append('tapt', JSON.stringify($('.mpr-jobspec-tapt:checked').map((_, el) => el.value).get()));
+            formData.append('enneagram', JSON.stringify($('.mpr-jobspec-enneagram:checked').map((_, el) => el.value).get()));
+            formData.append('learnstyle', JSON.stringify($('.mpr-jobspec-learnstyle:checked').map((_, el) => el.value).get()));
+            formData.append('career', JSON.stringify($('.mpr-jobspec-career:checked').map((_, el) => el.value).get()));
+            formData.append('motivation', JSON.stringify($('.mpr-jobspec-motivation:checked').map((_, el) => el.value).get()));
+            formData.append('personality', JSON.stringify($('.mpr-jobspec-personality:checked').map((_, el) => el.value).get()));
+            formData.append('ravenl', JSON.stringify($('.mpr-jobspec-raven-low:checked').map((_, el) => el.value).get()));
+            formData.append('ravena', JSON.stringify($('.mpr-jobspec-raven-average:checked').map((_, el) => el.value).get()));
+            formData.append('ravenh', JSON.stringify($('.mpr-jobspec-raven-high:checked').map((_, el) => el.value).get()));
+            formData.append('leadership', $('#mpr-jobspec-leadership').val());
+            formData.append('remarks', $('#mpr-jobspec-remarks').val());
 
-                $('#view-mpr-err').html("");
-
-                let replacement = [];
-                $(this).find('.view-mpr-replacement-item').each(function(){
-                    if($(this).attr('position')){
-                        replacement.push({
-                            position: $(this).attr('position'),
-                            count: $(this).attr('number'),
-                            reason: $(this).attr('reason'),
-                            date: $(this).attr('dateneed'),
-                            fill: $(this).find('.view-mpr-replacement-fill').val()
-                        });
-                    }
-                });
-
-                let additional = [];
-                $(this).find('.view-mpr-additional-item').each(function(){
-                    if($(this).attr('position')){
-                        additional.push({
-                            position: $(this).attr('position'),
-                            count: $(this).attr('number'),
-                            reason: $(this).attr('reason'),
-                            date: $(this).attr('dateneed'),
-                            fill: $(this).find('.view-mpr-additional-fill').val()
-                        });
-                    }
-                });
-            
-                let formData = new FormData();
-                formData.append('id', $('#view-mpr-id').val());
-                formData.append('replacement', JSON.stringify(replacement));
-                formData.append('additional', JSON.stringify(additional));
-
-                let response = await fetch('/manpower/fill', {
-                    method: "POST",
-                    body: formData,
-                    headers: {
-                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-
-                let result = await response.json();
-
-                if (response.ok && result.success) {
-                    $('.modal').modal('hide');
-                    alert('Saved');
-                    $('#mprTab button.active').click();
-                } else {
-                    $('#view-mpr-err').html(`<p style="color: red;">Error: ${result.error}</p>`);
-                }
+            const ok = await postForm({
+                url: '/manpower/jobspec/save',
+                formData,
+                errSelector: '#mpr-jobspec-err',
+                submitBtn: $(this).find('[type="submit"]'),
+                successMsg: 'Saved',
+                onSuccess: () => $('#modal-mpr-jobspec').modal('hide')
             });
 
+            if (!ok) {
+                $('#modal-mpr-jobspec').animate({
+                    scrollTop: $('#mpr-jobspec-err').offset().top
+                }, 500);
+            }
+        });
 
-            $('#modal-mpr-update').on('show.bs.modal', function(e){
-                let btn = $(e.relatedTarget);
-                $('#mpr-update-id').val(btn.data('id') || '');
-                $('#mpr-update-action').val(btn.data('action') || '');
-                $('#mpr-update-action-label').text((btn.data('action') || '').toUpperCase());
-            });
-
-            $('#form-mpr-update').submit(async function(e){
-                e.preventDefault();
-                $('#mpr-update-err').html("");
-            
-                let formData = new FormData();
-                formData.append('id', $('#mpr-update-id').val());
-                formData.append('action', $('#mpr-update-action').val());
-                formData.append('reason', $('#mpr-update-reason').val());
-
-                let response = await fetch('/manpower/update', {
-                    method: "POST",
-                    body: formData,
-                    headers: {
-                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-
-                let result = await response.json();
-
-                if (response.ok && result.success) {
-                    $('.modal').modal('hide');
-                    alert('Saved');
-                    $('#mprTab button.active').click();
-                } else {
-                    $('#mpr-update-err').html(`<p style="color: red;">Error: ${result.error}</p>`);
-                }
-            });
-
-
-            $('#form-mpr-jobspec').submit(async function(e){
-                e.preventDefault();
-                $('#mpr-jobspec-err').html("");
-
-                let edu = [];
-                $('.mpr-jobspec-edu [type="checkbox"]:checked').each(function() {
-                    let item = $(this).val();
-                    const detail = $(this).closest('.mpr-jobspec-edu').find('.edu-detail').val();
-                    if(detail){
-                        item += '%&' + detail;
-                    }
-                    edu.push(item);
-                });
-
-                edu = edu.join('%#');
-
-                let formData = new FormData();
-                formData.append('id', $('#mpr-jobspec-id').val());
-                formData.append('department', $('#mpr-jobspec-dept').val());
-                formData.append('section', $('#mpr-jobspec-section').val());
-                formData.append('position', $('#mpr-jobspec-pos').val());
-                formData.append('emplstat', $('#mpr-jobspec-emplstat').val());
-                formData.append('sex', $('#mpr-jobspec-gender').val());
-                formData.append('agerange', $('#mpr-jobspec-agemin').val() + '-' + $('#mpr-jobspec-agemax').val());
-                formData.append('education', edu);
-                formData.append('workexp', $('.mpr-jobspec-workexp:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('duties', $('#mpr-jobspec-duties').val());
-                formData.append('techcompetencies', $('#mpr-jobspec-technical').val());
-                formData.append('competencies', $('#mpr-jobspec-competencies').val());
-                formData.append('computerskill', $('.mpr-jobspec-compskill:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('otherskill', $('#mpr-jobspec-otherskill').val());
-                formData.append('mpa', $('[name="mpr-jobspec-metaprog-a"]:checked').val());
-                formData.append('mpb', $('[name="mpr-jobspec-metaprog-b1"]:checked').val()+($('[name="mpr-jobspec-metaprog-b2"]:checked').val() ? '|' + $('[name="mpr-jobspec-metaprog-b2"]:checked').val() : ''));
-                formData.append('mpc', $('[name="mpr-jobspec-metaprog-c"]:checked').val());
-                formData.append('mpd', $('[name="mpr-jobspec-metaprog-d"]:checked').val());
-                formData.append('mpe', $('[name="mpr-jobspec-metaprog-e"]:checked').val());
-                formData.append('mpf', $('[name="mpr-jobspec-metaprog-f1"]:checked').val()+($('[name="mpr-jobspec-metaprog-f2"]:checked').val() ? '|' + $('[name="mpr-jobspec-metaprog-f2"]:checked').val() : ''));
-                formData.append('mpg', $('[name="mpr-jobspec-metaprog-g"]:checked').val());
-                formData.append('tapt', $('.mpr-jobspec-tapt:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('enneagram', $('.mpr-jobspec-enneagram:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('learnstyle', $('.mpr-jobspec-learnstyle:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('career', $('.mpr-jobspec-career:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('motivation', $('.mpr-jobspec-motivation:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('personality', $('.mpr-jobspec-personality:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('ravenl', $('.mpr-jobspec-raven-low:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('ravena', $('.mpr-jobspec-raven-average:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('ravenh', $('.mpr-jobspec-raven-high:checked').map((_, el) => el.value).get().join('%#'));
-                formData.append('leadership', $('#mpr-jobspec-leadership').val());
-                formData.append('remarks', $('#mpr-jobspec-remarks').val());
-
-                let response = await fetch('/manpower/jobspec/save', {
-                    method: "POST",
-                    body: formData,
-                    headers: {
-                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-
-                let result = await response.json();
-
-                if (response.ok && result.success) {
-                    $('.modal').modal('hide');
-                    alert('Saved');
-                    $('#jobspec-tab').click();
-                } else {
-                    $('#mpr-jobspec-err').html(`<p style="color: red;">Unable to proceed: ${result.error}</p>`);
-                    $('#modal-mpr-jobspec').animate({
-                        scrollTop: $('#mpr-jobspec-err').offset().top
-                    }, 500);
-                }
-            });
-
-            $('#modal-mpr-jobspec').on('show.bs.modal', async function(e){
-                try {
-
-                    const pos = $(e.relatedTarget).data('pos');
-
-                    $('#form-mpr-jobspec textarea').height('auto');
-                    $('#form-mpr-jobspec textarea').autoResize();
-
-                    $('#form-mpr-jobspec').find('textarea, select, input:not([type="checkbox"], [type="radio"])').val('');
-                    $('#form-mpr-jobspec').find('[type="checkbox"], [type="radio"]').prop('checked', false);
-
-                    $('.selectpicker').selectpicker('refresh');
-
-                    $('#form-mpr-jobspec fieldset').prop('disabled', true);
-
-                    if(!pos){
-                        $('#form-mpr-jobspec fieldset').prop('disabled', false);
-                        return;
-                    }
-
-                    const data = await get_spec(pos);
-
-                    if(!data['id']){
-                        $('#form-mpr-jobspec fieldset').prop('disabled', false);
-                        return;
-                    }
-
-                    $('#mpr-jobspec-id').val(data['id']);
-                    $('#mpr-jobspec-dept').val(data['department']);
-                    $('#mpr-jobspec-section').val(data['section']);
-                    $('#mpr-jobspec-pos').val(data['position']);
-                    $('#mpr-jobspec-emplstat').val(data['emplstat']);
-                    $('#mpr-jobspec-gender').val(data['sex']);
-                    $('#mpr-jobspec-agemin').val(data['agerange'][0] || '');
-                    $('#mpr-jobspec-agemax').val(data['agerange'][1] || '');
-                    
-                    for(i of (data['education']) || []) {
-                        let chk = $('.mpr-jobspec-edu input[value="' + (i[0] || '') + '"]');
-                        chk.prop('checked', true);
-                        chk.closest('.mpr-jobspec-edu').find('.edu-detail').val((i[1] || ''));
-                    }
-
-                    for(i of (data['workexp']) || []) {
-                        $('input.mpr-jobspec-workexp[value="' + i + '"]').prop('checked', true);
-                    }
-                    
-                    $('#mpr-jobspec-duties').val(data['duties']);
-                    $('#mpr-jobspec-technical').val(data['techcompetencies']);
-                    $('#mpr-jobspec-competenciesneeded').val(data['competencies']);
-
-                    for(i of (data['computerskill']) || []) {
-                        $('input.mpr-jobspec-compskill[value="' + i + '"]').prop('checked', true);
-                    }
-                    
-                    $('#mpr-jobspec-otherskill').val(data['otherskill']);
-
-                    $('input[name="mpr-jobspec-metaprog-a"][value="' + data['mpa'] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-b1"][value="' + data['mpb'][0] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-b2"][value="' + data['mpb'][1] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-c"][value="' + data['mpc'] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-d"][value="' + data['mpd'] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-e"][value="' + data['mpe'] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-f1"][value="' + data['mpf'][0] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-f2"][value="' + data['mpf'][1] + '"]').prop('checked', true);
-                    $('input[name="mpr-jobspec-metaprog-g"][value="' + data['mpg'] + '"]').prop('checked', true);
-
-                    for(i of (data['tapt'] || [])) {
-                        $('input.mpr-jobspec-tapt[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['enneagram'] || [])) {
-                        $('input.mpr-jobspec-enneagram[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['learnstyle'] || [])) {
-                        $('input.mpr-jobspec-learnstyle[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['career'] || [])) {
-                        $('input.mpr-jobspec-career[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['motivation'] || [])) {
-                        $('input.mpr-jobspec-motivation[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['personality'] || [])) {
-                        $('input.mpr-jobspec-personality[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['ravenl'] || [])) {
-                        $('input.mpr-jobspec-raven-low[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['ravena'] || [])) {
-                        $('input.mpr-jobspec-raven-average[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    for(i of (data['ravenh'] || [])) {
-                        $('input.mpr-jobspec-raven-high[value="' + i + '"]').prop('checked', true);
-                    }
-
-                    $('#mpr-jobspec-leadership').val(data['leadership']);
-                    $('#mpr-jobspec-remarks').val(data['remarks']);
-
-                    $('#form-mpr-jobspec fieldset').prop('disabled', false);
-
-                    $('.selectpicker').selectpicker('refresh');
-
-                } catch (error) {
-                    console.error('Error fetching the data:', error);
-                }
-            });
-
-            loadMPR('pending');
-        })
-
-        async function view_jobspec(pos) {
+        $('#modal-mpr-jobspec').on('show.bs.modal', async function(e) {
             try {
 
-                if(!pos) return;
+                const pos = $(e.relatedTarget).data('pos');
+
+                $('#form-mpr-jobspec textarea').each(function() {
+                    this.style.height = 'auto';
+                    this.style.height = this.scrollHeight + 'px';
+                }).on('input.autoresize', function() {
+                    this.style.height = 'auto';
+                    this.style.height = this.scrollHeight + 'px';
+                });
+
+                $('#form-mpr-jobspec').find('textarea, select, input:not([type="checkbox"], [type="radio"])').val('');
+                $('#form-mpr-jobspec').find('[type="checkbox"], [type="radio"]').prop('checked', false);
+
+                $('.selectpicker').selectpicker('refresh');
+
+                $('#form-mpr-jobspec fieldset').prop('disabled', true);
+
+                if (!pos) {
+                    $('#form-mpr-jobspec fieldset').prop('disabled', false);
+                    return;
+                }
 
                 const data = await get_spec(pos);
 
-                if(!data['id']) return;
-
-                $('#mpr-view-jobspec-dept').text(data['department_name']);
-                $('#mpr-view-jobspec-section').text(data['section_name']);
-                $('#mpr-view-jobspec-pos').text(data['position_name']);
-                $('#mpr-view-jobspec-emplstat').text(data['emplstat']);
-                $('#mpr-view-jobspec-gender').text(data['sex']);
-                $('#mpr-view-jobspec-age').text(data['agerange'] ? data['agerange'].join('-') : '');
-                
-                $('#mpr-view-jobspec-edu').html('');
-                for(i of (data['education']) || []) {
-                    $('#mpr-view-jobspec-edu').append('<label class="col-form-label col-form-label-sm col-12">- ' + i.join(': ') + '</label>');
+                if (!data || !data['id']) {
+                    $('#form-mpr-jobspec fieldset').prop('disabled', false);
+                    return;
                 }
 
-                $('#mpr-view-jobspec-workexp').html('');
-                for(i of (data['workexp']) || []) {
-                    $('#mpr-view-jobspec-workexp').append('<label class="col-form-label col-form-label-sm col-12">- ' + i + '</label>');
-                }
-                
-                $('#mpr-view-jobspec-duties').text(data['duties']);
-                $('#mpr-view-jobspec-technical').text(data['techcompetencies']);
-                $('#mpr-view-jobspec-competenciesneeded').text(data['competencies']);
+                $('#mpr-jobspec-id').val(data['id']);
+                $('#mpr-jobspec-dept').val(data['department']);
+                $('#mpr-jobspec-section').val(data['section']);
+                $('#mpr-jobspec-pos').val(data['position']);
+                $('#mpr-jobspec-emplstat').val(data['emplstat']);
+                $('#mpr-jobspec-gender').val(data['sex']);
 
-                $('#mpr-view-jobspec-compskill').html('');
-                for(i of (data['computerskill']) || []) {
-                    $('#mpr-view-jobspec-compskill').append('<label class="col-form-label col-form-label-sm col-12">- ' + i + '</label>');
-                }
-                
-                $('#mpr-view-jobspec-otherskill').text(data['otherskill']);
+                const agerange = data['agerange'] || [];
+                $('#mpr-jobspec-agemin').val(agerange[0] || '');
+                $('#mpr-jobspec-agemax').val(agerange[1] || '');
 
-                $('#mpr-view-jobspec-metaprog-a').text('-' + data['mpa']);
-                $('#mpr-view-jobspec-metaprog-b1').text('-' + data['mpb'][0]);
-                $('#mpr-view-jobspec-metaprog-b2').text('-' + data['mpb'][1]);
-                $('#mpr-view-jobspec-metaprog-c').text('-' + data['mpc']);
-                $('#mpr-view-jobspec-metaprog-d').text('-' + data['mpd']);
-                $('#mpr-view-jobspec-metaprog-e').text('-' + data['mpe']);
-                $('#mpr-view-jobspec-metaprog-f1').text('-' + data['mpf'][0]);
-                $('#mpr-view-jobspec-metaprog-f2').text('-' + data['mpf'][1]);
-                $('#mpr-view-jobspec-metaprog-g').text('-' + data['mpg']);
-
-                $('#mpr-view-jobspec-tapt').html('');
-                for(i of (data['tapt'] || [])) {
-                    $('#mpr-view-jobspec-tapt').append('<label class="col-form-label col-form-label-sm col-md">- ' + i + '</label>');
+                for (const i of (data['education'] || [])) {
+                    const val = i.value ?? i[0];
+                    const detail = i.detail ?? i[1];
+                    let chk = $('.mpr-jobspec-edu input[value="' + (val || '') + '"]');
+                    chk.prop('checked', true);
+                    chk.closest('.mpr-jobspec-edu').find('.edu-detail').val(detail || '');
                 }
 
-                $('#mpr-view-jobspec-enneagram').html('');
-                for(i of (data['enneagram'] || [])) {
-                    $('#mpr-view-jobspec-enneagram').append('<label class="col-form-label col-form-label-sm col-md">- ' + i + '</label>');
+                for (const i of (data['workexp'] || [])) {
+                    $('input.mpr-jobspec-workexp[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-learnstyle').html('');
-                for(i of (data['learnstyle'] || [])) {
-                    $('#mpr-view-jobspec-learnstyle').append('<label class="col-form-label col-form-label-sm col-md">- ' + i + '</label>');
+                $('#mpr-jobspec-duties').val(data['duties']);
+                $('#mpr-jobspec-technical').val(data['techcompetencies']);
+                $('#mpr-jobspec-competenciesneeded').val(data['competencies']);
+
+                for (const i of (data['computerskill'] || [])) {
+                    $('input.mpr-jobspec-compskill[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-career').html('');
-                for(i of (data['career'] || [])) {
-                    $('#mpr-view-jobspec-career').append('<label class="col-form-label col-form-label-sm col-md">- ' + i + '</label>');
+                $('#mpr-jobspec-otherskill').val(data['otherskill']);
+
+                const mpb = data['mpb'] || [];
+                const mpf = data['mpf'] || [];
+
+                $('input[name="mpr-jobspec-metaprog-a"][value="' + data['mpa'] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-b1"][value="' + mpb[0] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-b2"][value="' + mpb[1] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-c"][value="' + data['mpc'] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-d"][value="' + data['mpd'] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-e"][value="' + data['mpe'] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-f1"][value="' + mpf[0] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-f2"][value="' + mpf[1] + '"]').prop('checked', true);
+                $('input[name="mpr-jobspec-metaprog-g"][value="' + data['mpg'] + '"]').prop('checked', true);
+
+                for (const i of (data['tapt'] || [])) {
+                    $('input.mpr-jobspec-tapt[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-motivation').html('');
-                for(i of (data['motivation'] || [])) {
-                    $('#mpr-view-jobspec-motivation').append('<label class="col-form-label col-form-label-sm col-md">- ' + i + '</label>');
+                for (const i of (data['enneagram'] || [])) {
+                    $('input.mpr-jobspec-enneagram[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-personality').html('');
-                for(i of (data['personality'] || [])) {
-                    $('#mpr-view-jobspec-personality').append('<label class="col-form-label col-form-label-sm col-md">- ' + i + '</label>');
+                for (const i of (data['learnstyle'] || [])) {
+                    $('input.mpr-jobspec-learnstyle[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-raven-low').html('');
-                for(i of (data['ravenl'] || [])) {
-                    $('#mpr-view-jobspec-raven-low').append('<label class="col-form-label col-form-label-sm col-12">- ' + i + '</label>');
+                for (const i of (data['career'] || [])) {
+                    $('input.mpr-jobspec-career[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-raven-average').html('');
-                for(i of (data['ravena'] || [])) {
-                    $('#mpr-view-jobspec-raven-average').append('<label class="col-form-label col-form-label-sm col-12">- ' + i + '</label>');
+                for (const i of (data['motivation'] || [])) {
+                    $('input.mpr-jobspec-motivation[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-raven-high').html('');
-                for(i of (data['ravenh'] || [])) {
-                    $('#mpr-view-jobspec-raven-high').append('<label class="col-form-label col-form-label-sm col-12">- ' + i + '</label>');
+                for (const i of (data['personality'] || [])) {
+                    $('input.mpr-jobspec-personality[value="' + i + '"]').prop('checked', true);
                 }
 
-                $('#mpr-view-jobspec-leadership').text(data['leadership']);
-                $('#mpr-view-jobspec-remarks').text(data['remarks']);
+                for (const i of (data['ravenl'] || [])) {
+                    $('input.mpr-jobspec-raven-low[value="' + i + '"]').prop('checked', true);
+                }
 
-                $('#modal-mpr-view-jobspec').modal('show')
+                for (const i of (data['ravena'] || [])) {
+                    $('input.mpr-jobspec-raven-average[value="' + i + '"]').prop('checked', true);
+                }
+
+                for (const i of (data['ravenh'] || [])) {
+                    $('input.mpr-jobspec-raven-high[value="' + i + '"]').prop('checked', true);
+                }
+
+                $('#mpr-jobspec-leadership').val(data['leadership']);
+                $('#mpr-jobspec-remarks').val(data['remarks']);
+
+                $('#form-mpr-jobspec fieldset').prop('disabled', false);
+
+                $('.selectpicker').selectpicker('refresh');
 
             } catch (error) {
                 console.error('Error fetching the data:', error);
+                $('#form-mpr-jobspec fieldset').prop('disabled', false);
             }
-        }
+        });
 
-        async function loadMPR(stat, id = null) {
-            $('#'+stat+'-tab-pane').html('Loading...');
-            try {
-                // Make the fetch request to the Laravel controller
-                const response = await fetch('/manpower/list/' + stat);
-                
-                if (!response.ok) { // Check if the response was successful
-                    throw new Error('Network response was not ok');
+        loadMPR('pending');
+        loadCounts();
+    })
+
+    async function view_jobspec(pos) {
+        try {
+
+            if (!pos) return;
+
+            const data = await get_spec(pos);
+
+            if (!data || !data['id']) return;
+
+            $('#mpr-view-jobspec-dept').text(data['department_name']);
+            $('#mpr-view-jobspec-section').text(data['section_name']);
+            $('#mpr-view-jobspec-pos').text(data['position_name']);
+            $('#mpr-view-jobspec-emplstat').text(data['emplstat']);
+            $('#mpr-view-jobspec-gender').text(data['sex']);
+            $('#mpr-view-jobspec-age').text(data['agerange'] ? data['agerange'].join('-') : '');
+
+            $('#mpr-view-jobspec-edu').empty();
+            for (const i of (data['education'] || [])) {
+                const val = i.value ?? i[0];
+                const detail = i.detail ?? i[1];
+                const label = detail ? `${val}: ${detail}` : val;
+                $('#mpr-view-jobspec-edu').append(
+                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + label)
+                );
+            }
+
+            $('#mpr-view-jobspec-workexp').empty();
+            for (const i of (data['workexp'] || [])) {
+                $('#mpr-view-jobspec-workexp').append(
+                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-duties').text(data['duties']);
+            $('#mpr-view-jobspec-technical').text(data['techcompetencies']);
+            $('#mpr-view-jobspec-competenciesneeded').text(data['competencies']);
+
+            $('#mpr-view-jobspec-compskill').empty();
+            for (const i of (data['computerskill'] || [])) {
+                $('#mpr-view-jobspec-compskill').append(
+                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-otherskill').text(data['otherskill']);
+
+            const mpb = data['mpb'] || [];
+            const mpf = data['mpf'] || [];
+
+            $('#mpr-view-jobspec-metaprog-a').text('-' + (data['mpa'] || ''));
+            $('#mpr-view-jobspec-metaprog-b1').text('-' + (mpb[0] || ''));
+            $('#mpr-view-jobspec-metaprog-b2').text('-' + (mpb[1] || ''));
+            $('#mpr-view-jobspec-metaprog-c').text('-' + (data['mpc'] || ''));
+            $('#mpr-view-jobspec-metaprog-d').text('-' + (data['mpd'] || ''));
+            $('#mpr-view-jobspec-metaprog-e').text('-' + (data['mpe'] || ''));
+            $('#mpr-view-jobspec-metaprog-f1').text('-' + (mpf[0] || ''));
+            $('#mpr-view-jobspec-metaprog-f2').text('-' + (mpf[1] || ''));
+            $('#mpr-view-jobspec-metaprog-g').text('-' + (data['mpg'] || ''));
+
+            $('#mpr-view-jobspec-tapt').empty();
+            for (const i of (data['tapt'] || [])) {
+                $('#mpr-view-jobspec-tapt').append(
+                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-enneagram').empty();
+            for (const i of (data['enneagram'] || [])) {
+                $('#mpr-view-jobspec-enneagram').append(
+                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-learnstyle').empty();
+            for (const i of (data['learnstyle'] || [])) {
+                $('#mpr-view-jobspec-learnstyle').append(
+                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-career').empty();
+            for (const i of (data['career'] || [])) {
+                $('#mpr-view-jobspec-career').append(
+                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-motivation').empty();
+            for (const i of (data['motivation'] || [])) {
+                $('#mpr-view-jobspec-motivation').append(
+                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-personality').empty();
+            for (const i of (data['personality'] || [])) {
+                $('#mpr-view-jobspec-personality').append(
+                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-raven-low').empty();
+            for (const i of (data['ravenl'] || [])) {
+                $('#mpr-view-jobspec-raven-low').append(
+                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-raven-average').empty();
+            for (const i of (data['ravena'] || [])) {
+                $('#mpr-view-jobspec-raven-average').append(
+                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-raven-high').empty();
+            for (const i of (data['ravenh'] || [])) {
+                $('#mpr-view-jobspec-raven-high').append(
+                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
+                );
+            }
+
+            $('#mpr-view-jobspec-leadership').text(data['leadership']);
+            $('#mpr-view-jobspec-remarks').text(data['remarks']);
+
+            $('#modal-mpr-view-jobspec').modal('show')
+
+        } catch (error) {
+            console.error('Error fetching the data:', error);
+        }
+    }
+
+    async function loadMPR(stat) {
+        const $pane = $('#' + stat + '-tab-pane');
+        $pane.html('<div class="mpr-empty"><i class="fa fa-spinner fa-spin"></i><div>Loading...</div></div>');
+        try {
+            const response = await fetch('/manpower/list/' + stat);
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const html = await response.text();
+
+            $pane.html(html);
+
+            const $table = $pane.find('table').first();
+
+            if ($table.length === 0) {
+                // No table at all means the partial already rendered its
+                // own empty state — leave it as-is. Otherwise, fall back
+                // to a generic empty state.
+            } else {
+                if ($.fn.DataTable.isDataTable($table)) {
+                    $table.DataTable().destroy();
                 }
 
-                // Get the response text (HTML)
-                const html = await response.text();
-
-                // Inject the received HTML into the DOM
-                $('#'+stat+'-tab-pane').html(html);
-                $('#'+stat+'-tab-pane > table').DataTable({
+                const api = $table.DataTable({
                     scrollY: '55vh',
                     scrollCollapse: true,
-                    lengthMenu: [50, 100, { label: 'All', value: -1 }],
-                    ordering: false
+                    lengthMenu: [50, 100, {
+                        label: 'All',
+                        value: -1
+                    }],
+                    ordering: false,
+                    dom: 'rt', // hide DataTables' built-in search/length/info UI; ours replaces it
+                    drawCallback: function(settings) {
+                        const api = this.api();
+                        const info = api.page.info();
+                        $('#mpr-results-count').text(info.recordsDisplay + ' result' + (info.recordsDisplay === 1 ? '' : 's'));
+                        renderPager(api);
+                    }
                 });
-            } catch (error) {
-                console.error('Error fetching the list:', error);
+                $('#mpr-page-length').val(String(api.page.len()));
             }
+        } catch (error) {
+            console.error('Error fetching the list:', error);
+            $pane.html('<div class="mpr-empty"><i class="fa fa-exclamation-triangle"></i><div>Failed to load. Please try again.</div></div>');
         }
+    }
 
-        async function get_spec(pos) {
-            try {
-                const response = await fetch('/manpower/jobspec/' + pos);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
+    /**
+     * Optional: populate the per-tab count badges in the header strip.
+     * Expects an endpoint returning JSON like:
+     *   { draft: 3, pending: 7, approved: 12, update: 2, cancelled: 0, declined: 1 }
+     * If that endpoint doesn't exist yet, this fails silently and the
+     * badges just stay blank — wire up /manpower/counts (or similar)
+     * on the backend to light them up.
+     */
+    async function loadCounts() {
+        try {
+            const response = await fetch('/manpower/counts');
+            if (!response.ok) return;
+            const counts = await response.json();
+            Object.keys(counts).forEach(stat => {
+                $('.mpr-tab-count[data-count="' + stat + '"]').text(counts[stat]);
+            });
+        } catch (error) {
+            // Endpoint not available yet — badges remain blank.
+        }
+    }
 
-                return data;
-
-            } catch (error) {
-                console.error('Error fetching the data:', error);
-                return;
+    async function get_spec(pos) {
+        try {
+            const response = await fetch('/manpower/jobspec/' + pos);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching the data:', error);
+            return null;
         }
+    }
 
-        async function remove_mpr(id) {
-            try {
-                if (confirm("Are you sure?")) {
+    async function remove_mpr(id) {
+        if (!confirm("Are you sure?")) return;
 
-                    let response = await fetch('/manpower/delete/'+id, {
-                        method: "DELETE",
-                        headers: {
-                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                        }
-                    });
+        let formData = new FormData();
+        // Some backends prefer DELETE with no body; keeping id in case a query/body param is needed.
+        await postForm({
+            url: '/manpower/delete/' + id,
+            formData,
+            errSelector: '#mpr-err',
+            successMsg: 'Removed',
+            onSuccess: () => {},
+            method: 'DELETE'
+        });
+    }
 
-                    let result = await response.json();
+    async function approve(id) {
+        if (!confirm("Are you sure?")) return;
 
-                    if (response.ok && result.success) {
-                        alert('Removed');
-                        $('#mprTab button.active').click();
-                    } else {
-                        alert('Failed remove to post');
-                        console.log(`Error: ${result.error}`);
-                    }
-                }
+        let formData = new FormData();
+        formData.append('id', id);
+        formData.append('stat', 'approved');
 
-            } catch (error) {
-                console.error('Error fetching the list:', error);
-            }
-        }
+        await postForm({
+            url: '/manpower/stat',
+            formData,
+            errSelector: '#mpr-err',
+            successMsg: 'Approved',
+            onSuccess: () => {}
+        });
+    }
 
-        async function approve(id) {
-            try {
-                if (confirm("Are you sure?")) {
-                    let formData = new FormData();
-                    formData.append('id', id);
-                    formData.append('stat', 'approved');
+    async function approve_update(id) {
+        if (!confirm("Are you sure?")) return;
 
-                    let response = await fetch('/manpower/stat', {
-                        method: "POST",
-                        body: formData,
-                        headers: {
-                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                        }
-                    });
+        let formData = new FormData();
+        await postForm({
+            url: '/manpower/update/approve/' + id,
+            formData,
+            errSelector: '#mpr-err',
+            successMsg: 'Approved',
+            onSuccess: () => {}
+        });
+    }
 
-                    let result = await response.json();
+    async function decline_update(id) {
+        if (!confirm("Are you sure?")) return;
 
-                    if (response.ok && result.success) {
-                        alert('Approved');
-                        $('#mprTab button.active').click();
-                    } else {
-                        alert('Failed remove to post');
-                        console.log(`Error: ${result.error}`);
-                    }
-                }
+        let formData = new FormData();
+        await postForm({
+            url: '/manpower/update/decline/' + id,
+            formData,
+            errSelector: '#mpr-err',
+            successMsg: 'Declined',
+            onSuccess: () => {}
+        });
+    }
 
-            } catch (error) {
-                console.error('Error fetching the list:', error);
-            }
-        }
-
-        async function approve_update(id) {
-            try {
-                if (confirm("Are you sure?")) {
-                    let response = await fetch('/manpower/update/approve/' + id, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                        }
-                    });
-
-                    let result = await response.json();
-
-                    if (response.ok && result.success) {
-                        alert('Approved');
-                        $('#mprTab button.active').click();
-                    } else {
-                        alert('Failed remove to post');
-                        console.log(`Error: ${result.error}`);
-                    }
-                }
-
-            } catch (error) {
-                console.error('Error fetching the list:', error);
-            }
-        }
-
-        async function decline_update(id) {
-            try {
-                if (confirm("Are you sure?")) {
-                    let response = await fetch('/manpower/update/decline/' + id, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
-                        }
-                    });
-
-                    let result = await response.json();
-
-                    if (response.ok && result.success) {
-                        alert('Declined');
-                        $('#mprTab button.active').click();
-                    } else {
-                        alert('Failed remove to post');
-                        console.log(`Error: ${result.error}`);
-                    }
-                }
-
-            } catch (error) {
-                console.error('Error fetching the list:', error);
-            }
-        }
-
-        function decline(id) {
-            $('#decline-mpr-id').val(id);
-            $('#decline-mpr-reason').val('');
-            $('#modal-decline-mpr').modal('show');
-        }
-    </script>
+    function decline(id) {
+        $('#decline-mpr-id').val(id);
+        $('#decline-mpr-reason').val('');
+        $('#modal-decline-mpr').modal('show');
+    }
+</script>
 @stop
