@@ -439,6 +439,43 @@ class ManpowerRequestController extends Controller
                 'remarks' => 'nullable|string'
             ]);
 
+            // The front-end submits these fields as JSON-encoded arrays, but
+            // viewSpec() below reads them back with explode() on legacy
+            // delimiters ('-', '%#', '%&', '|'). Convert here so both
+            // directions stay in sync — this is also what was overflowing
+            // jspec_agerange (a JSON array is longer than "20-30").
+            $toDelimited = function ($json, string $glue) {
+                $arr = json_decode($json, true);
+                return is_array($arr) ? implode($glue, $arr) : (string) $json;
+            };
+
+            $agerange = json_decode($validated['agerange'], true) ?: [];
+            $validated['agerange'] = ($agerange[0] ?? '') . '-' . ($agerange[1] ?? '');
+
+            $education = json_decode($validated['education'], true) ?: [];
+            $validated['education'] = implode('%#', array_map(
+                fn($e) => ($e['value'] ?? '') . '%&' . ($e['detail'] ?? ''),
+                $education
+            ));
+
+            $validated['workexp'] = $toDelimited($validated['workexp'], '%#');
+            $validated['computerskill'] = $toDelimited($validated['computerskill'], '%#');
+            $validated['tapt'] = $toDelimited($validated['tapt'], '%#');
+            $validated['enneagram'] = $toDelimited($validated['enneagram'], '%#');
+            $validated['learnstyle'] = $toDelimited($validated['learnstyle'], '%#');
+            $validated['career'] = $toDelimited($validated['career'], '%#');
+            $validated['motivation'] = $toDelimited($validated['motivation'], '%#');
+            $validated['personality'] = $toDelimited($validated['personality'], '%#');
+            $validated['ravenl'] = $toDelimited($validated['ravenl'], '%#');
+            $validated['ravena'] = $toDelimited($validated['ravena'], '%#');
+            $validated['ravenh'] = $toDelimited($validated['ravenh'], '%#');
+
+            $mpb = json_decode($validated['mpb'], true) ?: [];
+            $validated['mpb'] = ($mpb[0] ?? '') . '|' . ($mpb[1] ?? '');
+
+            $mpf = json_decode($validated['mpf'], true) ?: [];
+            $validated['mpf'] = ($mpf[0] ?? '') . '|' . ($mpf[1] ?? '');
+
             $data = [
                 'jspec_department' => $validated['department'],
                 'jspec_section' => $validated['section'],
@@ -473,7 +510,7 @@ class ManpowerRequestController extends Controller
                 'jspec_remarks' => $validated['remarks']
             ];
 
-            if (DB::connection('hrd2')->table('tbl_jobspec')->where([
+            if (DB::table('tbl_jobspec')->where([
                 ['jspec_position', '=', $validated['position']],
                 ['jspec_id', '!=', $validated['id']]
             ])->count() > 0) {
@@ -481,9 +518,9 @@ class ManpowerRequestController extends Controller
             }
 
             if ($validated['id']) {
-                DB::connection('hrd2')->table('tbl_jobspec')->where('jspec_id', $validated['id'])->update($data);
+                DB::table('tbl_jobspec')->where('jspec_id', $validated['id'])->update($data);
             } else {
-                DB::connection('hrd2')->table('tbl_jobspec')->insert($data);
+                DB::table('tbl_jobspec')->insert($data);
             }
 
             return response()->json(['success' => true]);

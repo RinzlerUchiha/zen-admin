@@ -709,6 +709,106 @@
     #form-mpr-jobspec [type="radio"] {
         border: 1px solid var(--bs-dark);
     }
+
+    /* ---------- Applicant picker + interview history (new) ---------- */
+    #mpr-app .mpr-applicant-select {
+        font-size: 12px;
+        border-radius: var(--mpr-radius-sm);
+    }
+
+    #mpr-app .mpr-iv-toggle-group {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    #mpr-app .mpr-iv-toggle {
+        border-radius: 999px;
+        font-size: 11px;
+        padding: 4px 12px;
+        font-weight: 500;
+        border: 1px solid var(--mpr-border-strong);
+        background: var(--mpr-bg-raised);
+        color: var(--mpr-text-muted);
+    }
+
+    #mpr-app .mpr-iv-toggle.active {
+        background: var(--mpr-accent);
+        border-color: var(--mpr-accent);
+        color: #fff;
+    }
+
+    #mpr-app .mpr-iv-toggle:hover:not(.active) {
+        background: var(--mpr-bg-input);
+        color: var(--mpr-text);
+    }
+
+    #mpr-app #mpr-applicant-interview-panel {
+        margin-top: 4px;
+        margin-bottom: 16px;
+    }
+
+    #mpr-app .mpr-iv-detail-card {
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius-sm);
+        background: var(--mpr-bg-raised);
+        padding: 12px;
+    }
+
+    #mpr-app .mpr-iv-detail-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        color: var(--mpr-text-muted);
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    #mpr-app .mpr-iv-detail-value {
+        font-size: 13px;
+        color: var(--mpr-text);
+        margin-bottom: 10px;
+    }
+
+    #mpr-app .mpr-iv-richbox {
+        border: 1px solid var(--mpr-border);
+        border-radius: var(--mpr-radius-sm);
+        background: var(--mpr-bg-input);
+        padding: 8px 10px;
+        font-size: 12px;
+        min-height: 48px;
+        color: var(--mpr-text);
+    }
+
+    #mpr-app .mpr-iv-empty {
+        color: var(--mpr-text-muted);
+        font-size: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+
+    #mpr-app .mpr-iv-verdict-pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    #mpr-app .mpr-iv-verdict-pill.hired {
+        background: var(--mpr-green-soft);
+        color: var(--mpr-green);
+    }
+
+    #mpr-app .mpr-iv-verdict-pill.not-hired {
+        background: var(--mpr-red-soft);
+        color: var(--mpr-red);
+    }
+
+    #mpr-app .mpr-iv-verdict-pill.pending {
+        background: var(--mpr-bg-input);
+        color: var(--mpr-text-muted);
+    }
 </style>
 
 <div id="mpr-app">
@@ -911,17 +1011,18 @@
                         </div>
 
                         <div class="mpr-section-divider additional"><span class="dot"></span> Additional</div>
-                        <div class="row mb-4">
+                        <div class="row mb-2">
                             <div class="col-12">
                                 <div class="mpr-card-table">
                                     <table class="table table-sm table-borderless w-100 mb-0" id="mpr-additional-table">
                                         <thead>
                                             <tr>
-                                                <th>Subject/Position</th>
-                                                <th>Number Needed</th>
+                                                <th width="26%">Subject/Position</th>
+                                                <th width="26%">Applicant</th>
+                                                <th width="10%">Number Needed</th>
                                                 <th>Reason</th>
-                                                <th>Date Needed</th>
-                                                <th></th>
+                                                <th width="13%">Date Needed</th>
+                                                <th width="30px"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -931,6 +1032,17 @@
                                                         <option value disabled selected>-</option>
                                                         @foreach ($jobspec->where('jspec_department', $userJobInfo?->jrec_department) as $j)
                                                         <option value="{{ $j->jspec_position }}">{{ $j->jd_title }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <!-- Applicant picker — beside the subject/position field.
+                                                         Selecting an applicant here drives the interview-round
+                                                         toggle panel below the table. -->
+                                                    <select class="form-select form-select-sm mpr-additional-applicant">
+                                                        <option value="">-</option>
+                                                        @foreach ($applicants ?? [] as $a)
+                                                        <option value="{{ $a->app_id }}">{{ $a->app_name }}</option>
                                                         @endforeach
                                                     </select>
                                                 </td>
@@ -951,6 +1063,71 @@
                                         </tbody>
                                     </table>
                                     <button type="button" class="btn-add-row-full btn-add-row"><i class="fa fa-plus" aria-hidden="true"></i> Add additional position</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Applicant interview round toggles + detail panel.
+                             Hidden until an applicant is selected in any
+                             .mpr-additional-applicant dropdown above. -->
+                        <div class="row mb-4" id="mpr-applicant-interview-panel" style="display:none;">
+                            <div class="col-12">
+                                <div class="mpr-section-divider additional">
+                                    <span class="dot"></span> Applicant interview history
+                                    <span class="mpr-section-hint" id="mpr-iv-applicant-name"></span>
+                                </div>
+
+                                <div class="mb-2 mpr-iv-toggle-group" id="mpr-interview-type-toggles">
+                                    <!-- toggle buttons injected by JS, one per interview round the applicant has -->
+                                </div>
+
+                                <div class="mpr-iv-detail-card" id="mpr-iv-detail-card">
+                                    <div class="mpr-iv-empty" id="mpr-iv-empty-state">
+                                        Select an applicant to view interview history.
+                                    </div>
+
+                                    <div id="mpr-iv-detail-body" style="display:none;">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mpr-iv-detail-label">Interviewer</div>
+                                                <div class="mpr-iv-detail-value" id="mpr-iv-interviewer">-</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mpr-iv-detail-label">Date</div>
+                                                <div class="mpr-iv-detail-value" id="mpr-iv-date">-</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mpr-iv-detail-label">Department</div>
+                                                <div class="mpr-iv-detail-value" id="mpr-iv-department">-</div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="mpr-iv-detail-label">Company</div>
+                                                <div class="mpr-iv-detail-value" id="mpr-iv-company">-</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mpr-iv-detail-label">Position</div>
+                                                <div class="mpr-iv-detail-value" id="mpr-iv-position">-</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="mpr-iv-detail-label">Verdict</div>
+                                                <div class="mpr-iv-detail-value">
+                                                    <span class="mpr-iv-verdict-pill pending" id="mpr-iv-verdict">-</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mpr-iv-detail-label">Remarks</div>
+                                                <div class="mpr-iv-richbox" id="mpr-iv-remarks"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mpr-iv-detail-label">Recommendation</div>
+                                                <div class="mpr-iv-richbox" id="mpr-iv-recommendation"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2118,6 +2295,10 @@
 <script>
     let curtab = 'pending';
 
+    // Cache of interview-round data for the currently-selected applicant,
+    // keyed by interview type, e.g. { "Initial": {...}, "2nd Prelim": {...} }
+    let currentApplicantInterviews = {};
+
     /**
      * Centralized POST helper used by every modal form on this page.
      * Handles CSRF header, error rendering, double-submit prevention,
@@ -2224,6 +2405,100 @@
             .appendTo($btns);
     }
 
+    /* ---------- Applicant interview history (new) ---------- */
+
+    /** Resets the interview panel back to its empty / hidden state. */
+    function resetApplicantInterviewPanel() {
+        currentApplicantInterviews = {};
+        $('#mpr-interview-type-toggles').empty();
+        $('#mpr-iv-applicant-name').text('');
+        $('#mpr-iv-empty-state').show().text('Select an applicant to view interview history.');
+        $('#mpr-iv-detail-body').hide();
+    }
+
+    /** Builds the verdict pill class from a verdict string. */
+    function verdictPillClass(verdict) {
+        if (verdict === 'Hired') return 'hired';
+        if (verdict === 'Not Hired') return 'not-hired';
+        return 'pending';
+    }
+
+    /** Renders one interview round's data into the detail card. */
+    function showInterviewDetail(type) {
+        const data = currentApplicantInterviews[type] || {};
+
+        $('.mpr-iv-toggle').removeClass('active');
+        $('.mpr-iv-toggle[data-type="' + type + '"]').addClass('active');
+
+        $('#mpr-iv-interviewer').text(data.interviewer_name || '—');
+        $('#mpr-iv-date').text(data.interview_date || '—');
+        $('#mpr-iv-department').text(data.department || '—');
+        $('#mpr-iv-company').text(data.company || '—');
+        $('#mpr-iv-position').text(data.position || '—');
+
+        const verdict = data.verdict || 'Pending';
+        $('#mpr-iv-verdict')
+            .removeClass('hired not-hired pending')
+            .addClass(verdictPillClass(data.verdict))
+            .text(verdict);
+
+        $('#mpr-iv-remarks').html(data.remarks || '<span class="text-muted">No remarks recorded.</span>');
+        $('#mpr-iv-recommendation').html(data.recommendation || '<span class="text-muted">No recommendation recorded.</span>');
+
+        $('#mpr-iv-empty-state').hide();
+        $('#mpr-iv-detail-body').show();
+    }
+
+    /** Fetches interview history for an applicant and rebuilds the toggle row. */
+    async function loadApplicantInterviewHistory(appId, applicantLabel) {
+        const $panel = $('#mpr-applicant-interview-panel');
+        const $toggles = $('#mpr-interview-type-toggles').empty();
+
+        if (!appId) {
+            $panel.hide();
+            resetApplicantInterviewPanel();
+            return;
+        }
+
+        $panel.show();
+        $('#mpr-iv-applicant-name').text(applicantLabel ? '— ' + applicantLabel : '');
+        $('#mpr-iv-empty-state').show().text('Loading interview history…');
+        $('#mpr-iv-detail-body').hide();
+
+        try {
+            const response = await fetch('/manpower/applicant/' + appId + '/interviews');
+            if (!response.ok) throw new Error('Failed to fetch interview history');
+
+            currentApplicantInterviews = await response.json(); // { "Initial": {...}, "2nd Prelim": {...}, "Final": {...} }
+            const types = Object.keys(currentApplicantInterviews);
+
+            if (types.length === 0) {
+                $('#mpr-iv-empty-state').show().text('This applicant has no recorded interviews yet.');
+                $('#mpr-iv-detail-body').hide();
+                return;
+            }
+
+            types.forEach((type, idx) => {
+                $('<button type="button">')
+                    .addClass('mpr-iv-toggle')
+                    .toggleClass('active', idx === 0)
+                    .attr('data-type', type)
+                    .text(type)
+                    .on('click', function() {
+                        showInterviewDetail($(this).data('type'));
+                    })
+                    .appendTo($toggles);
+            });
+
+            showInterviewDetail(types[0]);
+
+        } catch (error) {
+            console.error('Error fetching interview history:', error);
+            $('#mpr-iv-empty-state').show().text('Failed to load interview history. Please try again.');
+            $('#mpr-iv-detail-body').hide();
+        }
+    }
+
     $(function() {
         const tr_replacement = $('#mpr-replacement-table').find('tbody tr').first();
         const tr_additional = $('#mpr-additional-table').find('tbody tr').first();
@@ -2259,6 +2534,15 @@
             $(this).closest('tr').remove();
         });
 
+        /* Applicant picker (delegated so it works on cloned rows too).
+           Selecting an applicant beside the additional-position field
+           loads their interview history into the panel below the table. */
+        $('#mpr-additional-table').on('change', '.mpr-additional-applicant', function() {
+            const appId = $(this).val();
+            const label = $(this).find('option:selected').text();
+            loadApplicantInterviewHistory(appId, appId ? label : '');
+        });
+
         /* Simple client-side filter wired to the new search box; relies on
            DataTables' search() if the active table is a DataTable. */
         $('#mpr-global-search').on('keyup', function() {
@@ -2278,6 +2562,8 @@
             let btn = $(e.relatedTarget);
             $('#mpr-replacement-table').find('tbody').empty();
             $('#mpr-additional-table').find('tbody').empty();
+            resetApplicantInterviewPanel();
+            $('#mpr-applicant-interview-panel').hide();
 
             let replacement = (btn.data('replacement') || '').match(/\[([^\]]+)\]/g);
             replacement = (replacement || []).map(group =>
@@ -2307,6 +2593,10 @@
                 tr.find('.mpr-additional-number').val(i[1]);
                 tr.find('.mpr-additional-reason').val(i[2]);
                 tr.find('.mpr-additional-dateneed').val(i[3]);
+                // i[4] reserved for applicant id if you persist it on edit
+                if (i[4]) {
+                    tr.find('.mpr-additional-applicant').val(i[4]).trigger('change');
+                }
                 $('#mpr-additional-table').find('tbody').append(tr);
             });
 
@@ -2338,6 +2628,7 @@
                 if (this.value) {
                     additional.push({
                         position: this.value,
+                        applicant: $(this).closest('tr').find('.mpr-additional-applicant').val() || null,
                         count: $(this).closest('tr').find('.mpr-additional-number').val(),
                         reason: $(this).closest('tr').find('.mpr-additional-reason').val(),
                         date: $(this).closest('tr').find('.mpr-additional-dateneed').val()
