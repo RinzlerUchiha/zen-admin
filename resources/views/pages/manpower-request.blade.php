@@ -716,6 +716,67 @@
         border-radius: var(--mpr-radius-sm);
     }
 
+    /* ---------- Applicant slot chips ---------- */
+    #mpr-app .mpr-applicant-slots {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    #mpr-app .mpr-applicant-chip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        background: var(--mpr-accent-soft);
+        color: var(--mpr-accent);
+        border: 1px solid var(--mpr-accent);
+        border-radius: var(--mpr-radius-sm);
+        padding: 4px 6px 4px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    #mpr-app .mpr-applicant-chip:hover {
+        background: #d8ebfa;
+    }
+
+    #mpr-app .mpr-applicant-chip.active {
+        border-color: var(--mpr-text);
+        background: var(--mpr-text);
+        color: #fff;
+    }
+
+    #mpr-app .mpr-applicant-chip-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #mpr-app .mpr-applicant-chip-remove {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        border: none;
+        background: rgba(255, 255, 255, .5);
+        color: inherit;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        line-height: 1;
+    }
+
+    #mpr-app .mpr-applicant-chip.active .mpr-applicant-chip-remove {
+        background: rgba(255, 255, 255, .2);
+    }
+
+    #mpr-app .mpr-applicant-chip-remove:hover {
+        background: rgba(255, 255, 255, .85);
+    }
+
     #mpr-app .mpr-iv-toggle-group {
         display: flex;
         gap: 6px;
@@ -961,6 +1022,15 @@
                         <div class="row" id="mpr-err"></div>
                         <input type="hidden" id="mpr-id" value="">
 
+                        <!-- Master applicant option list — used as a clone source so each
+                             slot dropdown doesn't need its own @foreach render. -->
+                        <select id="mpr-applicant-master-options" class="d-none">
+                            <option value="">-</option>
+                            @foreach ($applicants ?? [] as $a)
+                            <option value="{{ $a->app_id }}">{{ $a->app_name }}</option>
+                            @endforeach
+                        </select>
+
                         <div class="mpr-section-divider replacement"><span class="dot"></span> Replacement</div>
                         <div class="row mb-4">
                             <div class="col-12">
@@ -980,7 +1050,7 @@
                                                 <td>
                                                     <select class="form-select form-select-sm mpr-replacement-position" required>
                                                         <option value disabled selected>-</option>
-                                                        @foreach ($jobspec->where('jspec_department', $userJobInfo?->jrec_department) as $j)
+                                                        @foreach ($userJobSpec as $j)
                                                         <option value="{{ $j->jspec_position }}">{{ $j->jd_title }}</option>
                                                         @endforeach
                                                     </select>
@@ -1030,21 +1100,15 @@
                                                 <td>
                                                     <select class="form-select form-select-sm mpr-additional-position" required>
                                                         <option value disabled selected>-</option>
-                                                        @foreach ($jobspec->where('jspec_department', $userJobInfo?->jrec_department) as $j)
+                                                        @foreach ($userJobSpec as $j)
                                                         <option value="{{ $j->jspec_position }}">{{ $j->jd_title }}</option>
                                                         @endforeach
                                                     </select>
                                                 </td>
                                                 <td>
-                                                    <!-- Applicant picker — beside the subject/position field.
-                                                         Selecting an applicant here drives the interview-round
-                                                         toggle panel below the table. -->
-                                                    <select class="form-select form-select-sm mpr-additional-applicant">
-                                                        <option value="">-</option>
-                                                        @foreach ($applicants ?? [] as $a)
-                                                        <option value="{{ $a->app_id }}">{{ $a->app_name }}</option>
-                                                        @endforeach
-                                                    </select>
+                                                    <!-- Applicant slots — one chip/dropdown per Number Needed.
+                                                         Rendered/managed entirely by rebuildApplicantSlots(). -->
+                                                    <div class="mpr-applicant-slots"></div>
                                                 </td>
                                                 <td style="max-width: 100px;">
                                                     <input type="number" class="mpr-additional-number form-control form-control-sm" min="1">
@@ -2405,6 +2469,87 @@
             .appendTo($btns);
     }
 
+    /* ---------- Applicant slots (Number-Needed aware, chip UI) ---------- */
+
+    /** Reads the current per-row applicant slot array (array of {id,name} | null). */
+    function getRowApplicants($row) {
+        return $row.data('applicants') || [];
+    }
+
+    function setRowApplicants($row, arr) {
+        $row.data('applicants', arr);
+    }
+
+    /** Resizes the slot array to match Number Needed, then re-renders. */
+    function rebuildApplicantSlots($row) {
+        const count = Math.max(1, parseInt($row.find('.mpr-additional-number').val(), 10) || 1);
+        let applicants = getRowApplicants($row);
+        applicants = Array.from({
+            length: count
+        }, (_, i) => applicants[i] || null);
+        setRowApplicants($row, applicants);
+        renderApplicantSlots($row);
+    }
+
+    /** Renders each slot as either a chip (filled) or a dropdown (empty). */
+    function renderApplicantSlots($row) {
+        const applicants = getRowApplicants($row);
+        const $slots = $row.find('.mpr-applicant-slots').empty();
+
+        applicants.forEach((applicant, i) => {
+            if (applicant) {
+                const $chip = $('<div class="mpr-applicant-chip">')
+                    .attr('data-slot-index', i)
+                    .append($('<span class="mpr-applicant-chip-name">').text(applicant.name))
+                    .append(
+                        $('<button type="button" class="mpr-applicant-chip-remove">&times;</button>')
+                        .on('click', function(e) {
+                            e.stopPropagation();
+                            const arr = getRowApplicants($row);
+                            arr[i] = null;
+                            setRowApplicants($row, arr);
+                            renderApplicantSlots($row);
+                            resetApplicantInterviewPanel();
+                            $('#mpr-applicant-interview-panel').hide();
+                        })
+                    );
+
+                $chip.on('click', function() {
+                    $('.mpr-applicant-chip').removeClass('active');
+                    $chip.addClass('active');
+                    loadApplicantInterviewHistory(applicant.id, applicant.name);
+                });
+
+                $slots.append($chip);
+            } else {
+                const $sel = $('<select class="form-select form-select-sm mpr-additional-applicant">')
+                    .append('<option value="">- Slot ' + (i + 1) + ' -</option>');
+
+                $('#mpr-applicant-master-options option').each(function() {
+                    if (this.value) $sel.append($(this).clone());
+                });
+
+                $sel.on('change', function() {
+                    const id = this.value;
+                    const name = $(this).find('option:selected').text();
+                    if (!id) return;
+
+                    const arr = getRowApplicants($row);
+                    arr[i] = {
+                        id,
+                        name
+                    };
+                    setRowApplicants($row, arr);
+                    renderApplicantSlots($row);
+
+                    loadApplicantInterviewHistory(id, name);
+                });
+
+                $slots.append($sel);
+            }
+        });
+    }
+
     /* ---------- Applicant interview history (new) ---------- */
 
     /** Resets the interview panel back to its empty / hidden state. */
@@ -2527,20 +2672,20 @@
         });
 
         $('#mpr-additional-table').closest('.mpr-card-table').find('.btn-add-row').click(function() {
-            $(this).closest('.mpr-card-table').find('table tbody').append(tr_additional.clone());
+            const $newRow = tr_additional.clone();
+            $(this).closest('.mpr-card-table').find('table tbody').append($newRow);
+            setRowApplicants($newRow, []);
+            rebuildApplicantSlots($newRow);
         });
 
         $('#form-mpr').on('click', '.btn-del', function() {
             $(this).closest('tr').remove();
         });
 
-        /* Applicant picker (delegated so it works on cloned rows too).
-           Selecting an applicant beside the additional-position field
-           loads their interview history into the panel below the table. */
-        $('#mpr-additional-table').on('change', '.mpr-additional-applicant', function() {
-            const appId = $(this).val();
-            const label = $(this).find('option:selected').text();
-            loadApplicantInterviewHistory(appId, appId ? label : '');
+        /* Rebuild applicant slots whenever Number Needed changes on an
+           additional-position row. */
+        $('#mpr-additional-table').on('input', '.mpr-additional-number', function() {
+            rebuildApplicantSlots($(this).closest('tr'));
         });
 
         /* Simple client-side filter wired to the new search box; relies on
@@ -2564,6 +2709,10 @@
             $('#mpr-additional-table').find('tbody').empty();
             resetApplicantInterviewPanel();
             $('#mpr-applicant-interview-panel').hide();
+            // NOTE: tr_additional (the clone template) does not carry slot
+            // state — rebuildApplicantSlots() is called per-row below as
+            // each additional row is appended, including the fallback
+            // seed row at the bottom of this handler.
 
             let replacement = (btn.data('replacement') || '').match(/\[([^\]]+)\]/g);
             replacement = (replacement || []).map(group =>
@@ -2593,18 +2742,38 @@
                 tr.find('.mpr-additional-number').val(i[1]);
                 tr.find('.mpr-additional-reason').val(i[2]);
                 tr.find('.mpr-additional-dateneed').val(i[3]);
-                // i[4] reserved for applicant id if you persist it on edit
-                if (i[4]) {
-                    tr.find('.mpr-additional-applicant').val(i[4]).trigger('change');
-                }
                 $('#mpr-additional-table').find('tbody').append(tr);
+
+                // i[4], if present, holds comma-separated applicant ids saved
+                // from a previous edit — one per slot, in order. Names are
+                // resolved client-side against the master option list since
+                // only ids are persisted server-side.
+                setRowApplicants(tr, []);
+                rebuildApplicantSlots(tr);
+
+                const savedIds = (i[4] || '').split(',').filter(Boolean);
+                if (savedIds.length) {
+                    const arr = getRowApplicants(tr);
+                    savedIds.forEach((id, idx) => {
+                        const name = $('#mpr-applicant-master-options option[value="' + id + '"]').text();
+                        if (idx < arr.length) arr[idx] = {
+                            id,
+                            name
+                        };
+                    });
+                    setRowApplicants(tr, arr);
+                    renderApplicantSlots(tr);
+                }
             });
 
             if ($('#mpr-replacement-table').find('tbody tr').length === 0) {
                 $('#mpr-replacement-table').find('tbody').append(tr_replacement.clone());
             }
             if ($('#mpr-additional-table').find('tbody tr').length === 0) {
-                $('#mpr-additional-table').find('tbody').append(tr_additional.clone());
+                const $seedRow = tr_additional.clone();
+                $('#mpr-additional-table').find('tbody').append($seedRow);
+                setRowApplicants($seedRow, []);
+                rebuildApplicantSlots($seedRow);
             }
         });
 
@@ -2626,12 +2795,15 @@
             let additional = [];
             $(this).find('.mpr-additional-position').each(function() {
                 if (this.value) {
+                    const $row = $(this).closest('tr');
+                    const applicants = getRowApplicants($row).map(a => a ? a.id : null);
+
                     additional.push({
                         position: this.value,
-                        applicant: $(this).closest('tr').find('.mpr-additional-applicant').val() || null,
-                        count: $(this).closest('tr').find('.mpr-additional-number').val(),
-                        reason: $(this).closest('tr').find('.mpr-additional-reason').val(),
-                        date: $(this).closest('tr').find('.mpr-additional-dateneed').val()
+                        applicants: applicants,
+                        count: $row.find('.mpr-additional-number').val(),
+                        reason: $row.find('.mpr-additional-reason').val(),
+                        date: $row.find('.mpr-additional-dateneed').val()
                     });
                 }
             });

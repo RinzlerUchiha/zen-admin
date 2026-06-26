@@ -35,9 +35,12 @@ class ManpowerRequestController extends Controller
             ->orderBy('app_fname')
             ->get();
 
+        $userJobSpec = $jobSpec->where('jspec_department', $userJobInfo?->jrec_department);
+
         return view('pages.manpower-request', [
             'user_empno' => $user->Emp_No,
             'jobspec' => $jobSpec,
+            'userJobSpec' => $userJobSpec,
             'userJobInfo' => $userJobInfo,
             'department' => Setting::departmentList(0),
             'section' => Setting::sectionList(0),
