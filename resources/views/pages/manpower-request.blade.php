@@ -1023,10 +1023,10 @@
                         <input type="hidden" id="mpr-id" value="">
 
                         <!-- Master applicant option list — used as a clone source so each
-                             slot dropdown doesn't need its own @foreach render. -->
+                        slot dropdown doesn't need its own Blade loop render. -->
                         <select id="mpr-applicant-master-options" class="d-none">
                             <option value="">-</option>
-                            @foreach ($applicants ?? [] as $a)
+                            @foreach (($applicants ?? []) as $a)
                             <option value="{{ $a->app_id }}">{{ $a->app_name }}</option>
                             @endforeach
                         </select>
