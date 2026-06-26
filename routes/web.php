@@ -261,6 +261,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);
     Route::get('/manpower/jobspec/{pos}', [ManpowerRequestController::class, 'viewSpec']);
+    Route::get('/manpower/applicant/{id}/interviews', [ManpowerRequestController::class, 'applicantInterviews']);
     Route::get('/manpower/list/{stat}', [ManpowerRequestController::class, 'showList']);
     Route::get('/manpower/counts', [ManpowerRequestController::class, 'counts']);
     Route::post('/manpower/save', [ManpowerRequestController::class, 'store']);

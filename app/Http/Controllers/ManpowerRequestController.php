@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ManpowerRequest;
 use App\Models\Setting;
+use App\Models\Applicant\ApplicantPersonal;
+use App\Models\Applicant\InterviewDeets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,20 @@ class ManpowerRequestController extends Controller
         if (!$user->userAccess('personnelreq', 'viewall')) {
             $jobSpec = $jobSpec->filter(fn($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false);
         }
+        $applicants = ApplicantPersonal::query()
+            ->select([
+                'app_id',
+                DB::raw("CONCAT_WS(
+                    ' ',
+                    app_fname,
+                    NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'),
+                    app_lname
+                ) AS app_name"),
+            ])
+            ->orderBy('app_lname')
+            ->orderBy('app_fname')
+            ->get();
+
         return view('pages.manpower-request', [
             'user_empno' => $user->Emp_No,
             'jobspec' => $jobSpec,
@@ -27,6 +43,7 @@ class ManpowerRequestController extends Controller
             'section' => Setting::sectionList(0),
             'position' => Setting::positionList(),
             'emplstat' => Setting::emplStatusList(),
+            'applicants' => $applicants,
             'main_link' => 'manpower-request',
             'sub_link' => ''
         ]);
@@ -658,6 +675,53 @@ class ManpowerRequestController extends Controller
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed: ' . $e->getMessage()]);
+        }
+    }
+
+    public static function applicantInterviews($id)
+    {
+        try {
+            $records = InterviewDeets::where('app_id', $id)->get()->keyBy('interview_type');
+
+            $empNos = $records->pluck('interviewer_empno')->filter()->unique()->values();
+
+            $employees = DB::connection('hrd2')
+                ->table('tbl201_basicinfo')
+                ->whereIn('bi_empno', $empNos)
+                ->select('bi_empno', 'bi_empfname', 'bi_empmname', 'bi_emplname')
+                ->get()
+                ->keyBy('bi_empno');
+
+            $result = [];
+
+            foreach (['Initial', '2nd Prelim', 'Final'] as $type) {
+                $record = $records->get($type);
+                if (!$record) {
+                    continue;
+                }
+
+                $emp = $employees->get($record->interviewer_empno);
+                $interviewerName = $record->interviewer_name;
+                if (!$interviewerName && $emp) {
+                    $mInitial = $emp->bi_empmname ? substr($emp->bi_empmname, 0, 1) . '.' : '';
+                    $interviewerName = trim("{$emp->bi_empfname} {$mInitial} {$emp->bi_emplname}");
+                }
+
+                $result[$type] = [
+                    'interviewer_name' => $interviewerName,
+                    'interview_date' => $record->interview_date,
+                    'company' => $record->company,
+                    'department' => $record->department,
+                    'position' => $record->position,
+                    'remarks' => $record->remarks,
+                    'recommendation' => $record->recommendation,
+                    'verdict' => $record->verdict,
+                ];
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed: ' . $e->getMessage()], 500);
         }
     }
 
