@@ -192,11 +192,12 @@ class ManpowerRequestController extends Controller
                     $group = explode('|', $group);
                     return [
                         trim($positionList->where('jd_code', $group[0])->first()?->jd_title ?? ''),
-                        $group[0],
-                        $group[1] ?? '',
-                        $group[2] ?? '',
-                        $group[3] ?? '',
-                        $group[4] ?? 0,
+                        $group[0],          // i[1] position code
+                        $group[1] ?? '',    // i[2] count
+                        $group[2] ?? '',    // i[3] reason
+                        $group[3] ?? '',    // i[4] date
+                        $group[4] ?? '',    // i[5] applicants CSV
+                        $group[5] ?? 0,     // i[6] fill
                     ];
                 }, $r_matches[1]);
 
@@ -205,11 +206,12 @@ class ManpowerRequestController extends Controller
                     $group = explode('|', $group);
                     return [
                         trim($positionList->where('jd_code', $group[0])->first()?->jd_title ?? ''),
-                        $group[0],
-                        $group[1] ?? '',
-                        $group[2] ?? '',
-                        $group[3] ?? '',
-                        $group[4] ?? 0,
+                        $group[0],          // i[1] position code
+                        $group[1] ?? '',    // i[2] count
+                        $group[2] ?? '',    // i[3] reason
+                        $group[3] ?? '',    // i[4] date
+                        $group[4] ?? '',    // i[5] applicants CSV
+                        $group[5] ?? 0,     // i[6] fill
                     ];
                 }, $a_matches[1]);
             }
@@ -391,8 +393,15 @@ class ManpowerRequestController extends Controller
             $progress[0] = '0%';
             $progress[1] = '0/' . (array_sum(array_column($validated['replacement'], 'count')) + array_sum(array_column($validated['additional'], 'count')));
 
-            $validated['replacement'] = array_map(fn($i) => implode('|', $i), $validated['replacement']);
-            $validated['additional'] = array_map(fn($i) => implode('|', $i), $validated['additional']);
+            $validated['replacement'] = array_map(function ($i) {
+                $applicants = implode(',', array_filter($i['applicants'] ?? [], fn($a) => !is_null($a)));
+                return implode('|', [$i['position'], $i['count'], $i['reason'], $i['date'], $applicants]);
+            }, $validated['replacement']);
+
+            $validated['additional'] = array_map(function ($i) {
+                $applicants = implode(',', array_filter($i['applicants'] ?? [], fn($a) => !is_null($a)));
+                return implode('|', [$i['position'], $i['count'], $i['reason'], $i['date'], $applicants]);
+            }, $validated['additional']);
 
             $data = [
                 'mp_replacement' => (!empty($validated['replacement']) ? "[" . implode('][', $validated['replacement']) . "]" : ""),
@@ -601,17 +610,39 @@ class ManpowerRequestController extends Controller
             $validated['replacement'] = json_decode($validated['replacement'], true);
             $validated['additional'] = json_decode($validated['additional'], true);
 
-            $count = array_sum(array_column($validated['replacement'], 'count')) + array_sum(array_column($validated['additional'], 'count'));
-            $fill = array_sum(array_column($validated['replacement'], 'fill')) + array_sum(array_column($validated['additional'], 'fill'));
-            $progress = (($fill / $count) * 100) . '%,' . $fill . '/' . $count;
+            $count = array_sum(array_column($validated['replacement'], 'count'))
+                   + array_sum(array_column($validated['additional'], 'count'));
+            $fill  = array_sum(array_column($validated['replacement'], 'fill'))
+                   + array_sum(array_column($validated['additional'], 'fill'));
+            $progress = ($count > 0 ? round(($fill / $count) * 100) : 0) . '%,' . $fill . '/' . $count;
 
-            $validated['replacement'] = array_map(fn($i) => implode('|', $i), $validated['replacement']);
-            $validated['additional'] = array_map(fn($i) => implode('|', $i), $validated['additional']);
+            // Slot order: position|count|reason|date|applicants_csv|fill
+            $validated['replacement'] = array_map(function ($i) {
+                return implode('|', [
+                    $i['position'],
+                    $i['count'],
+                    $i['reason'],
+                    $i['date'],
+                    $i['applicants_csv'] ?? '',  // preserved from store()
+                    $i['fill'] ?? 0,
+                ]);
+            }, $validated['replacement']);
+
+            $validated['additional'] = array_map(function ($i) {
+                return implode('|', [
+                    $i['position'],
+                    $i['count'],
+                    $i['reason'],
+                    $i['date'],
+                    $i['applicants_csv'] ?? '',
+                    $i['fill'] ?? 0,
+                ]);
+            }, $validated['additional']);
 
             $data = [
                 'mp_replacement' => (!empty($validated['replacement']) ? "[" . implode('][', $validated['replacement']) . "]" : ""),
-                'mp_additional' => (!empty($validated['additional']) ? "[" . implode('][', $validated['additional']) . "]" : ""),
-                'mp_progress' => $progress
+                'mp_additional'  => (!empty($validated['additional'])  ? "[" . implode('][', $validated['additional'])  . "]" : ""),
+                'mp_progress'    => $progress,
             ];
 
             if ($validated['id']) {
