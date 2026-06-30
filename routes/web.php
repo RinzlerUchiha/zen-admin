@@ -56,6 +56,14 @@ use Illuminate\Support\Facades\Hash;
 //     return $users->count().' changed';
 // });
 
+// User::insertOrIgnore([
+//     ['Emp_No' => '045-2001-001', 
+//     'U_Password' => '123', 
+//     'U_Password_hashed' => Hash::make('123'), 
+//     'U_Name' => 'Arnold Infante', 
+//     'U_Remarks' => 'Active'],
+// ]);
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);

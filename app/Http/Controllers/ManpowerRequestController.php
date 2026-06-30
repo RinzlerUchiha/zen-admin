@@ -101,7 +101,12 @@ class ManpowerRequestController extends Controller
             ->orderBy('pers_firstname', 'asc')
             ->get();
 
-        $positionList = Setting::positionList(0);
+            $positionList = Setting::positionList(0);
+
+            $applicantList = ApplicantPersonal::query()
+                ->select(['app_id', DB::raw("CONCAT_WS(' ', app_fname, NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'), app_lname) AS app_name")])
+                ->get()
+                ->keyBy('app_id');
 
         // ── main query ───────────────────────────────────────────────────────
         $query = ManpowerRequest::where('mp_status', $stat);
@@ -223,13 +228,13 @@ class ManpowerRequestController extends Controller
                 . ' data-additional="'    . e(json_encode($additional))      . '"'
                 . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '')    . '">';
 
-            $html .= '<td class="text-start">' . e($v->mp_dtprepared) . '</td>';
+                $html .= '<td class="text-start">' . e($v->mp_dtprepared) . '</td>';
 
-            $requestor = $employee->where('pers_empno', $v->mp_requestby)->first();
-            $html .= '<td>' . e($requestor?->empname  ?? '—') . '</td>';
-            $html .= '<td>' . e($requestor?->Dept_Name ?? '—') . '</td>';
+                $requestor = $employee->where('pers_empno', $v->mp_requestby)->first();
+                $html .= '<td>' . e($requestor?->empname  ?? '—') . '</td>';
+                $html .= '<td>' . e($requestor?->Dept_Name ?? '—') . '</td>';
 
-            if ($stat == 'approved') {
+                if ($stat == 'approved') {
                 $approver = $employee->where('pers_empno', $v->mp_approvedby ?? null)->first();
                 $html .= '<td>' . e($approver?->empname ?? '—') . '</td>';
             } elseif ($stat == 'update') {

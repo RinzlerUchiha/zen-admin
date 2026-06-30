@@ -561,7 +561,7 @@
     }
 
     #mpr-app .mpr-modal-col-side {
-        flex: 0 0 320px;
+        flex: 0 0 400px;
         position: sticky;
         top: 0;
     }
@@ -899,6 +899,73 @@
         background: var(--mpr-bg-input);
         color: var(--mpr-text-muted);
     }
+
+    /* ---------- Interview panel applicant header ---------- */
+    #mpr-app .mpr-iv-applicant-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        background: var(--mpr-bg-input);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: var(--mpr-radius-sm);
+        min-height: 38px;
+    }
+
+    #mpr-app .mpr-iv-applicant-name-display {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--mpr-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #mpr-app .mpr-iv-applicant-name-display.empty {
+        font-weight: 400;
+        color: var(--mpr-text-muted);
+        font-style: italic;
+        font-size: 12px;
+    }
+
+    #mpr-app .mpr-iv-open-btn {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--mpr-accent);
+        background: var(--mpr-accent-soft);
+        border: 1px solid var(--mpr-accent);
+        border-radius: var(--mpr-radius-sm);
+        padding: 3px 9px;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    #mpr-app .mpr-iv-open-btn:hover {
+        background: #d8ebfa;
+        color: var(--mpr-accent);
+        text-decoration: none;
+    }
+
+    /* Applicant name pills in the list table */
+    #mpr-app .mpr-applicant-pill {
+        display: inline-block;
+        background: var(--mpr-bg-input);
+        color: var(--mpr-text-muted);
+        border: 1px solid var(--mpr-border-strong);
+        border-radius: 999px;
+        padding: 1px 8px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 1px 2px 1px 0;
+        white-space: nowrap;
+    }
 </style>
 
 <div id="mpr-app">
@@ -1183,13 +1250,18 @@
                             <div class="mpr-modal-col-side">
                                 <!-- Always visible; shows an empty state until an applicant
                                      is picked in either table on the left. -->
-                                <div id="mpr-applicant-interview-panel">
-                                    <div class="mpr-section-divider additional">
-                                        <span class="dot"></span> Applicant interview history
-                                        <span class="mpr-section-hint" id="mpr-iv-applicant-name"></span>
-                                    </div>
-
-                                    <div class="mb-2 mpr-iv-toggle-group" id="mpr-interview-type-toggles">
+                                     <div id="mpr-applicant-interview-panel">
+                                        <div class="mpr-section-divider additional">
+                                            <span class="dot"></span> Applicant interview history
+                                        </div>
+                                        <div class="mpr-iv-applicant-header">
+                                            <span class="mpr-iv-applicant-name-display empty" id="mpr-iv-applicant-name">No applicant selected</span>
+                                            <a href="#" class="mpr-iv-open-btn d-none" id="mpr-iv-open-link" target="_blank" rel="noopener">
+                                                <i class="fa fa-external-link"></i> Open
+                                            </a>
+                                        </div>
+    
+                                        <div class="mb-2 mpr-iv-toggle-group" id="mpr-interview-type-toggles">
                                         <!-- toggle buttons injected by JS, one per interview round the applicant has -->
                                     </div>
 
@@ -1276,10 +1348,11 @@
                                             <table class="table table-sm table-borderless w-100 mb-0" id="view-mpr-replacement-table">
                                                 <thead>
                                                     <tr>
-                                                        <th width="30%">Subject/Position</th>
+                                                        <th width="25%">Subject/Position</th>
                                                         <th width="70px">Number Needed</th>
                                                         <th>Reason</th>
                                                         <th width="100px">Date Needed</th>
+                                                        <th>Applicant</th>
                                                         <th width="80px">Fill</th>
                                                     </tr>
                                                 </thead>
@@ -1327,7 +1400,12 @@
                                 <div id="view-mpr-applicant-interview-panel">
                                     <div class="mpr-section-divider additional">
                                         <span class="dot"></span> Applicant interview history
-                                        <span class="mpr-section-hint" id="view-mpr-iv-applicant-name"></span>
+                                    </div>
+                                    <div class="mpr-iv-applicant-header">
+                                        <span class="mpr-iv-applicant-name-display empty" id="view-mpr-iv-applicant-name">No applicant selected</span>
+                                        <a href="#" class="mpr-iv-open-btn d-none" id="view-mpr-iv-open-link" target="_blank" rel="noopener">
+                                            <i class="fa fa-external-link"></i> Open
+                                        </a>
                                     </div>
 
                                     <div class="mb-2 mpr-iv-toggle-group" id="view-mpr-interview-type-toggles"></div>
@@ -2459,6 +2537,15 @@
 <script>
     let curtab = 'pending';
 
+// Route template for an applicant's interview details page — the
+// placeholder gets swapped for the real app_id at runtime since
+// Laravel's route() helper can't be called from plain JS.
+const APPLICANT_INTERVIEW_URL_TEMPLATE = @json(route('applicant.show', ['id' => '__APP_ID__', 'tab' => 'interview-details']));
+
+function applicantInterviewUrl(appId) {
+    return APPLICANT_INTERVIEW_URL_TEMPLATE.replace('__APP_ID__', appId);
+}
+
     // Cache of interview-round data for the currently-selected applicant,
     // keyed by interview type, e.g. { "Initial": {...}, "2nd Prelim": {...} }
     let currentApplicantInterviews = {};
@@ -2466,10 +2553,11 @@
     /** Selector map for the two interview-history side panels: the New
      *  Request modal ('mpr') and the View Request modal ('view-mpr').
      *  Lets the shared functions below target whichever panel applies. */
-    const IV_SCOPES = {
+     const IV_SCOPES = {
         'mpr': {
             toggles: '#mpr-interview-type-toggles',
             name: '#mpr-iv-applicant-name',
+            openLink: '#mpr-iv-open-link',
             emptyState: '#mpr-iv-empty-state',
             detailBody: '#mpr-iv-detail-body',
             interviewer: '#mpr-iv-interviewer',
@@ -2484,6 +2572,7 @@
         'view-mpr': {
             toggles: '#view-mpr-interview-type-toggles',
             name: '#view-mpr-iv-applicant-name',
+            openLink: '#view-mpr-iv-open-link',
             emptyState: '#view-mpr-iv-empty-state',
             detailBody: '#view-mpr-iv-detail-body',
             interviewer: '#view-mpr-iv-interviewer',
@@ -2705,7 +2794,8 @@
         const cfg = IV_SCOPES[scope];
         currentApplicantInterviews = {};
         $(cfg.toggles).empty();
-        $(cfg.name).text('');
+        $(cfg.name).text('No applicant selected').addClass('empty');
+        $(cfg.openLink).addClass('d-none').attr('href', '#');
         $(cfg.emptyState).show().text('Select an applicant to view interview history.');
         $(cfg.detailBody).hide();
     }
@@ -2755,7 +2845,8 @@
             return;
         }
 
-        $(cfg.name).text(applicantLabel ? '— ' + applicantLabel : '');
+        $(cfg.name).text(applicantLabel || '—').removeClass('empty');
+        $(cfg.openLink).attr('href', applicantInterviewUrl(appId)).removeClass('d-none');
         $(cfg.emptyState).show().text('Loading interview history…');
         $(cfg.detailBody).hide();
 
@@ -3036,8 +3127,7 @@
                     .attr('position', i[1])
                     .attr('number', i[2])
                     .attr('reason', i[3])
-                    .attr('dateneed', i[4])
-                    .data('applicants-csv', i[5] || ''); // preserve applicants from store()
+                    .attr('dateneed', i[4]);
 
                 tr.append(
                     $('<td>').css('cursor', 'pointer').text(i[0]).on('click', () => view_jobspec(i[1]))
@@ -3045,6 +3135,9 @@
                 tr.append($('<td>').text(i[2]));
                 tr.append($('<td>').text(i[3]));
                 tr.append($('<td>').text(i[4]));
+                // Applicant slots column
+                tr.append($('<td>').append($('<div class="mpr-applicant-slots">')));
+                // Fill column
                 tr.append(
                     $('<td>').addClass('mpr-fill-td').append(
                         $('<input type="number">')
@@ -3055,6 +3148,23 @@
                     )
                 );
                 $('#view-mpr-replacement-table').find('tbody').append(tr);
+
+                // Init slots using Number Needed (i[2]), same pattern as additional
+                const slotCount = parseInt(i[2]) || 1;
+                setRowApplicants(tr, []);
+                rebuildApplicantSlots(tr, slotCount);
+
+                // i[5] holds comma-separated saved applicant ids for this replacement row
+                const savedIds = (i[5] || '').split(',').filter(Boolean);
+                if (savedIds.length) {
+                    const arr = getRowApplicants(tr);
+                    savedIds.forEach((id, idx) => {
+                        const name = $('#mpr-applicant-master-options option[value="' + id + '"]').text();
+                        if (idx < arr.length) arr[idx] = { id, name };
+                    });
+                    setRowApplicants(tr, arr);
+                    renderApplicantSlots(tr);
+                }
             });
 
             additional.forEach(i => {
@@ -3111,12 +3221,15 @@
             let replacement = [];
             $(this).find('.view-mpr-replacement-item').each(function() {
                 if ($(this).attr('position')) {
+                    const $row = $(this);
+                    const applicants_csv = getRowApplicants($row)
+                        .map(a => a ? a.id : '').join(',');
                     replacement.push({
                         position: $(this).attr('position'),
                         count: $(this).attr('number'),
                         reason: $(this).attr('reason'),
                         date: $(this).attr('dateneed'),
-                        applicants_csv: $(this).data('applicants-csv') || '',
+                        applicants_csv: applicants_csv,
                         fill: $(this).find('.view-mpr-replacement-fill').val()
                     });
                 }
