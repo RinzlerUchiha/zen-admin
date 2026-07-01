@@ -2787,6 +2787,134 @@ function applicantInterviewUrl(appId) {
         });
     }
 
+    /**
+     * Hydrates a row's applicant slots from a comma-separated CSV of saved
+     * applicant ids (the format mp_replacement/mp_additional persist them
+     * in). Names are resolved client-side from the master option list since
+     * only ids are stored server-side. Shared by both the New Request modal
+     * (4-element slot tuples) and the View Request modal (7-element tuples).
+     */
+    function hydrateSavedApplicants($row, savedIdsCsv) {
+        const savedIds = (savedIdsCsv || '').split(',').filter(Boolean);
+        if (!savedIds.length) return;
+
+        const arr = getRowApplicants($row);
+        savedIds.forEach((id, idx) => {
+            const name = $('#mpr-applicant-master-options option[value="' + id + '"]').text();
+            if (idx < arr.length) arr[idx] = { id, name };
+        });
+        setRowApplicants($row, arr);
+        renderApplicantSlots($row);
+    }
+
+    /**
+     * Clones the given empty-row template into the target table body,
+     * filling in position/number/reason/date and rebuilding+hydrating its
+     * applicant slots. Used for both replacement and additional rows in the
+     * editable "New/Edit Request" modal. `item` is the parsed
+     * [position, count, reason, date, applicants_csv] tuple.
+     */
+    function appendEditableSlotRow($template, $tbody, item, selectors) {
+        const $row = $template.clone();
+        $row.find(selectors.position).val(item[0]);
+        $row.find(selectors.number).val(item[1]);
+        $row.find(selectors.reason).val(item[2]);
+        $row.find(selectors.date).val(item[3]);
+        $tbody.append($row);
+
+        setRowApplicants($row, []);
+        rebuildApplicantSlots($row);
+        hydrateSavedApplicants($row, item[4]);
+
+        return $row;
+    }
+
+    /**
+     * Builds a read-only summary <tr> for the "View Request" modal (used for
+     * both replacement and additional positions). `item` is the parsed
+     * [title, code, count, reason, date, applicants_csv, fill] tuple coming
+     * back from the server's parseSlots() output.
+     */
+    /**
+     * Builds a read-only summary <tr> for the "View Request" modal and
+     * appends it to $tbody BEFORE initialising applicant slots. The early
+     * append is required so that scopeForRow() can walk up to
+     * #modal-view-mpr via closest() when renderApplicantSlots() fires.
+     * Without it, scopeForRow() finds no ancestor modal and falls back to
+     * the 'mpr' scope, pointing chip clicks at the wrong interview panel.
+     */
+    function buildViewSlotRow(item, { rowClass, fillClass }, $tbody) {
+        const $row = $('<tr/>').addClass(rowClass)
+            .attr('position', item[1])
+            .attr('number', item[2])
+            .attr('reason', item[3])
+            .attr('dateneed', item[4]);
+
+        $row.append($('<td>').css('cursor', 'pointer').text(item[0]).on('click', () => view_jobspec(item[1])));
+        $row.append($('<td>').text(item[2]));
+        $row.append($('<td>').text(item[3]));
+        $row.append($('<td>').text(item[4]));
+        $row.append($('<td>').append($('<div class="mpr-applicant-slots">')));
+        $row.append(
+            $('<td>').addClass('mpr-fill-td').append(
+                $('<input type="number">')
+                .attr('min', 0)
+                .attr('max', item[2])
+                .addClass('form-control form-control-sm ' + fillClass)
+                .val(item[6] || 0)
+            )
+        );
+
+        // Append to DOM first — scopeForRow() depends on DOM ancestry.
+        $tbody.append($row);
+
+        const slotCount = parseInt(item[2]) || 1;
+        setRowApplicants($row, []);
+        rebuildApplicantSlots($row, slotCount);
+        hydrateSavedApplicants($row, item[5]);
+
+        return $row;
+    }
+
+    /** Reads the editable position rows (New/Edit Request modal) for one
+     *  section (replacement or additional) back into the payload shape
+     *  expected by ManpowerRequestController::store(). */
+    function collectEditableSlotPayload($form, selectors) {
+        const rows = [];
+        $form.find(selectors.position).each(function() {
+            if (!this.value) return;
+            const $row = $(this).closest('tr');
+            rows.push({
+                position: this.value,
+                applicants: getRowApplicants($row).map(a => a ? a.id : null),
+                count: $row.find(selectors.number).val(),
+                reason: $row.find(selectors.reason).val(),
+                date: $row.find(selectors.date).val()
+            });
+        });
+        return rows;
+    }
+
+    /** Reads the read-only summary rows (View Request modal) for one
+     *  section back into the payload shape expected by
+     *  ManpowerRequestController::fillRequest(). */
+    function collectViewSlotPayload($form, rowClass, fillClass) {
+        const rows = [];
+        $form.find('.' + rowClass).each(function() {
+            if (!$(this).attr('position')) return;
+            const $row = $(this);
+            rows.push({
+                position: $row.attr('position'),
+                count: $row.attr('number'),
+                reason: $row.attr('reason'),
+                date: $row.attr('dateneed'),
+                applicants_csv: getRowApplicants($row).map(a => a ? a.id : '').join(','),
+                fill: $row.find('.' + fillClass).val()
+            });
+        });
+        return rows;
+    }
+
     /* ---------- Applicant interview history (new) ---------- */
 
     /** Resets the interview panel for the given scope back to its empty state. */
@@ -2884,6 +3012,27 @@ function applicantInterviewUrl(appId) {
         }
     }
 
+    /* ---------- Generic Blade/jobspec helpers (dedupe view_jobspec + modal-mpr-jobspec) ---------- */
+
+    /** Renders a list of plain strings as stacked "- value" labels into a
+     *  container, replacing its current contents. Used throughout
+     *  view_jobspec() for every checkbox-array-derived field. */
+    function renderLabelList(selector, items, colClass = 'col-12') {
+        const $el = $(selector).empty();
+        (items || []).forEach(i => {
+            $el.append($('<label class="col-form-label col-form-label-sm ' + colClass + '">').text('- ' + i));
+        });
+    }
+
+    /** Checks every checkbox/radio matching `selector` whose value is in
+     *  `values`. Used to restore a jobspec's saved checkbox groups when the
+     *  edit modal opens. */
+    function checkValues(selector, values) {
+        (values || []).forEach(v => {
+            $(selector + '[value="' + v + '"]').prop('checked', true);
+        });
+    }
+
     $(function() {
         const tr_replacement = $('#mpr-replacement-table').find('tbody tr').first();
         const tr_additional = $('#mpr-additional-table').find('tbody tr').first();
@@ -2951,13 +3100,9 @@ function applicantInterviewUrl(appId) {
 
         $('#modal-mpr').on('show.bs.modal', function(e) {
             let btn = $(e.relatedTarget);
-            $('#mpr-replacement-table').find('tbody').empty();
-            $('#mpr-additional-table').find('tbody').empty();
+            const $replacementBody = $('#mpr-replacement-table').find('tbody').empty();
+            const $additionalBody = $('#mpr-additional-table').find('tbody').empty();
             resetApplicantInterviewPanel('mpr');
-            // NOTE: tr_additional (the clone template) does not carry slot
-            // state — rebuildApplicantSlots() is called per-row below as
-            // each additional row is appended, including the fallback
-            // seed row at the bottom of this handler.
 
             let replacement = (btn.data('replacement') || '').match(/\[([^\]]+)\]/g);
             replacement = (replacement || []).map(group =>
@@ -2972,106 +3117,44 @@ function applicantInterviewUrl(appId) {
             $('#mpr-id').val(btn.data('id') || '');
             $('#mpr-nonnegotiable').val(btn.data('nonnegotiable') || '');
 
-            replacement.forEach(i => {
-                const tr = tr_replacement.clone();
-                tr.find('.mpr-replacement-position').val(i[0]);
-                tr.find('.mpr-replacement-number').val(i[1]);
-                tr.find('.mpr-replacement-reason').val(i[2]);
-                tr.find('.mpr-replacement-dateneed').val(i[3]);
-                $('#mpr-replacement-table').find('tbody').append(tr);
+            const replacementSelectors = {
+                position: '.mpr-replacement-position',
+                number: '.mpr-replacement-number',
+                reason: '.mpr-replacement-reason',
+                date: '.mpr-replacement-dateneed'
+            };
+            const additionalSelectors = {
+                position: '.mpr-additional-position',
+                number: '.mpr-additional-number',
+                reason: '.mpr-additional-reason',
+                date: '.mpr-additional-dateneed'
+            };
 
-                setRowApplicants(tr, []);
-                rebuildApplicantSlots(tr);
+            replacement.forEach(item => appendEditableSlotRow(tr_replacement, $replacementBody, item, replacementSelectors));
+            additional.forEach(item => appendEditableSlotRow(tr_additional, $additionalBody, item, additionalSelectors));
 
-                // i[4] holds comma-separated saved applicant ids for replacement
-                const savedIds = (i[4] || '').split(',').filter(Boolean);
-                if (savedIds.length) {
-                    const arr = getRowApplicants(tr);
-                    savedIds.forEach((id, idx) => {
-                        const name = $('#mpr-applicant-master-options option[value="' + id + '"]').text();
-                        if (idx < arr.length) arr[idx] = { id, name };
-                    });
-                    setRowApplicants(tr, arr);
-                    renderApplicantSlots(tr);
-                }
-            });
-
-            additional.forEach(i => {
-                const tr = tr_additional.clone();
-                tr.find('.mpr-additional-position').val(i[0]);
-                tr.find('.mpr-additional-number').val(i[1]);
-                tr.find('.mpr-additional-reason').val(i[2]);
-                tr.find('.mpr-additional-dateneed').val(i[3]);
-                $('#mpr-additional-table').find('tbody').append(tr);
-
-                // i[4], if present, holds comma-separated applicant ids saved
-                // from a previous edit — one per slot, in order. Names are
-                // resolved client-side against the master option list since
-                // only ids are persisted server-side.
-                setRowApplicants(tr, []);
-                rebuildApplicantSlots(tr);
-
-                const savedIds = (i[4] || '').split(',').filter(Boolean);
-                if (savedIds.length) {
-                    const arr = getRowApplicants(tr);
-                    savedIds.forEach((id, idx) => {
-                        const name = $('#mpr-applicant-master-options option[value="' + id + '"]').text();
-                        if (idx < arr.length) arr[idx] = {
-                            id,
-                            name
-                        };
-                    });
-                    setRowApplicants(tr, arr);
-                    renderApplicantSlots(tr);
-                }
-            });
-
-            if ($('#mpr-replacement-table').find('tbody tr').length === 0) {
-                const $seedReplacement = tr_replacement.clone();
-                $('#mpr-replacement-table').find('tbody').append($seedReplacement);
-                setRowApplicants($seedReplacement, []);
-                rebuildApplicantSlots($seedReplacement);
+            if ($replacementBody.find('tr').length === 0) {
+                appendEditableSlotRow(tr_replacement, $replacementBody, [], replacementSelectors);
             }
-            if ($('#mpr-additional-table').find('tbody tr').length === 0) {
-                const $seedRow = tr_additional.clone();
-                $('#mpr-additional-table').find('tbody').append($seedRow);
-                setRowApplicants($seedRow, []);
-                rebuildApplicantSlots($seedRow);
+            if ($additionalBody.find('tr').length === 0) {
+                appendEditableSlotRow(tr_additional, $additionalBody, [], additionalSelectors);
             }
         });
 
         $('#form-mpr').submit(async function(e) {
             e.preventDefault();
 
-            let replacement = [];
-            $(this).find('.mpr-replacement-position').each(function() {
-                if (this.value) {
-                    const $row = $(this).closest('tr');
-                    const applicants = getRowApplicants($row).map(a => a ? a.id : null);
-                    replacement.push({
-                        position: this.value,
-                        applicants: applicants,
-                        count: $row.find('.mpr-replacement-number').val(),
-                        reason: $row.find('.mpr-replacement-reason').val(),
-                        date: $row.find('.mpr-replacement-dateneed').val()
-                    });
-                }
+            const replacement = collectEditableSlotPayload($(this), {
+                position: '.mpr-replacement-position',
+                number: '.mpr-replacement-number',
+                reason: '.mpr-replacement-reason',
+                date: '.mpr-replacement-dateneed'
             });
-
-            let additional = [];
-            $(this).find('.mpr-additional-position').each(function() {
-                if (this.value) {
-                    const $row = $(this).closest('tr');
-                    const applicants = getRowApplicants($row).map(a => a ? a.id : null);
-
-                    additional.push({
-                        position: this.value,
-                        applicants: applicants,
-                        count: $row.find('.mpr-additional-number').val(),
-                        reason: $row.find('.mpr-additional-reason').val(),
-                        date: $row.find('.mpr-additional-dateneed').val()
-                    });
-                }
+            const additional = collectEditableSlotPayload($(this), {
+                position: '.mpr-additional-position',
+                number: '.mpr-additional-number',
+                reason: '.mpr-additional-reason',
+                date: '.mpr-additional-dateneed'
             });
 
             let formData = new FormData();
@@ -3112,8 +3195,8 @@ function applicantInterviewUrl(appId) {
             if ($(e.relatedTarget).is('button')) return;
 
             let main_tr = $(e.relatedTarget);
-            $('#view-mpr-replacement-table').find('tbody').empty();
-            $('#view-mpr-additional-table').find('tbody').empty();
+            const $replacementBody = $('#view-mpr-replacement-table').find('tbody').empty();
+            const $additionalBody = $('#view-mpr-additional-table').find('tbody').empty();
             resetApplicantInterviewPanel('view-mpr');
 
             let replacement = (main_tr.data('replacement') || []);
@@ -3122,94 +3205,18 @@ function applicantInterviewUrl(appId) {
             $('#view-mpr-id').val(main_tr.data('id') || '');
             $('#view-mpr-nonnegotiable').html((main_tr.data('nonnegotiable') || '').replace(/\r?\n/g, '<br>'));
 
-            replacement.forEach(i => {
-                const tr = $('<tr/>').addClass('view-mpr-replacement-item')
-                    .attr('position', i[1])
-                    .attr('number', i[2])
-                    .attr('reason', i[3])
-                    .attr('dateneed', i[4]);
-
-                tr.append(
-                    $('<td>').css('cursor', 'pointer').text(i[0]).on('click', () => view_jobspec(i[1]))
-                );
-                tr.append($('<td>').text(i[2]));
-                tr.append($('<td>').text(i[3]));
-                tr.append($('<td>').text(i[4]));
-                // Applicant slots column
-                tr.append($('<td>').append($('<div class="mpr-applicant-slots">')));
-                // Fill column
-                tr.append(
-                    $('<td>').addClass('mpr-fill-td').append(
-                        $('<input type="number">')
-                        .attr('min', 0)
-                        .attr('max', i[2])
-                        .addClass('form-control form-control-sm view-mpr-replacement-fill')
-                        .val(i[6] || 0)
-                    )
-                );
-                $('#view-mpr-replacement-table').find('tbody').append(tr);
-
-                // Init slots using Number Needed (i[2]), same pattern as additional
-                const slotCount = parseInt(i[2]) || 1;
-                setRowApplicants(tr, []);
-                rebuildApplicantSlots(tr, slotCount);
-
-                // i[5] holds comma-separated saved applicant ids for this replacement row
-                const savedIds = (i[5] || '').split(',').filter(Boolean);
-                if (savedIds.length) {
-                    const arr = getRowApplicants(tr);
-                    savedIds.forEach((id, idx) => {
-                        const name = $('#mpr-applicant-master-options option[value="' + id + '"]').text();
-                        if (idx < arr.length) arr[idx] = { id, name };
-                    });
-                    setRowApplicants(tr, arr);
-                    renderApplicantSlots(tr);
-                }
+            replacement.forEach(item => {
+                buildViewSlotRow(item, {
+                    rowClass: 'view-mpr-replacement-item',
+                    fillClass: 'view-mpr-replacement-fill'
+                }, $replacementBody);
             });
 
-            additional.forEach(i => {
-                const tr = $('<tr/>').addClass('view-mpr-additional-item')
-                    .attr('position', i[1])
-                    .attr('number', i[2])
-                    .attr('reason', i[3])
-                    .attr('dateneed', i[4]);
-
-                tr.append(
-                    $('<td>').css('cursor', 'pointer').text(i[0]).on('click', () => view_jobspec(i[1]))
-                );
-                tr.append($('<td>').text(i[2]));
-                tr.append($('<td>').text(i[3]));
-                tr.append($('<td>').text(i[4]));
-                // Applicant slots column
-                tr.append($('<td>').append($('<div class="mpr-applicant-slots">')));
-                // Fill column
-                tr.append(
-                    $('<td>').addClass('mpr-fill-td').append(
-                        $('<input type="number">')
-                        .attr('min', 0)
-                        .attr('max', i[2])
-                        .addClass('form-control form-control-sm view-mpr-additional-fill')
-                        .val(i[6] || 0)
-                    )
-                );
-                $('#view-mpr-additional-table').find('tbody').append(tr);
-
-                // Init slots — count comes from i[2] (Number Needed), not an input
-                const slotCount = parseInt(i[2]) || 1;
-                setRowApplicants(tr, []);
-                rebuildApplicantSlots(tr, slotCount);
-
-                // i[5] holds comma-separated saved applicant ids for this additional row
-                const savedIds = (i[5] || '').split(',').filter(Boolean);
-                if (savedIds.length) {
-                    const arr = getRowApplicants(tr);
-                    savedIds.forEach((id, idx) => {
-                        const name = $('#mpr-applicant-master-options option[value="' + id + '"]').text();
-                        if (idx < arr.length) arr[idx] = { id, name };
-                    });
-                    setRowApplicants(tr, arr);
-                    renderApplicantSlots(tr);
-                }
+            additional.forEach(item => {
+                buildViewSlotRow(item, {
+                    rowClass: 'view-mpr-additional-item',
+                    fillClass: 'view-mpr-additional-fill'
+                }, $additionalBody);
             });
 
             $('#view-mpr-requestby').text(main_tr.find('td').eq(1).text());
@@ -3218,39 +3225,8 @@ function applicantInterviewUrl(appId) {
         $('#form-view-mpr').submit(async function(e) {
             e.preventDefault();
 
-            let replacement = [];
-            $(this).find('.view-mpr-replacement-item').each(function() {
-                if ($(this).attr('position')) {
-                    const $row = $(this);
-                    const applicants_csv = getRowApplicants($row)
-                        .map(a => a ? a.id : '').join(',');
-                    replacement.push({
-                        position: $(this).attr('position'),
-                        count: $(this).attr('number'),
-                        reason: $(this).attr('reason'),
-                        date: $(this).attr('dateneed'),
-                        applicants_csv: applicants_csv,
-                        fill: $(this).find('.view-mpr-replacement-fill').val()
-                    });
-                }
-            });
-
-            let additional = [];
-            $(this).find('.view-mpr-additional-item').each(function() {
-                if ($(this).attr('position')) {
-                    const $row = $(this);
-                    const applicants_csv = getRowApplicants($row)
-                        .map(a => a ? a.id : '').join(',');
-                    additional.push({
-                        position: $(this).attr('position'),
-                        count: $(this).attr('number'),
-                        reason: $(this).attr('reason'),
-                        date: $(this).attr('dateneed'),
-                        applicants_csv: applicants_csv,
-                        fill: $(this).find('.view-mpr-additional-fill').val()
-                    });
-                }
-            });
+            const replacement = collectViewSlotPayload($(this), 'view-mpr-replacement-item', 'view-mpr-replacement-fill');
+            const additional = collectViewSlotPayload($(this), 'view-mpr-additional-item', 'view-mpr-additional-fill');
 
             let formData = new FormData();
             formData.append('id', $('#view-mpr-id').val());
@@ -3411,17 +3387,13 @@ function applicantInterviewUrl(appId) {
                     chk.closest('.mpr-jobspec-edu').find('.edu-detail').val(detail || '');
                 }
 
-                for (const i of (data['workexp'] || [])) {
-                    $('input.mpr-jobspec-workexp[value="' + i + '"]').prop('checked', true);
-                }
+                checkValues('input.mpr-jobspec-workexp', data['workexp']);
 
                 $('#mpr-jobspec-duties').val(data['duties']);
                 $('#mpr-jobspec-technical').val(data['techcompetencies']);
                 $('#mpr-jobspec-competenciesneeded').val(data['competencies']);
 
-                for (const i of (data['computerskill'] || [])) {
-                    $('input.mpr-jobspec-compskill[value="' + i + '"]').prop('checked', true);
-                }
+                checkValues('input.mpr-jobspec-compskill', data['computerskill']);
 
                 $('#mpr-jobspec-otherskill').val(data['otherskill']);
 
@@ -3438,41 +3410,15 @@ function applicantInterviewUrl(appId) {
                 $('input[name="mpr-jobspec-metaprog-f2"][value="' + mpf[1] + '"]').prop('checked', true);
                 $('input[name="mpr-jobspec-metaprog-g"][value="' + data['mpg'] + '"]').prop('checked', true);
 
-                for (const i of (data['tapt'] || [])) {
-                    $('input.mpr-jobspec-tapt[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['enneagram'] || [])) {
-                    $('input.mpr-jobspec-enneagram[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['learnstyle'] || [])) {
-                    $('input.mpr-jobspec-learnstyle[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['career'] || [])) {
-                    $('input.mpr-jobspec-career[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['motivation'] || [])) {
-                    $('input.mpr-jobspec-motivation[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['personality'] || [])) {
-                    $('input.mpr-jobspec-personality[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['ravenl'] || [])) {
-                    $('input.mpr-jobspec-raven-low[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['ravena'] || [])) {
-                    $('input.mpr-jobspec-raven-average[value="' + i + '"]').prop('checked', true);
-                }
-
-                for (const i of (data['ravenh'] || [])) {
-                    $('input.mpr-jobspec-raven-high[value="' + i + '"]').prop('checked', true);
-                }
+                checkValues('input.mpr-jobspec-tapt', data['tapt']);
+                checkValues('input.mpr-jobspec-enneagram', data['enneagram']);
+                checkValues('input.mpr-jobspec-learnstyle', data['learnstyle']);
+                checkValues('input.mpr-jobspec-career', data['career']);
+                checkValues('input.mpr-jobspec-motivation', data['motivation']);
+                checkValues('input.mpr-jobspec-personality', data['personality']);
+                checkValues('input.mpr-jobspec-raven-low', data['ravenl']);
+                checkValues('input.mpr-jobspec-raven-average', data['ravena']);
+                checkValues('input.mpr-jobspec-raven-high', data['ravenh']);
 
                 $('#mpr-jobspec-leadership').val(data['leadership']);
                 $('#mpr-jobspec-remarks').val(data['remarks']);
@@ -3517,23 +3463,13 @@ function applicantInterviewUrl(appId) {
                 );
             }
 
-            $('#mpr-view-jobspec-workexp').empty();
-            for (const i of (data['workexp'] || [])) {
-                $('#mpr-view-jobspec-workexp').append(
-                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
-                );
-            }
+            renderLabelList('#mpr-view-jobspec-workexp', data['workexp']);
 
             $('#mpr-view-jobspec-duties').text(data['duties']);
             $('#mpr-view-jobspec-technical').text(data['techcompetencies']);
             $('#mpr-view-jobspec-competenciesneeded').text(data['competencies']);
 
-            $('#mpr-view-jobspec-compskill').empty();
-            for (const i of (data['computerskill'] || [])) {
-                $('#mpr-view-jobspec-compskill').append(
-                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
-                );
-            }
+            renderLabelList('#mpr-view-jobspec-compskill', data['computerskill']);
 
             $('#mpr-view-jobspec-otherskill').text(data['otherskill']);
 
@@ -3550,68 +3486,15 @@ function applicantInterviewUrl(appId) {
             $('#mpr-view-jobspec-metaprog-f2').text('-' + (mpf[1] || ''));
             $('#mpr-view-jobspec-metaprog-g').text('-' + (data['mpg'] || ''));
 
-            $('#mpr-view-jobspec-tapt').empty();
-            for (const i of (data['tapt'] || [])) {
-                $('#mpr-view-jobspec-tapt').append(
-                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-enneagram').empty();
-            for (const i of (data['enneagram'] || [])) {
-                $('#mpr-view-jobspec-enneagram').append(
-                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-learnstyle').empty();
-            for (const i of (data['learnstyle'] || [])) {
-                $('#mpr-view-jobspec-learnstyle').append(
-                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-career').empty();
-            for (const i of (data['career'] || [])) {
-                $('#mpr-view-jobspec-career').append(
-                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-motivation').empty();
-            for (const i of (data['motivation'] || [])) {
-                $('#mpr-view-jobspec-motivation').append(
-                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-personality').empty();
-            for (const i of (data['personality'] || [])) {
-                $('#mpr-view-jobspec-personality').append(
-                    $('<label class="col-form-label col-form-label-sm col-md">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-raven-low').empty();
-            for (const i of (data['ravenl'] || [])) {
-                $('#mpr-view-jobspec-raven-low').append(
-                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-raven-average').empty();
-            for (const i of (data['ravena'] || [])) {
-                $('#mpr-view-jobspec-raven-average').append(
-                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
-                );
-            }
-
-            $('#mpr-view-jobspec-raven-high').empty();
-            for (const i of (data['ravenh'] || [])) {
-                $('#mpr-view-jobspec-raven-high').append(
-                    $('<label class="col-form-label col-form-label-sm col-12">').text('- ' + i)
-                );
-            }
+            renderLabelList('#mpr-view-jobspec-tapt', data['tapt'], 'col-md');
+            renderLabelList('#mpr-view-jobspec-enneagram', data['enneagram'], 'col-md');
+            renderLabelList('#mpr-view-jobspec-learnstyle', data['learnstyle'], 'col-md');
+            renderLabelList('#mpr-view-jobspec-career', data['career'], 'col-md');
+            renderLabelList('#mpr-view-jobspec-motivation', data['motivation'], 'col-md');
+            renderLabelList('#mpr-view-jobspec-personality', data['personality'], 'col-md');
+            renderLabelList('#mpr-view-jobspec-raven-low', data['ravenl']);
+            renderLabelList('#mpr-view-jobspec-raven-average', data['ravena']);
+            renderLabelList('#mpr-view-jobspec-raven-high', data['ravenh']);
 
             $('#mpr-view-jobspec-leadership').text(data['leadership']);
             $('#mpr-view-jobspec-remarks').text(data['remarks']);

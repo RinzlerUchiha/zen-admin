@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class ManpowerRequestController extends Controller
 {
+    /** Allowed values for mp_status when transitioning via updateStat() */
+    private const ALLOWED_STATUSES = ['draft', 'pending', 'approved', 'cancelled', 'declined', 'reviewed'];
+
     public static function index()
     {
         /** @var \App\Models\User $user */
@@ -21,19 +24,6 @@ class ManpowerRequestController extends Controller
         if (!$user->userAccess('personnelreq', 'viewall')) {
             $jobSpec = $jobSpec->filter(fn($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false);
         }
-        $applicants = ApplicantPersonal::query()
-            ->select([
-                'app_id',
-                DB::raw("CONCAT_WS(
-                    ' ',
-                    app_fname,
-                    NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'),
-                    app_lname
-                ) AS app_name"),
-            ])
-            ->orderBy('app_lname')
-            ->orderBy('app_fname')
-            ->get();
 
         $userJobSpec = $jobSpec->where('jspec_department', $userJobInfo?->jrec_department);
 
@@ -46,7 +36,7 @@ class ManpowerRequestController extends Controller
             'section' => Setting::sectionList(0),
             'position' => Setting::positionList(),
             'emplstat' => Setting::emplStatusList(),
-            'applicants' => $applicants,
+            'applicants' => self::applicantList(),
             'main_link' => 'manpower-request',
             'sub_link' => ''
         ]);
@@ -61,76 +51,15 @@ class ManpowerRequestController extends Controller
 
         // ── jobspec tab ──────────────────────────────────────────────────────
         if ($stat == 'jobspec') {
-            $data = Setting::jobSpecList();
-            if (!$user->userAccess('personnelreq', 'viewall')) {
-                $data = $data->filter(
-                    fn($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false
-                );
-            }
-
-            $html  = '<table class="table table-sm mpr-table">';
-            $html .= '<thead><tr>';
-            // FIX: headers were "Position | Department" but cells output Dept_Name first, jd_title second
-            $html .= '<th>Department</th>';
-            $html .= '<th>Position</th>';
-            $html .= '</tr></thead>';
-            $html .= '<tbody>';
-
-            foreach ($data as $v) {
-                $html .= '<tr data-bs-toggle="modal" data-bs-target="#modal-mpr-jobspec"'
-                    . ' data-pos="' . e($v->jspec_position) . '">';
-                $html .= '<td>' . e($v->Dept_Name) . '</td>';
-                $html .= '<td>' . e($v->jd_title)  . '</td>';
-                $html .= '</tr>';
-            }
-
-            $html .= '</tbody></table>';
-            return $html;
+            return self::renderJobSpecTable($user);
         }
 
         // ── shared lookups ───────────────────────────────────────────────────
-        $employee = DB::table('tbl201_persinfo')
-            ->selectRaw("pers_empno, Dept_Name, TRIM(CONCAT(pers_lastname, ', ', pers_firstname)) as empname")
-            ->leftJoin('tbl201_jobrec', function ($join) {
-                $join->on('jrec_empno', '=', 'pers_empno')
-                    ->on('jrec_status', '=', DB::raw("'Primary'"));
-            })
-            ->leftJoin('tbl_department', 'Dept_Code', '=', 'jrec_department')
-            ->orderBy('Dept_Name', 'asc')
-            ->orderBy('pers_lastname', 'asc')
-            ->orderBy('pers_firstname', 'asc')
-            ->get();
-
-            $positionList = Setting::positionList(0);
-
-            $applicantList = ApplicantPersonal::query()
-                ->select(['app_id', DB::raw("CONCAT_WS(' ', app_fname, NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'), app_lname) AS app_name")])
-                ->get()
-                ->keyBy('app_id');
+        $employee = self::employeeList();
+        $positionList = Setting::positionList(0);
 
         // ── main query ───────────────────────────────────────────────────────
-        $query = ManpowerRequest::where('mp_status', $stat);
-
-        if ($user->userAccess('personnelreq', 'viewall') || $user->userAccess('personnelreq', 'viewer')) {
-            if (!in_array($stat, ['update', 'cancelled', 'draft'])) {
-                $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
-            } elseif ($stat == 'update') {
-                $query = ManpowerRequest::whereRaw("(mpu_stat='pending' OR mpu_stat='approved')");
-            }
-        } else {
-            $query->whereRaw("(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?)", [
-                check_assign($user->Emp_No, 'PR'),
-                $user->Emp_No
-            ]);
-            if (!in_array($stat, ['update', 'cancelled'])) {
-                $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
-            } elseif ($stat == 'update') {
-                $query = ManpowerRequest::whereRaw(
-                    "(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?) AND (mpu_stat='pending' OR mpu_stat='approved')",
-                    [check_assign($user->Emp_No, 'PR'), $user->Emp_No]
-                );
-            }
-        }
+        $query = self::buildListQuery($stat, $user, $user_empno);
 
         if (in_array($stat, ['update', 'cancelled'])) {
             $query->leftJoin('tbl_mpupdate', 'mpu_mpid', '=', 'mp_id');
@@ -139,10 +68,104 @@ class ManpowerRequestController extends Controller
         $query->orderBy('mp_filled', 'desc')->orderBy('mp_id', 'desc');
         $data = $query->get();
 
-        // ── table header ─────────────────────────────────────────────────────
-        $html  = '<table class="table table-sm mpr-table">'; // FIX: added mpr-table class
+        $btn_action_show = self::showActionColumn($stat, $user, $user_empno, $reviewer, $data);
+
+        return self::renderListTable($stat, $data, $employee, $positionList, $user, $user_empno, $reviewer, $btn_action_show);
+    }
+
+    /**
+     * Builds the base ManpowerRequest query for a given status tab, scoped
+     * to what the current user is allowed to see.
+     */
+    private static function buildListQuery(string $stat, $user, string $user_empno)
+    {
+        $canViewAll = $user->userAccess('personnelreq', 'viewall') || $user->userAccess('personnelreq', 'viewer');
+
+        if ($canViewAll) {
+            if ($stat == 'update') {
+                return ManpowerRequest::whereRaw("(mpu_stat='pending' OR mpu_stat='approved')");
+            }
+
+            $query = ManpowerRequest::where('mp_status', $stat);
+            if (!in_array($stat, ['update', 'cancelled', 'draft'])) {
+                $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+            }
+            return $query;
+        }
+
+        $assigned = check_assign($user->Emp_No, 'PR');
+
+        if ($stat == 'update') {
+            return ManpowerRequest::whereRaw(
+                "(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?) AND (mpu_stat='pending' OR mpu_stat='approved')",
+                [$assigned, $user_empno]
+            );
+        }
+
+        $query = ManpowerRequest::where('mp_status', $stat)
+            ->whereRaw("(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?)", [$assigned, $user_empno]);
+
+        if (!in_array($stat, ['update', 'cancelled'])) {
+            $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+        }
+
+        return $query;
+    }
+
+    /** Whether the trailing actions <th>/<td> column should be rendered for this tab. */
+    private static function showActionColumn(string $stat, $user, string $user_empno, bool $reviewer, $data): bool
+    {
+        return in_array($user_empno, $data->pluck('mp_requestby')->toArray())
+            || ($stat == 'pending'
+                && count(array_intersect(
+                    explode(',', check_assign($user->Emp_No, 'PR')),
+                    $data->pluck('mp_requestby')->toArray()
+                )) > 0
+                && $reviewer)
+            || ($stat == 'update' && $user->userAccess('personnelreq', 'viewall'));
+    }
+
+    private static function renderJobSpecTable($user): string
+    {
+        $data = Setting::jobSpecList();
+        if (!$user->userAccess('personnelreq', 'viewall')) {
+            $data = $data->filter(
+                fn($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false
+            );
+        }
+
+        $html  = '<table class="table table-sm mpr-table">';
         $html .= '<thead><tr>';
-        $html .= '<th style="width:110px">Date Prepared</th>'; // FIX: constrain column width
+        $html .= '<th>Department</th>';
+        $html .= '<th>Position</th>';
+        $html .= '</tr></thead>';
+        $html .= '<tbody>';
+
+        foreach ($data as $v) {
+            $html .= '<tr data-bs-toggle="modal" data-bs-target="#modal-mpr-jobspec"'
+                . ' data-pos="' . e($v->jspec_position) . '">';
+            $html .= '<td>' . e($v->Dept_Name) . '</td>';
+            $html .= '<td>' . e($v->jd_title)  . '</td>';
+            $html .= '</tr>';
+        }
+
+        $html .= '</tbody></table>';
+        return $html;
+    }
+
+    private static function renderListTable(
+        string $stat,
+        $data,
+        $employee,
+        $positionList,
+        $user,
+        string $user_empno,
+        bool $reviewer,
+        bool $btn_action_show
+    ): string {
+        $html  = '<table class="table table-sm mpr-table">';
+        $html .= '<thead><tr>';
+        $html .= '<th style="width:110px">Date Prepared</th>';
         $html .= '<th>Prepared by</th>';
         $html .= '<th>Department</th>';
 
@@ -163,63 +186,18 @@ class ManpowerRequestController extends Controller
             $html .= '<th>Filled</th>';
         }
 
-        $btn_action_show = 0;
-        if (
-            in_array($user_empno, $data->pluck('mp_requestby')->toArray())
-            || ($stat == 'pending'
-                && count(array_intersect(
-                    explode(',', check_assign($user->Emp_No, 'PR')),
-                    $data->pluck('mp_requestby')->toArray()
-                )) > 0
-                && $reviewer)
-            || ($stat == 'update' && $user->userAccess('personnelreq', 'viewall'))
-        ) {
+        if ($btn_action_show) {
             $html .= '<th></th>';
-            $btn_action_show = 1;
         }
 
         $html .= '</tr></thead>';
         $html .= '<tbody>';
 
-        // ── rows ─────────────────────────────────────────────────────────────
         foreach ($data as $v) {
             $progress = explode(',', $v->mp_progress ?? '');
 
-            // FIX: always initialise — were only set inside viewall block before,
-            //      causing undefined-variable PHP notices and empty data-* attrs
-            //      for every non-admin user, which broke the view modal.
-            $replacement = [];
-            $additional  = [];
-
-            if ($user->userAccess('personnelreq', 'viewall')) {
-                preg_match_all('/\[([^\]]+)\]/', $v->mp_replacement ?? '', $r_matches);
-                $replacement = array_map(function ($group) use ($positionList) {
-                    $group = explode('|', $group);
-                    return [
-                        trim($positionList->where('jd_code', $group[0])->first()?->jd_title ?? ''),
-                        $group[0],          // i[1] position code
-                        $group[1] ?? '',    // i[2] count
-                        $group[2] ?? '',    // i[3] reason
-                        $group[3] ?? '',    // i[4] date
-                        $group[4] ?? '',    // i[5] applicants CSV
-                        $group[5] ?? 0,     // i[6] fill
-                    ];
-                }, $r_matches[1]);
-
-                preg_match_all('/\[([^\]]+)\]/', $v->mp_additional ?? '', $a_matches);
-                $additional = array_map(function ($group) use ($positionList) {
-                    $group = explode('|', $group);
-                    return [
-                        trim($positionList->where('jd_code', $group[0])->first()?->jd_title ?? ''),
-                        $group[0],          // i[1] position code
-                        $group[1] ?? '',    // i[2] count
-                        $group[2] ?? '',    // i[3] reason
-                        $group[3] ?? '',    // i[4] date
-                        $group[4] ?? '',    // i[5] applicants CSV
-                        $group[5] ?? 0,     // i[6] fill
-                    ];
-                }, $a_matches[1]);
-            }
+            $replacement = self::parseSlots($v->mp_replacement, $positionList);
+            $additional  = self::parseSlots($v->mp_additional, $positionList);
 
             $html .= '<tr data-bs-toggle="modal"'
                 . ' data-bs-target="#modal-view-mpr"'
@@ -228,13 +206,13 @@ class ManpowerRequestController extends Controller
                 . ' data-additional="'    . e(json_encode($additional))      . '"'
                 . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '')    . '">';
 
-                $html .= '<td class="text-start">' . e($v->mp_dtprepared) . '</td>';
+            $html .= '<td class="text-start">' . e($v->mp_dtprepared) . '</td>';
 
-                $requestor = $employee->where('pers_empno', $v->mp_requestby)->first();
-                $html .= '<td>' . e($requestor?->empname  ?? '—') . '</td>';
-                $html .= '<td>' . e($requestor?->Dept_Name ?? '—') . '</td>';
+            $requestor = $employee->where('pers_empno', $v->mp_requestby)->first();
+            $html .= '<td>' . e($requestor?->empname  ?? '—') . '</td>';
+            $html .= '<td>' . e($requestor?->Dept_Name ?? '—') . '</td>';
 
-                if ($stat == 'approved') {
+            if ($stat == 'approved') {
                 $approver = $employee->where('pers_empno', $v->mp_approvedby ?? null)->first();
                 $html .= '<td>' . e($approver?->empname ?? '—') . '</td>';
             } elseif ($stat == 'update') {
@@ -254,69 +232,9 @@ class ManpowerRequestController extends Controller
                 $html .= '<td class="text-center">' . e($progress[1] ?? '') . '</td>';
             }
 
-            // ── per-row action buttons ────────────────────────────────────
-            $btn_action = '';
-
-            if ($user_empno == $v->mp_requestby) {
-                if ($stat == 'draft' || $stat == 'pending') {
-                    $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"'
-                        . ' data-bs-toggle="modal" data-bs-target="#modal-mpr"'
-                        . ' data-id="'             . e($v->mp_id)               . '"'
-                        . ' data-replacement="'   . e($v->mp_replacement ?? '') . '"'
-                        . ' data-additional="'    . e($v->mp_additional  ?? '') . '"'
-                        . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '') . '">'
-                        . '<i class="fa fa-edit"></i></button>';
-
-                    $btn_action .= '<button class="m-1 btn btn-sm btn-danger"'
-                        . ' onclick="remove_mpr(' . (int)$v->mp_id . ')">'
-                        . '<i class="fa fa-trash"></i></button>';
-                } elseif ($stat == 'approved') {
-                    $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"'
-                        . ' data-bs-toggle="modal" data-bs-target="#modal-mpr-update"'
-                        . ' data-id="' . e($v->mp_id) . '" data-action="edit"'
-                        . ' title="Request to Edit"><i class="fa fa-edit"></i></button>';
-
-                    $btn_action .= '<button class="m-1 btn btn-sm btn-danger"'
-                        . ' data-bs-toggle="modal" data-bs-target="#modal-mpr-update"'
-                        . ' data-id="' . e($v->mp_id) . '" data-action="cancel"'
-                        . ' title="Request to Cancel"><i class="fa fa-cancel"></i></button>';
-                } elseif ($stat == 'update' && isset($v->mpu_stat) && $v->mpu_stat == 'approved') {
-                    $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"'
-                        . ' data-bs-toggle="modal" data-bs-target="#modal-mpr"'
-                        . ' data-id="'             . e($v->mp_id)               . '"'
-                        . ' data-replacement="'   . e($v->mp_replacement ?? '') . '"'
-                        . ' data-additional="'    . e($v->mp_additional  ?? '') . '"'
-                        . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '') . '">'
-                        . '<i class="fa fa-edit"></i></button>';
-                }
-            }
-
-            if (
-                $stat == 'pending'
-                && strpos(check_assign($user->Emp_No, 'PR'), $v->mp_requestby) !== false
-                && $reviewer
-            ) {
-                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary approve"'
-                    . ' onclick="approve(' . (int)$v->mp_id . ')">'
-                    . '<i class="fa fa-check"></i></button>';
-
-                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-danger decline"'
-                    . ' onclick="decline(' . (int)$v->mp_id . ')">'
-                    . '<i class="fa fa-times"></i></button>';
-            }
-
-            if ($stat == 'update' && $user->userAccess('personnelreq', 'viewall')) {
-                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary approve"'
-                    . ' onclick="approve_update(' . (int)$v->mpu_id . ')">'
-                    . '<i class="fa fa-check"></i></button>';
-
-                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-danger decline"'
-                    . ' onclick="decline_update(' . (int)$v->mpu_id . ')">'
-                    . '<i class="fa fa-times"></i></button>';
-            }
+            $btn_action = self::renderRowActions($stat, $v, $user, $user_empno, $reviewer);
 
             if ($btn_action_show) {
-                // FIX: wrap in mpr-row-actions so the hover-reveal CSS (opacity 0→1) works
                 $html .= '<td><div class="mpr-row-actions">' . $btn_action . '</div></td>';
             }
 
@@ -325,6 +243,147 @@ class ManpowerRequestController extends Controller
 
         $html .= '</tbody></table>';
         return $html;
+    }
+
+    /** Builds the per-row action buttons (edit/delete/approve/decline/etc). */
+    private static function renderRowActions(string $stat, $v, $user, string $user_empno, bool $reviewer): string
+    {
+        $btn_action = '';
+
+        if ($user_empno == $v->mp_requestby) {
+            if ($stat == 'draft' || $stat == 'pending') {
+                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"'
+                    . ' data-bs-toggle="modal" data-bs-target="#modal-mpr"'
+                    . ' data-id="'             . e($v->mp_id)               . '"'
+                    . ' data-replacement="'   . e($v->mp_replacement ?? '') . '"'
+                    . ' data-additional="'    . e($v->mp_additional  ?? '') . '"'
+                    . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '') . '">'
+                    . '<i class="fa fa-edit"></i></button>';
+
+                $btn_action .= '<button class="m-1 btn btn-sm btn-danger"'
+                    . ' onclick="remove_mpr(' . (int)$v->mp_id . ')">'
+                    . '<i class="fa fa-trash"></i></button>';
+            } elseif ($stat == 'approved') {
+                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"'
+                    . ' data-bs-toggle="modal" data-bs-target="#modal-mpr-update"'
+                    . ' data-id="' . e($v->mp_id) . '" data-action="edit"'
+                    . ' title="Request to Edit"><i class="fa fa-edit"></i></button>';
+
+                $btn_action .= '<button class="m-1 btn btn-sm btn-danger"'
+                    . ' data-bs-toggle="modal" data-bs-target="#modal-mpr-update"'
+                    . ' data-id="' . e($v->mp_id) . '" data-action="cancel"'
+                    . ' title="Request to Cancel"><i class="fa fa-cancel"></i></button>';
+            } elseif ($stat == 'update' && isset($v->mpu_stat) && $v->mpu_stat == 'approved') {
+                $btn_action .= '<button class="m-1 btn btn-sm btn-outline-secondary"'
+                    . ' data-bs-toggle="modal" data-bs-target="#modal-mpr"'
+                    . ' data-id="'             . e($v->mp_id)               . '"'
+                    . ' data-replacement="'   . e($v->mp_replacement ?? '') . '"'
+                    . ' data-additional="'    . e($v->mp_additional  ?? '') . '"'
+                    . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '') . '">'
+                    . '<i class="fa fa-edit"></i></button>';
+            }
+        }
+
+        if (
+            $stat == 'pending'
+            && strpos(check_assign($user->Emp_No, 'PR'), $v->mp_requestby) !== false
+            && $reviewer
+        ) {
+            $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary approve"'
+                . ' onclick="approve(' . (int)$v->mp_id . ')">'
+                . '<i class="fa fa-check"></i></button>';
+
+            $btn_action .= '<button class="m-1 btn btn-sm btn-outline-danger decline"'
+                . ' onclick="decline(' . (int)$v->mp_id . ')">'
+                . '<i class="fa fa-times"></i></button>';
+        }
+
+        if ($stat == 'update' && $user->userAccess('personnelreq', 'viewall')) {
+            $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary approve"'
+                . ' onclick="approve_update(' . (int)$v->mpu_id . ')">'
+                . '<i class="fa fa-check"></i></button>';
+
+            $btn_action .= '<button class="m-1 btn btn-sm btn-outline-danger decline"'
+                . ' onclick="decline_update(' . (int)$v->mpu_id . ')">'
+                . '<i class="fa fa-times"></i></button>';
+        }
+
+        return $btn_action;
+    }
+
+    /**
+     * Parses a pipe/bracket-delimited slot string (mp_replacement /
+     * mp_additional) into an array of [title, code, count, reason, date,
+     * applicants_csv, fill] tuples.
+     */
+    private static function parseSlots(?string $raw, $positionList): array
+    {
+        preg_match_all('/\[([^\]]+)\]/', $raw ?? '', $matches);
+
+        return array_map(function ($group) use ($positionList) {
+            $group = explode('|', $group);
+            return [
+                trim($positionList->where('jd_code', $group[0])->first()?->jd_title ?? ''),
+                $group[0],          // position code
+                $group[1] ?? '',    // count
+                $group[2] ?? '',    // reason
+                $group[3] ?? '',    // date
+                $group[4] ?? '',    // applicants CSV
+                $group[5] ?? 0,     // fill
+            ];
+        }, $matches[1]);
+    }
+
+    /**
+     * Serializes an array of slot rows (each indexed by the given $fields,
+     * in order) back into the bracketed pipe-delimited storage format.
+     * Example: serializeSlots($rows, ['position','count','reason','date','applicants_csv','fill'])
+     */
+    private static function serializeSlots(array $rows, array $fields): string
+    {
+        if (empty($rows)) {
+            return '';
+        }
+
+        $parts = array_map(function ($row) use ($fields) {
+            $values = array_map(fn($f) => $row[$f] ?? '', $fields);
+            return implode('|', $values);
+        }, $rows);
+
+        return '[' . implode('][', $parts) . ']';
+    }
+
+    private static function employeeList()
+    {
+        return DB::table('tbl201_persinfo')
+            ->selectRaw("pers_empno, Dept_Name, TRIM(CONCAT(pers_lastname, ', ', pers_firstname)) as empname")
+            ->leftJoin('tbl201_jobrec', function ($join) {
+                $join->on('jrec_empno', '=', 'pers_empno')
+                    ->on('jrec_status', '=', DB::raw("'Primary'"));
+            })
+            ->leftJoin('tbl_department', 'Dept_Code', '=', 'jrec_department')
+            ->orderBy('Dept_Name', 'asc')
+            ->orderBy('pers_lastname', 'asc')
+            ->orderBy('pers_firstname', 'asc')
+            ->get();
+    }
+
+    /** Shared applicant dropdown source, used by index() and showList(). */
+    private static function applicantList()
+    {
+        return ApplicantPersonal::query()
+            ->select([
+                'app_id',
+                DB::raw("CONCAT_WS(
+                    ' ',
+                    app_fname,
+                    NULLIF(CONCAT(LEFT(app_mname, 1), '.'), '.'),
+                    app_lname
+                ) AS app_name"),
+            ])
+            ->orderBy('app_lname')
+            ->orderBy('app_fname')
+            ->get();
     }
 
     public static function viewSpec($pos)
@@ -398,19 +457,19 @@ class ManpowerRequestController extends Controller
             $progress[0] = '0%';
             $progress[1] = '0/' . (array_sum(array_column($validated['replacement'], 'count')) + array_sum(array_column($validated['additional'], 'count')));
 
-            $validated['replacement'] = array_map(function ($i) {
-                $applicants = implode(',', array_filter($i['applicants'] ?? [], fn($a) => !is_null($a)));
-                return implode('|', [$i['position'], $i['count'], $i['reason'], $i['date'], $applicants]);
-            }, $validated['replacement']);
+            $normalize = function ($i) {
+                $i['applicants_csv'] = implode(',', array_filter($i['applicants'] ?? [], fn($a) => !is_null($a)));
+                return $i;
+            };
 
-            $validated['additional'] = array_map(function ($i) {
-                $applicants = implode(',', array_filter($i['applicants'] ?? [], fn($a) => !is_null($a)));
-                return implode('|', [$i['position'], $i['count'], $i['reason'], $i['date'], $applicants]);
-            }, $validated['additional']);
+            $fields = ['position', 'count', 'reason', 'date', 'applicants_csv'];
+
+            $replacementRows = array_map($normalize, $validated['replacement']);
+            $additionalRows  = array_map($normalize, $validated['additional']);
 
             $data = [
-                'mp_replacement' => (!empty($validated['replacement']) ? "[" . implode('][', $validated['replacement']) . "]" : ""),
-                'mp_additional' => (!empty($validated['additional']) ? "[" . implode('][', $validated['additional']) . "]" : ""),
+                'mp_replacement' => self::serializeSlots($replacementRows, $fields),
+                'mp_additional' => self::serializeSlots($additionalRows, $fields),
                 'mp_nonnegotiable' => $validated['nonnegotiable'],
                 'mp_progress' => implode(',', $progress)
             ];
@@ -474,10 +533,10 @@ class ManpowerRequestController extends Controller
             ]);
 
             // The front-end submits these fields as JSON-encoded arrays, but
-            // viewSpec() below reads them back with explode() on legacy
-            // delimiters ('-', '%#', '%&', '|'). Convert here so both
-            // directions stay in sync — this is also what was overflowing
-            // jspec_agerange (a JSON array is longer than "20-30").
+            // viewSpec() reads them back with explode() on legacy delimiters
+            // ('-', '%#', '%&', '|'). Convert here so both directions stay in
+            // sync — this is also what was overflowing jspec_agerange (a
+            // JSON array is longer than "20-30").
             $toDelimited = function ($json, string $glue) {
                 $arr = json_decode($json, true);
                 return is_array($arr) ? implode($glue, $arr) : (string) $json;
@@ -578,7 +637,7 @@ class ManpowerRequestController extends Controller
         try {
             $validated = $request->validate([
                 'id' => 'required|numeric',
-                'stat' => 'nullable|string',
+                'stat' => ['nullable', 'string', 'in:' . implode(',', self::ALLOWED_STATUSES)],
                 'reason' => 'nullable|string',
             ]);
 
@@ -622,31 +681,18 @@ class ManpowerRequestController extends Controller
             $progress = ($count > 0 ? round(($fill / $count) * 100) : 0) . '%,' . $fill . '/' . $count;
 
             // Slot order: position|count|reason|date|applicants_csv|fill
-            $validated['replacement'] = array_map(function ($i) {
-                return implode('|', [
-                    $i['position'],
-                    $i['count'],
-                    $i['reason'],
-                    $i['date'],
-                    $i['applicants_csv'] ?? '',  // preserved from store()
-                    $i['fill'] ?? 0,
-                ]);
-            }, $validated['replacement']);
+            $fields = ['position', 'count', 'reason', 'date', 'applicants_csv', 'fill'];
 
-            $validated['additional'] = array_map(function ($i) {
-                return implode('|', [
-                    $i['position'],
-                    $i['count'],
-                    $i['reason'],
-                    $i['date'],
-                    $i['applicants_csv'] ?? '',
-                    $i['fill'] ?? 0,
-                ]);
-            }, $validated['additional']);
+            // Preserve original default behaviour (fill/applicants_csv default).
+            $withDefaults = fn($rows) => array_map(function ($i) {
+                $i['fill'] = $i['fill'] ?? 0;
+                $i['applicants_csv'] = $i['applicants_csv'] ?? '';
+                return $i;
+            }, $rows);
 
             $data = [
-                'mp_replacement' => (!empty($validated['replacement']) ? "[" . implode('][', $validated['replacement']) . "]" : ""),
-                'mp_additional'  => (!empty($validated['additional'])  ? "[" . implode('][', $validated['additional'])  . "]" : ""),
+                'mp_replacement' => self::serializeSlots($withDefaults($validated['replacement']), $fields),
+                'mp_additional'  => self::serializeSlots($withDefaults($validated['additional']), $fields),
                 'mp_progress'    => $progress,
             ];
 
