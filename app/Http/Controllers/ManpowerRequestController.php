@@ -333,7 +333,8 @@ class ManpowerRequestController extends Controller
                             . ' data-replacement="'   . e($v->mp_replacement ?? '') . '"'
                             . ' data-additional="'    . e($v->mp_additional  ?? '') . '"'
                             . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '') . '"'
-                            . ' data-reason="'        . e($v->mpu_reason ?? '')      . '">'
+                            . ' data-reason="'        . e($v->mpu_reason ?? '')      . '"'
+                            . ' data-submit-mode="update">'
                             . '<i class="fa fa-edit"></i></button>';
                     }
         }
@@ -552,7 +553,7 @@ class ManpowerRequestController extends Controller
                 ManpowerRequest::where('mp_id', $validated['id'])->update($data);
 
                 if ($currentStatus === 'approved') {
-                    DB::table('tbl_mpupdate')
+                    DB::connection('hrd2')->table('tbl_mpupdate')
                         ->where('mpu_mpid', $validated['id'])
                         ->where('mpu_req', 'edit')
                         ->where('mpu_stat', 'approved')
@@ -803,7 +804,7 @@ class ManpowerRequestController extends Controller
                 return response()->json(['success' => true]);
             }
 
-            DB::table("tbl_mpupdate")->insert([
+            DB::connection('hrd2')->table("tbl_mpupdate")->insert([
                 'mpu_mpid' => $validated['id'],
                 'mpu_req' => $validated['action'],
                 'mpu_reason' => $validated['reason'] ?? '',
@@ -823,7 +824,7 @@ class ManpowerRequestController extends Controller
             /** @var \App\Models\User $user */
             $user = Auth::user();
 
-            $table = DB::table("tbl_mpupdate")->where('mpu_id', $id);
+            $table = DB::connection('hrd2')->table("tbl_mpupdate")->where('mpu_id', $id);
             $data = $table->first();
 
             if (!$data) {
@@ -860,7 +861,7 @@ class ManpowerRequestController extends Controller
             /** @var \App\Models\User $user */
             $user = Auth::user();
 
-            $data = DB::table("tbl_mpupdate")->where('mpu_id', $id)->first();
+            $data = DB::connection('hrd2')->table("tbl_mpupdate")->where('mpu_id', $id)->first();
 
             if (!$data) {
                 return response()->json(['success' => false, 'error' => 'Not found'], 404);
@@ -875,7 +876,7 @@ class ManpowerRequestController extends Controller
                 return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
             }
 
-            DB::table("tbl_mpupdate")
+            DB::connection('hrd2')->table("tbl_mpupdate")
                 ->where('mpu_id', $id)
                 ->update(['mpu_stat' => 'denied']);
 

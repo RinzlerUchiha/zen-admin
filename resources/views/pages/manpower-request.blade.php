@@ -1141,11 +1141,6 @@
                                     <input type="hidden" id="mpr-id" value="">
                                     <input type="hidden" id="mpr-submit-mode" name="submit_mode" value="draft">
 
-                                    <div class="alert alert-warning py-2 px-3 mb-3" id="mpr-edit-reason-box" style="display:none; font-size: 12px;">
-                                        <strong>Reason for edit request:</strong>
-                                        <div id="mpr-edit-reason-text"></div>
-                                    </div>
-
                                     <!-- Master applicant option list — used as a clone source so each
                                                 slot dropdown doesn't need its own Blade loop render. -->
                                     <select id="mpr-applicant-master-options" class="d-none">
@@ -1368,6 +1363,11 @@
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div class="alert alert-warning py-2 px-3 mb-3 mt-3" id="mpr-edit-reason-box" style="display:none; font-size: 12px;">
+                                        <strong>Reason for edit request:</strong>
+                                        <div id="mpr-edit-reason-text"></div>
                                     </div>
                                 </div>
                             </div>
@@ -3452,8 +3452,16 @@
                see history). Instead we open the view modal explicitly here,
                and simply skip rows where the click originated inside the
                action buttons, sidestepping the race entirely. */
-            $('#mprTabContent').on('click', 'tr.mpr-clickable-row', function(e) {
+               $('#mprTabContent').on('click', 'tr.mpr-clickable-row', function(e) {
                 if ($(e.target).closest('.mpr-row-actions').length) return;
+
+                if (curtab === 'update') {
+                    const $editBtn = $(this).find('.mpr-row-actions button[data-bs-target="#modal-mpr"]');
+                    if ($editBtn.length) {
+                        $editBtn.trigger('click');
+                        return;
+                    }
+                }
 
                 const modalEl = document.getElementById('modal-view-mpr');
                 bootstrap.Modal.getOrCreateInstance(modalEl).show(this);
