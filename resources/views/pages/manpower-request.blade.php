@@ -1010,11 +1010,6 @@
                     aria-selected="false">
                     <span class="mpr-tab-dot"></span> Approved <span class="mpr-tab-count" data-count="approved">–</span>
                 </li>
-                <li class="mpr-tab" data-stat="pending_update" id="pending-update-tab" role="tab"
-                    aria-controls="pending-update-tab-pane" aria-selected="false">
-                    <span class="mpr-tab-dot"></span> Pending Update <span class="mpr-tab-count"
-                        data-count="pending_update">–</span>
-                </li>
                 <li class="mpr-tab" data-stat="update" id="update-tab" role="tab" aria-controls="update-tab-pane"
                     aria-selected="false">
                     <span class="mpr-tab-dot"></span> Update <span class="mpr-tab-count" data-count="update">–</span>
@@ -1061,9 +1056,7 @@
                         <div class="tab-pane" id="pending-tab-pane" aria-labelledby="pending-tab" tabindex="0"></div>
                         <div class="tab-pane" id="approved-tab-pane" aria-labelledby="approved-tab" tabindex="0"
                             style="display:none;"></div>
-                        <div class="tab-pane" id="pending-update-tab-pane" aria-labelledby="pending-update-tab"
-                            tabindex="0" style="display:none;"></div>
-                        <div class="tab-pane" id="update-tab-pane" aria-labelledby="update-tab" tabindex="0"
+                            <div class="tab-pane" id="update-tab-pane" aria-labelledby="update-tab" tabindex="0"
                             style="display:none;"></div>
                         <div class="tab-pane" id="cancelled-tab-pane" aria-labelledby="cancelled-tab" tabindex="0"
                             style="display:none;"></div>
