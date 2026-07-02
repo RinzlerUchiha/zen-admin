@@ -47,7 +47,7 @@ class ManpowerRequestController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $user_empno = $user->Emp_No;
-        $reviewer = $user->userAccess('personnelreq', 'reviewer');
+        // approval authority now comes from tbl_dept_authority (check_assign) alone
 
         // ── jobspec tab ──────────────────────────────────────────────────────
         if ($stat == 'jobspec') {
@@ -62,15 +62,24 @@ class ManpowerRequestController extends Controller
         $query = self::buildListQuery($stat, $user, $user_empno);
 
         if (in_array($stat, ['update', 'cancelled'])) {
-            $query->leftJoin('tbl_mpupdate', 'mpu_mpid', '=', 'mp_id');
+            $query->leftJoin('tbl_mpupdate', 'mpu_mpid', '=', 'mp_id')
+                ->select(
+                    'tbl_manpower.*',
+                    'tbl_mpupdate.mpu_id',
+                    'tbl_mpupdate.mpu_mpid',
+                    'tbl_mpupdate.mpu_req',
+                    'tbl_mpupdate.mpu_reason',
+                    'tbl_mpupdate.mpu_stat',
+                    'tbl_mpupdate.mpu_by'
+                );
         }
 
         $query->orderBy('mp_filled', 'desc')->orderBy('mp_id', 'desc');
         $data = $query->get();
 
-        $btn_action_show = self::showActionColumn($stat, $user, $user_empno, $reviewer, $data);
+        $btn_action_show = self::showActionColumn($stat, $user, $user_empno, $data);
 
-        return self::renderListTable($stat, $data, $employee, $positionList, $user, $user_empno, $reviewer, $btn_action_show);
+        return self::renderListTable($stat, $data, $employee, $positionList, $user, $user_empno, $btn_action_show);
     }
 
     /**
@@ -79,16 +88,16 @@ class ManpowerRequestController extends Controller
      */
     private static function buildListQuery(string $stat, $user, string $user_empno)
     {
-        $canViewAll = $user->userAccess('personnelreq', 'viewall') || $user->userAccess('personnelreq', 'viewer');
+        $canViewAll = $user->userAccess('personnelreq', 'viewall');
 
         if ($canViewAll) {
             if ($stat == 'update') {
-                return ManpowerRequest::whereRaw("(mpu_stat='pending' OR mpu_stat='approved')");
+                return ManpowerRequest::whereRaw("(mpu_stat='pending')");
             }
 
             $query = ManpowerRequest::where('mp_status', $stat);
             if (!in_array($stat, ['update', 'cancelled', 'draft'])) {
-                $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+                $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending')");
             }
             return $query;
         }
@@ -97,7 +106,7 @@ class ManpowerRequestController extends Controller
 
         if ($stat == 'update') {
             return ManpowerRequest::whereRaw(
-                "(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?) AND (mpu_stat='pending' OR mpu_stat='approved')",
+                "(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?) AND (mpu_stat='pending')",
                 [$assigned, $user_empno]
             );
         }
@@ -106,23 +115,37 @@ class ManpowerRequestController extends Controller
             ->whereRaw("(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?)", [$assigned, $user_empno]);
 
         if (!in_array($stat, ['update', 'cancelled'])) {
-            $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+            $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending')");
         }
 
         return $query;
     }
 
-    /** Whether the trailing actions <th>/<td> column should be rendered for this tab. */
-    private static function showActionColumn(string $stat, $user, string $user_empno, bool $reviewer, $data): bool
+    /** Whether $user is the tbl_dept_authority-designated PR approver for the
+     *  department that owns $requestorEmpno (i.e. $requestorEmpno appears in
+     *  the user's check_assign('PR') list). */
+    private static function isDeptApprover($user, ?string $requestorEmpno): bool
     {
-        return in_array($user_empno, $data->pluck('mp_requestby')->toArray())
-            || ($stat == 'pending'
-                && count(array_intersect(
-                    explode(',', check_assign($user->Emp_No, 'PR')),
-                    $data->pluck('mp_requestby')->toArray()
-                )) > 0
-                && $reviewer)
-            || ($stat == 'update' && $user->userAccess('personnelreq', 'viewall'));
+        if (!$requestorEmpno) {
+            return false;
+        }
+        return strpos(check_assign($user->Emp_No, 'PR'), $requestorEmpno) !== false;
+    }
+
+    /** Whether the trailing actions <th>/<td> column should be rendered for this tab. */
+    private static function showActionColumn(string $stat, $user, string $user_empno, $data): bool
+    {
+        $isOwnRequest = in_array($user_empno, $data->pluck('mp_requestby')->toArray());
+
+        $isApproverForAnyRow = $stat == 'pending'
+            && $data->pluck('mp_requestby')->contains(fn($empno) => self::isDeptApprover($user, $empno));
+
+        $isApproverForAnyUpdateRow = $stat == 'update'
+            && $data->pluck('mp_requestby')->contains(fn($empno) => self::isDeptApprover($user, $empno));
+
+        $isAdminUpdateTab = $stat == 'update' && $user->userAccess('personnelreq', 'viewall');
+
+        return $isOwnRequest || $isApproverForAnyRow || $isApproverForAnyUpdateRow || $isAdminUpdateTab;
     }
 
     private static function renderJobSpecTable($user): string
@@ -160,7 +183,6 @@ class ManpowerRequestController extends Controller
         $positionList,
         $user,
         string $user_empno,
-        bool $reviewer,
         bool $btn_action_show
     ): string {
         $html  = '<table class="table table-sm mpr-table">';
@@ -199,8 +221,7 @@ class ManpowerRequestController extends Controller
             $replacement = self::parseSlots($v->mp_replacement, $positionList);
             $additional  = self::parseSlots($v->mp_additional, $positionList);
 
-            $html .= '<tr data-bs-toggle="modal"'
-                . ' data-bs-target="#modal-view-mpr"'
+            $html .= '<tr class="mpr-clickable-row"'
                 . ' data-id="'             . e($v->mp_id)                    . '"'
                 . ' data-replacement="'   . e(json_encode($replacement))     . '"'
                 . ' data-additional="'    . e(json_encode($additional))      . '"'
@@ -232,7 +253,7 @@ class ManpowerRequestController extends Controller
                 $html .= '<td class="text-center">' . e($progress[1] ?? '') . '</td>';
             }
 
-            $btn_action = self::renderRowActions($stat, $v, $user, $user_empno, $reviewer);
+            $btn_action = self::renderRowActions($stat, $v, $user, $user_empno);
 
             if ($btn_action_show) {
                 $html .= '<td><div class="mpr-row-actions">' . $btn_action . '</div></td>';
@@ -246,7 +267,7 @@ class ManpowerRequestController extends Controller
     }
 
     /** Builds the per-row action buttons (edit/delete/approve/decline/etc). */
-    private static function renderRowActions(string $stat, $v, $user, string $user_empno, bool $reviewer): string
+    private static function renderRowActions(string $stat, $v, $user, string $user_empno): string
     {
         $btn_action = '';
 
@@ -284,11 +305,7 @@ class ManpowerRequestController extends Controller
             }
         }
 
-        if (
-            $stat == 'pending'
-            && strpos(check_assign($user->Emp_No, 'PR'), $v->mp_requestby) !== false
-            && $reviewer
-        ) {
+        if ($stat == 'pending' && self::isDeptApprover($user, $v->mp_requestby)) {
             $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary approve"'
                 . ' onclick="approve(' . (int)$v->mp_id . ')">'
                 . '<i class="fa fa-check"></i></button>';
@@ -298,7 +315,9 @@ class ManpowerRequestController extends Controller
                 . '<i class="fa fa-times"></i></button>';
         }
 
-        if ($stat == 'update' && $user->userAccess('personnelreq', 'viewall')) {
+        if ($stat == 'update'
+            && ($user->userAccess('personnelreq', 'viewall') || self::isDeptApprover($user, $v->mp_requestby))
+        ) {
             $btn_action .= '<button class="m-1 btn btn-sm btn-outline-primary approve"'
                 . ' onclick="approve_update(' . (int)$v->mpu_id . ')">'
                 . '<i class="fa fa-check"></i></button>';
@@ -732,10 +751,26 @@ class ManpowerRequestController extends Controller
     public static function approveUpdate($id)
     {
         try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
             $table = DB::table("tbl_mpupdate")->where('mpu_id', $id);
             $data = $table->first();
-            $action = $data?->mpu_req;
-            $mp_id = $data?->mpu_mpid;
+
+            if (!$data) {
+                return response()->json(['success' => false, 'error' => 'Not found'], 404);
+            }
+
+            $action = $data->mpu_req;
+            $mp_id = $data->mpu_mpid;
+            $requestorEmpno = ManpowerRequest::where('mp_id', $mp_id)->value('mp_requestby');
+
+            $authorized = $user->userAccess('personnelreq', 'viewall')
+                || self::isDeptApprover($user, $requestorEmpno);
+
+            if (!$authorized) {
+                return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+            }
 
             if ($action == 'cancel') {
                 DB::table("tbl_manpower")
@@ -753,6 +788,24 @@ class ManpowerRequestController extends Controller
     public static function declineUpdate($id)
     {
         try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+
+            $data = DB::table("tbl_mpupdate")->where('mpu_id', $id)->first();
+
+            if (!$data) {
+                return response()->json(['success' => false, 'error' => 'Not found'], 404);
+            }
+
+            $requestorEmpno = ManpowerRequest::where('mp_id', $data->mpu_mpid)->value('mp_requestby');
+
+            $authorized = $user->userAccess('personnelreq', 'viewall')
+                || self::isDeptApprover($user, $requestorEmpno);
+
+            if (!$authorized) {
+                return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+            }
+
             DB::table("tbl_mpupdate")
                 ->where('mpu_id', $id)
                 ->update(['mpu_stat' => 'denied']);
@@ -819,9 +872,9 @@ class ManpowerRequestController extends Controller
         foreach (['draft', 'pending', 'approved', 'cancelled', 'declined'] as $stat) {
             $query = ManpowerRequest::where('mp_status', $stat);
 
-            if ($user->userAccess('personnelreq', 'viewall') || $user->userAccess('personnelreq', 'viewer')) {
+            if ($user->userAccess('personnelreq', 'viewall')) {
                 if (!in_array($stat, ['cancelled', 'draft'])) {
-                    $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+                    $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending')");
                 }
             } else {
                 $query->whereRaw("(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?)", [
@@ -829,7 +882,7 @@ class ManpowerRequestController extends Controller
                     $user->Emp_No
                 ]);
                 if (!in_array($stat, ['cancelled'])) {
-                    $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending' OR mpu_stat='approved')");
+                    $query->whereRaw("mp_id NOT IN (SELECT mpu_mpid FROM tbl_mpupdate WHERE mpu_stat='pending')");
                 }
             }
 
@@ -845,10 +898,10 @@ class ManpowerRequestController extends Controller
             ->leftJoin('tbl_mpupdate', 'mpu_mpid', '=', 'mp_id');
 
         if ($user->userAccess('personnelreq', 'viewall') || $user->userAccess('personnelreq', 'viewer')) {
-            $updateQuery->whereRaw("(mpu_stat='pending' OR mpu_stat='approved')");
+            $updateQuery->whereRaw("(mpu_stat='pending')");
         } else {
             $updateQuery->whereRaw(
-                "(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?) AND (mpu_stat='pending' OR mpu_stat='approved')",
+                "(FIND_IN_SET(mp_requestby, ?) > 0 OR mp_requestby = ?) AND (mpu_stat='pending')",
                 [check_assign($user->Emp_No, 'PR'), $user->Emp_No]
             );
         }
