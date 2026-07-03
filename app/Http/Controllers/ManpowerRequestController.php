@@ -242,7 +242,9 @@ class ManpowerRequestController extends Controller
                 . ' data-id="'             . e($v->mp_id)                    . '"'
                 . ' data-replacement="'   . e(json_encode($replacement))     . '"'
                 . ' data-additional="'    . e(json_encode($additional))      . '"'
-                . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '')    . '">';
+                . ' data-nonnegotiable="' . e($v->mp_nonnegotiable ?? '')    . '"'
+                . ($stat == 'update' ? ' data-mpu-stat="' . e($v->mpu_stat ?? '') . '"' : '')
+                . '>';
 
             $html .= '<td class="text-start">' . e($v->mp_dtprepared) . '</td>';
 

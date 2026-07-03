@@ -15,10 +15,10 @@
 
     <style>
         /* ============================================================
-                           MPR module — scoped dark theme
-                           Everything lives under #mpr-app so the rest of the app
-                           (layout, sidebar, other pages) is untouched.
-                           ============================================================ */
+                               MPR module — scoped dark theme
+                               Everything lives under #mpr-app so the rest of the app
+                               (layout, sidebar, other pages) is untouched.
+                               ============================================================ */
         #mpr-app {
             --mpr-page-bg: #f7f7f5;
             --mpr-bg-raised: #ffffff;
@@ -1022,8 +1022,8 @@
                     aria-selected="false">
                     <span class="mpr-tab-dot"></span> Declined <span class="mpr-tab-count" data-count="declined">–</span>
                 </li>
-                <li class="mpr-tab" data-stat="jobspec" id="jobspec-tab" role="tab"
-                    aria-controls="jobspec-tab-pane" aria-selected="false">
+                <li class="mpr-tab" data-stat="jobspec" id="jobspec-tab" role="tab" aria-controls="jobspec-tab-pane"
+                    aria-selected="false">
                     <span class="mpr-tab-dot"></span> Job specification <span class="mpr-tab-count"
                         data-count="jobspec">–</span>
                 </li>
@@ -1056,7 +1056,7 @@
                         <div class="tab-pane" id="pending-tab-pane" aria-labelledby="pending-tab" tabindex="0"></div>
                         <div class="tab-pane" id="approved-tab-pane" aria-labelledby="approved-tab" tabindex="0"
                             style="display:none;"></div>
-                            <div class="tab-pane" id="update-tab-pane" aria-labelledby="update-tab" tabindex="0"
+                        <div class="tab-pane" id="update-tab-pane" aria-labelledby="update-tab" tabindex="0"
                             style="display:none;"></div>
                         <div class="tab-pane" id="cancelled-tab-pane" aria-labelledby="cancelled-tab" tabindex="0"
                             style="display:none;"></div>
@@ -1076,51 +1076,51 @@
         <!-- #mpr-app itself closes after the modals below, not here -->
 
         <!--
-                        NOTE ON THE TABLE PARTIAL
-                        =========================
-                        The actual <tr> markup for each MPR list comes from the server response
-                        of GET /manpower/list/{stat} (a separate Blade partial not included in
-                        the file you shared), so I can't restyle those rows from here directly.
+                            NOTE ON THE TABLE PARTIAL
+                            =========================
+                            The actual <tr> markup for each MPR list comes from the server response
+                            of GET /manpower/list/{stat} (a separate Blade partial not included in
+                            the file you shared), so I can't restyle those rows from here directly.
 
-                        To match the mockup, that partial's <table> should use:
-                          <table class="mpr-table">
-                            <thead><tr><th>Reference</th><th>Requested by</th><th>Positions</th><th>Date filed</th><th></th></tr></thead>
-                            <tbody>
-                              <tr>
-                                <td class="mpr-ref" data-bs-toggle="modal" data-bs-target="#modal-view-mpr" ...>MPR-2025-007</td>
-                                <td>
-                                  <div class="mpr-requestor">
-                                    <div class="mpr-avatar" style="background:#3b5bdb;">JD</div>
-                                    <div>
-                                      <div class="mpr-requestor-name">Juan Dela Cruz</div>
-                                      <div class="mpr-requestor-dept">Finance</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <span class="mpr-pill">Accountant</span>
-                                  <span class="mpr-pill">Bookkeeper</span>
-                                </td>
-                                <td>Jun 18, 2025</td>
-                                <td>
-                                  <div class="mpr-row-actions">
-                                    <button class="approve" onclick="approve(7)"><i class="fa fa-check"></i></button>
-                                    <button class="decline" onclick="decline(7)"><i class="fa fa-times"></i></button>
-                                  </div>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                            To match the mockup, that partial's <table> should use:
+                              <table class="mpr-table">
+                                <thead><tr><th>Reference</th><th>Requested by</th><th>Positions</th><th>Date filed</th><th></th></tr></thead>
+                                <tbody>
+                                  <tr>
+                                    <td class="mpr-ref" data-bs-toggle="modal" data-bs-target="#modal-view-mpr" ...>MPR-2025-007</td>
+                                    <td>
+                                      <div class="mpr-requestor">
+                                        <div class="mpr-avatar" style="background:#3b5bdb;">JD</div>
+                                        <div>
+                                          <div class="mpr-requestor-name">Juan Dela Cruz</div>
+                                          <div class="mpr-requestor-dept">Finance</div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <span class="mpr-pill">Accountant</span>
+                                      <span class="mpr-pill">Bookkeeper</span>
+                                    </td>
+                                    <td>Jun 18, 2025</td>
+                                    <td>
+                                      <div class="mpr-row-actions">
+                                        <button class="approve" onclick="approve(7)"><i class="fa fa-check"></i></button>
+                                        <button class="decline" onclick="decline(7)"><i class="fa fa-times"></i></button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
 
-                        Avatar background colors can rotate through a small palette keyed off
-                        employee id, e.g.: ['#3b5bdb','#c2410c','#15803d','#7e22ce','#0e7490'].
+                            Avatar background colors can rotate through a small palette keyed off
+                            employee id, e.g.: ['#3b5bdb','#c2410c','#15803d','#7e22ce','#0e7490'].
 
-                        Empty state (when the list is empty), drop this in place of the table:
-                          <div class="mpr-empty">
-                            <i class="fa fa-inbox"></i>
-                            <div>No requests in this tab yet.</div>
-                          </div>
-                    -->
+                            Empty state (when the list is empty), drop this in place of the table:
+                              <div class="mpr-empty">
+                                <i class="fa fa-inbox"></i>
+                                <div>No requests in this tab yet.</div>
+                              </div>
+                        -->
 
         <div class="modal fade" id="modal-mpr" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
             aria-labelledby="modal-mpr-label" aria-hidden="true">
@@ -1142,7 +1142,7 @@
                                     <input type="hidden" id="mpr-submit-mode" name="submit_mode" value="draft">
 
                                     <!-- Master applicant option list — used as a clone source so each
-                                                slot dropdown doesn't need its own Blade loop render. -->
+                                                    slot dropdown doesn't need its own Blade loop render. -->
                                     <select id="mpr-applicant-master-options" class="d-none">
                                         <option value="">-</option>
                                         @foreach ($applicants ?? [] as $a)
@@ -1247,7 +1247,7 @@
                                                             </td>
                                                             <td>
                                                                 <!-- Applicant slots — one chip/dropdown per Number Needed.
-                                                                                 Rendered/managed entirely by rebuildApplicantSlots(). -->
+                                                                                     Rendered/managed entirely by rebuildApplicantSlots(). -->
                                                                 <div class="mpr-applicant-slots"></div>
                                                             </td>
                                                             <td style="max-width: 100px;">
@@ -1296,7 +1296,7 @@
 
                                 <div class="mpr-modal-col-side">
                                     <!-- Always visible; shows an empty state until an applicant
-                                                     is picked in either table on the left. -->
+                                                         is picked in either table on the left. -->
                                     <div id="mpr-applicant-interview-panel">
                                         <div class="mpr-section-divider additional">
                                             <span class="dot"></span> Applicant interview history
@@ -1365,7 +1365,8 @@
                                         </div>
                                     </div>
 
-                                    <div class="alert alert-warning py-2 px-3 mb-3 mt-3" id="mpr-edit-reason-box" style="display:none; font-size: 12px;">
+                                    <div class="alert alert-warning py-2 px-3 mb-3 mt-3" id="mpr-edit-reason-box"
+                                        style="display:none; font-size: 12px;">
                                         <strong>Reason for edit request:</strong>
                                         <div id="mpr-edit-reason-text"></div>
                                     </div>
@@ -1375,10 +1376,10 @@
                         <div class="modal-footer mpr-footer-tone">
                             <button type="button" class="btn btn-secondary" id="btn-close-mpr"
                                 data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-outline-danger" id="btn-delete-mpr" style="display:none;"><i
-                                    class="fa fa-trash" aria-hidden="true"></i> Delete</button>
-                            <button type="button" class="btn btn-outline-primary" id="btn-save-draft-mpr" style="display:none;"><i
-                                    class="fa fa-save" aria-hidden="true"></i> Save draft</button>
+                            <button type="button" class="btn btn-outline-danger" id="btn-delete-mpr"
+                                style="display:none;"><i class="fa fa-trash" aria-hidden="true"></i> Delete</button>
+                            <button type="button" class="btn btn-outline-primary" id="btn-save-draft-mpr"
+                                style="display:none;"><i class="fa fa-save" aria-hidden="true"></i> Save draft</button>
                             <button type="button" class="btn btn-primary" id="btn-post-mpr"><i
                                     class="fa fa-paper-plane" aria-hidden="true"></i> Post request</button>
                         </div>
@@ -1534,10 +1535,11 @@
                         </div>
                         <div class="modal-footer mpr-footer-tone">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-outline-danger" id="btn-delete-view-mpr" style="display:none;"><i
-                                    class="fa fa-trash" aria-hidden="true"></i> Delete</button>
-                            <button type="button" class="btn btn-outline-primary" id="btn-post-view-mpr" style="display:none;"><i
-                                    class="fa fa-paper-plane" aria-hidden="true"></i> Post request</button>
+                            <button type="button" class="btn btn-outline-danger" id="btn-delete-view-mpr"
+                                style="display:none;"><i class="fa fa-trash" aria-hidden="true"></i> Delete</button>
+                            <button type="button" class="btn btn-outline-primary" id="btn-post-view-mpr"
+                                style="display:none;"><i class="fa fa-paper-plane" aria-hidden="true"></i> Post
+                                request</button>
                             <button type="submit" class="btn btn-primary" id="btn-save-view-mpr">Save</button>
                         </div>
                     </form>
@@ -3093,6 +3095,7 @@
         function renderApplicantSlots($row) {
             const applicants = getRowApplicants($row);
             const $slots = $row.find('.mpr-applicant-slots').empty();
+            const locked = !!$row.data('locked');
 
             const scope = scopeForRow($row);
 
@@ -3100,8 +3103,10 @@
                 if (applicant) {
                     const $chip = $('<div class="mpr-applicant-chip">')
                         .attr('data-slot-index', i)
-                        .append($('<span class="mpr-applicant-chip-name">').text(applicant.name))
-                        .append(
+                        .append($('<span class="mpr-applicant-chip-name">').text(applicant.name));
+
+                    if (!locked) {
+                        $chip.append(
                             $('<button type="button" class="mpr-applicant-chip-remove">&times;</button>')
                             .on('click', function(e) {
                                 e.stopPropagation();
@@ -3112,14 +3117,22 @@
                                 resetApplicantInterviewPanel(scope);
                             })
                         );
+                    }
 
                     $chip.on('click', function() {
+                        // Viewing interview history stays allowed even when
+                        // locked — only reassigning/removing is blocked.
                         $row.closest('.modal').find('.mpr-applicant-chip').removeClass('active');
                         $chip.addClass('active');
                         loadApplicantInterviewHistory(applicant.id, applicant.name, scope);
                     });
 
                     $slots.append($chip);
+                } else if (locked) {
+                    $slots.append(
+                        $('<div class="mpr-applicant-chip" style="opacity:.5;cursor:default;">')
+                        .text('- Slot ' + (i + 1) + ' - (locked)')
+                    );
                 } else {
                     const $sel = $('<select class="form-select form-select-sm mpr-additional-applicant">')
                         .append('<option value="">- Slot ' + (i + 1) + ' -</option>');
@@ -3211,10 +3224,10 @@
          * Without it, scopeForRow() finds no ancestor modal and falls back to
          * the 'mpr' scope, pointing chip clicks at the wrong interview panel.
          */
-        function buildViewSlotRow(item, {
+         function buildViewSlotRow(item, {
             rowClass,
             fillClass
-        }, $tbody) {
+        }, $tbody, locked = false) {
             const $row = $('<tr/>').addClass(rowClass)
                 .attr('position', item[1])
                 .attr('number', item[2])
@@ -3232,12 +3245,18 @@
                     .attr('min', 0)
                     .attr('max', item[2])
                     .addClass('form-control form-control-sm ' + fillClass)
+                    .prop('disabled', locked)
                     .val(item[6] || 0)
                 )
             );
 
             // Append to DOM first — scopeForRow() depends on DOM ancestry.
             $tbody.append($row);
+
+            // Must be set before rebuildApplicantSlots()/renderApplicantSlots()
+            // run below, since they read this flag to decide whether slots
+            // are interactive.
+            $row.data('locked', locked);
 
             const slotCount = parseInt(item[2]) || 1;
             setRowApplicants($row, []);
@@ -3452,7 +3471,7 @@
                see history). Instead we open the view modal explicitly here,
                and simply skip rows where the click originated inside the
                action buttons, sidestepping the race entirely. */
-               $('#mprTabContent').on('click', 'tr.mpr-clickable-row', function(e) {
+            $('#mprTabContent').on('click', 'tr.mpr-clickable-row', function(e) {
                 if ($(e.target).closest('.mpr-row-actions').length) return;
 
                 if (curtab === 'update') {
@@ -3543,7 +3562,7 @@
 
                 if ($replacementBody.find('tr').length === 0) {
                     appendEditableSlotRow(tr_replacement, $replacementBody, [null, 1],
-                    replacementSelectors);
+                        replacementSelectors);
                 }
                 if ($additionalBody.find('tr').length === 0) {
                     appendEditableSlotRow(tr_additional, $additionalBody, [null, 1], additionalSelectors);
@@ -3589,7 +3608,7 @@
                 if (submitMode === 'pending' && !hasContent) {
                     $('#mpr-err').html(
                         '<p style="color: red;">Please add at least one position before posting the request.</p>'
-                        );
+                    );
                     return;
                 }
 
@@ -3639,6 +3658,16 @@
                 let replacement = (main_tr.data('replacement') || []);
                 let additional = (main_tr.data('additional') || []);
 
+                // Applicant slots are locked whenever this is an update-tab
+                // request still awaiting admin action — the requestor's
+                // applicant picks shouldn't be changeable until an admin
+                // approves the edit/cancel. Cancelled and declined requests
+                // are always locked, since there's no action left to take on
+                // them.
+                const locked = (curtab === 'update' && main_tr.data('mpu-stat') === 'pending')
+                    || curtab === 'cancelled'
+                    || curtab === 'declined' || curtab === 'pending' || curtab === 'approved';
+
                 $('#view-mpr-id').val(main_tr.data('id') || '');
                 $('#view-mpr-nonnegotiable').html((main_tr.data('nonnegotiable') || '').replace(/\r?\n/g,
                     '<br>'));
@@ -3647,14 +3676,14 @@
                     buildViewSlotRow(item, {
                         rowClass: 'view-mpr-replacement-item',
                         fillClass: 'view-mpr-replacement-fill'
-                    }, $replacementBody);
+                    }, $replacementBody, locked);
                 });
 
                 additional.forEach(item => {
                     buildViewSlotRow(item, {
                         rowClass: 'view-mpr-additional-item',
                         fillClass: 'view-mpr-additional-fill'
-                    }, $additionalBody);
+                    }, $additionalBody, locked);
                 });
 
                 $('#view-mpr-requestby').text(main_tr.find('td').eq(1).text());
@@ -4007,6 +4036,7 @@
                     // No table at all means the partial already rendered its
                     // own empty state — leave it as-is. Otherwise, fall back
                     // to a generic empty state.
+                    $('#mpr-results-count').text('');
                 } else {
                     if ($.fn.DataTable.isDataTable($table)) {
                         $table.DataTable().destroy();
@@ -4030,6 +4060,16 @@
                         }
                     });
                     $('#mpr-page-length').val(String(api.page.len()));
+
+                    // Every tab gets its own DataTable instance, so a term
+                    // typed before switching tabs would otherwise silently
+                    // stop applying — the box would show text but the newly
+                    // built table wouldn't be filtered by it. Re-apply
+                    // whatever's currently in the search box immediately.
+                    const currentSearch = $('#mpr-global-search').val();
+                    if (currentSearch) {
+                        api.search(currentSearch).draw();
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching the list:', error);
