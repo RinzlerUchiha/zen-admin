@@ -268,6 +268,8 @@
 
         #mpr-app .mpr-search {
             position: relative;
+            display: flex;
+            align-items: center;
             flex: 1;
             min-width: 200px;
             max-width: 320px;
@@ -275,11 +277,13 @@
 
         #mpr-app .mpr-search input {
             width: 100%;
+            box-sizing: border-box;
             background: var(--mpr-bg-raised);
             border: 1px solid var(--mpr-border-strong);
             border-radius: var(--mpr-radius-sm);
             color: var(--mpr-text);
             padding: 7px 12px 7px 30px;
+            line-height: normal;
         }
 
         #mpr-app .mpr-search input::placeholder {
@@ -293,6 +297,8 @@
             transform: translateY(-50%);
             color: var(--mpr-text-muted);
             font-size: 12px;
+            line-height: 1;
+            pointer-events: none;
         }
 
         #mpr-app .mpr-results-count {
@@ -3029,7 +3035,11 @@
         }
 
         function activeDataTable() {
-            const $table = $('#mprTabContent .tab-pane:visible > table').first();
+            // Use a descendant selector, not a direct-child one — DataTables
+            // wraps the <table> in a .dataTables_wrapper div once
+            // initialized, so "> table" only matches before init and
+            // silently breaks afterward.
+            const $table = $('#mprTabContent .tab-pane:visible table').first();
             return ($table.length && $.fn.DataTable.isDataTable($table)) ? $table.DataTable() : null;
         }
 
@@ -3497,9 +3507,11 @@
 
             /* Simple client-side filter wired to the new search box; relies on
                DataTables' search() if the active table is a DataTable. */
-            $('#mpr-global-search').on('keyup', function() {
+               $('#mpr-global-search').on('keyup', function() {
                 const val = $(this).val();
-                const $table = $('#mprTabContent .tab-pane:visible > table');
+                // Descendant selector — see activeDataTable() for why
+                // "> table" breaks after DataTables wraps the element.
+                const $table = $('#mprTabContent .tab-pane:visible table');
                 if ($table.length && $.fn.DataTable.isDataTable($table)) {
                     $table.DataTable().search(val).draw();
                 }
@@ -4054,8 +4066,16 @@
                         drawCallback: function(settings) {
                             const api = this.api();
                             const info = api.page.info();
-                            $('#mpr-results-count').text(info.recordsDisplay + ' result' + (info
-                                .recordsDisplay === 1 ? '' : 's'));
+                            // Only surface a "N results" label while an
+                            // actual search term is active — otherwise it's
+                            // just restating the tab's total row count,
+                            // which the tab badge already shows.
+                            const hasSearch = $('#mpr-global-search').val().trim().length > 0;
+                            $('#mpr-results-count').text(
+                                hasSearch ?
+                                (info.recordsDisplay + ' result' + (info.recordsDisplay === 1 ? '' : 's')) :
+                                ''
+                            );
                             renderPager(api);
                         }
                     });

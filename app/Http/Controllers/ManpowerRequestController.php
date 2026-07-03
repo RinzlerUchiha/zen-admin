@@ -20,10 +20,7 @@ class ManpowerRequestController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $userJobInfo = $user->JobPosition;
-        $jobSpec = Setting::jobSpecList();
-        if (!$user->userAccess('personnelreq', 'viewall')) {
-            $jobSpec = $jobSpec->filter(fn($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false);
-        }
+        $jobSpec = self::scopeJobSpecs(Setting::jobSpecList(), $user, $userJobInfo?->jrec_department);
 
         $userJobSpec = $jobSpec->where('jspec_department', $userJobInfo?->jrec_department);
 
@@ -147,6 +144,39 @@ class ManpowerRequestController extends Controller
         return strpos(check_assign($user->Emp_No, 'PR'), $requestorEmpno) !== false;
     }
 
+    /** Whether $user has any PR-approval assignments at all (i.e. is an
+     *  approver for one or more departments), as opposed to a plain
+     *  employee with no approval authority. Used to scope job spec
+     *  visibility: admin sees all, approvers see their assigned
+     *  departments, everyone else sees only their own department. */
+    private static function isApprover($user): bool
+    {
+        return trim(check_assign($user->Emp_No, 'PR')) !== '';
+    }
+
+    /** Job spec visibility filter shared by index(), renderJobSpecTable(),
+     *  and counts(): admin sees everything, approvers see the departments
+     *  they're assigned to approve, plain employees see only their own
+     *  department. */
+    private static function scopeJobSpecs($jobSpec, $user, ?string $userDept)
+    {
+        if ($user->userAccess('personnelreq', 'viewall')) {
+            return $jobSpec;
+        }
+
+        if (self::isApprover($user)) {
+            // check_assign()'s third arg matters: without it, this returns
+            // the CSV of employee numbers the user can approve for (what
+            // isDeptApprover() uses); with `true`, it returns the CSV of
+            // department codes instead — which is what we need to compare
+            // against jspec_department here.
+            $assignedDepts = check_assign($user->Emp_No, 'PR', true);
+            return $jobSpec->filter(fn($r) => strpos($assignedDepts, $r->jspec_department) !== false);
+        }
+
+        return $jobSpec->filter(fn($r) => $r->jspec_department == $userDept);
+    }
+
     /** Whether the trailing actions <th>/<td> column should be rendered for this tab. */
     private static function showActionColumn(string $stat, $user, string $user_empno, $data): bool
     {
@@ -166,12 +196,7 @@ class ManpowerRequestController extends Controller
 
     private static function renderJobSpecTable($user): string
     {
-        $data = Setting::jobSpecList();
-        if (!$user->userAccess('personnelreq', 'viewall')) {
-            $data = $data->filter(
-                fn($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false
-            );
-        }
+        $data = self::scopeJobSpecs(Setting::jobSpecList(), $user, $user->JobPosition?->jrec_department);
 
         $html  = '<table class="table table-sm mpr-table">';
         $html .= '<thead><tr>';
@@ -978,13 +1003,9 @@ class ManpowerRequestController extends Controller
         }
         $counts['update'] = $updateQuery->count();
 
-        // jobspec tab
-        $jobspec = Setting::jobSpecList();
-        if (!$user->userAccess('personnelreq', 'viewall')) {
-            $jobspec = $jobspec->filter(
-                fn($r) => strpos(check_assign($user->Emp_No, 'PR'), $r->jspec_department) !== false
-            );
-        }
+        // jobspec tab — admin sees all, approvers see their assigned
+        // departments, employees see only their own department.
+        $jobspec = self::scopeJobSpecs(Setting::jobSpecList(), $user, $user->JobPosition?->jrec_department);
         $counts['jobspec'] = $jobspec->count();
 
         return response()->json($counts);
