@@ -5,19 +5,47 @@ namespace App\Http\Controllers;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\Setting;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use stdClass;
 
 class EmployeeController extends Controller
 {
+    /**
+     * Maps "maincat/subcat" to the static method that loads its data.
+     * Replaces the previous 20-branch if/elseif chain in showInfo().
+     * Add a new tab by adding one line here.
+     */
+    protected static function infoResolvers(): array
+    {
+        return [
+            'profile/personal'        => [self::class, 'personalInfo'],
+            'profile/family'          => [self::class, 'familyInfo'],
+            'profile/skills'          => [self::class, 'skillsInfo'],
+            'profile/education'       => [self::class, 'educationInfo'],
+            'professional/license'    => [self::class, 'licenseInfo'],
+            'professional/certificate'=> [self::class, 'eduCertificateInfo'],
+            'work/job'                => [self::class, 'jobInfo'],
+            'work/employment'         => [self::class, 'employmentInfo'],
+            'work/certificate'        => [self::class, 'workCertificateInfo'],
+            'work/payslip'            => [self::class, 'payslipInfo'],
+            'work/contracts'          => [self::class, 'contractsInfo'],
+            'work/characterref'       => [self::class, 'characterrefInfo'],
+            'personality/enneagram'   => [self::class, 'formattedEnneagramInfo'],
+            'personality/tapt'        => [self::class, 'formattedTaptInfo'],
+            'personality/disc'        => [self::class, 'formattedDiscInfo'],
+            'personality/miq'         => [self::class, 'formattedMiqInfo'],
+            'personality/color'       => [self::class, 'formattedColorInfo'],
+            'personality/vak'         => [self::class, 'formattedVakInfo'],
+        ];
+    }
 
     // Show details of a single employee
     public function showInfo($maincat = 'profile', $subcat = 'personal', $empno = '')
     {
-        if($empno == ''){
+        if ($empno == '') {
             $empno = Auth::user()?->Emp_No;
         }
         // *** TO DO: add employee not found for invalid employee number ***
@@ -25,62 +53,9 @@ class EmployeeController extends Controller
         $sub_link = 'employee';
         $page = 'pages.employee.' . $maincat . '.' . $subcat;
         $employeeList = Employee::employeeList();
-        $empData = [];
-        if ($maincat . '/' . $subcat == 'profile/personal') {
-            $empData = self::personalInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'profile/family') {
-            $empData = self::familyInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'profile/skills') {
-            $empData = self::skillsInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'profile/education') {
-            $empData = self::educationInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'professional/license') {
-            $empData = self::licenseInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'professional/certificate') {
-            $empData = self::eduCertificateInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'work/job') {
-            $empData = self::jobInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'work/employment') {
-            $empData = self::employmentInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'work/certificate') {
-            $empData = self::workCertificateInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'work/payslip') {
-            $empData = self::payslipInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'work/contracts') {
-            $empData = self::contractsInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'work/characterref') {
-            $empData = self::characterrefInfo($empno);
-        } else if ($maincat . '/' . $subcat == 'personality/enneagram') {
-            $empData = self::enneagramInfo($empno)->map(function ($item) {
-                $item->result = $item->result->map(fn($v, $k) => "{$k}: {$v}")->implode(', ');
-                return $item;
-            });
-        } else if ($maincat . '/' . $subcat == 'personality/tapt') {
-            $empData = self::taptInfo($empno)->map(function ($item) {
-                $item->result = $item->result->implode(', ');
-                return $item;
-            });
-        } else if ($maincat . '/' . $subcat == 'personality/disc') {
-            $empData = self::discInfo($empno)->map(function ($item) {
-                $item->result = $item->result->keys()->implode(', ');
-                return $item;
-            });
-        } else if ($maincat . '/' . $subcat == 'personality/miq') {
-            $empData = self::miqInfo($empno)->map(function ($item) {
-                $item->result = $item->result->map(fn($v, $k) => "{$k}: {$v}")->implode(', ');
-                return $item;
-            });
-        } else if ($maincat . '/' . $subcat == 'personality/color') {
-            $empData = self::colorInfo($empno)->map(function ($item) {
-                $item->result = $item->result->keys()->implode(', ');
-                return $item;
-            });
-        } else if ($maincat . '/' . $subcat == 'personality/vak') {
-            $empData = self::vakInfo($empno)->map(function ($item) {
-                $item->result = $item->result->keys()->implode(', ');
-                return $item;
-            });
-        }
+
+        $resolver = self::infoResolvers()["{$maincat}/{$subcat}"] ?? null;
+        $empData = $resolver ? call_user_func($resolver, $empno) : [];
 
         $return = ['employeeList', 'empData', 'empno', 'main_link', 'sub_link', 'maincat', 'subcat', 'page'];
         if ($subcat == 'personal') {
@@ -88,7 +63,7 @@ class EmployeeController extends Controller
             $municipalityList = Setting::municipalityList();
             $barangayList = Setting::barangayList();
             array_push($return, 'provinceList', 'municipalityList', 'barangayList');
-        } else if ($subcat == 'job') {
+        } elseif ($subcat == 'job') {
             $companyList = Setting::companyList();
             $departmentList = Setting::departmentList();
             $sectionList = Setting::sectionList();
@@ -98,7 +73,7 @@ class EmployeeController extends Controller
             $areaList = Setting::areaList();
             $outletList = Setting::outletList();
             array_push($return, 'companyList', 'departmentList', 'sectionList', 'positionList', 'jobGradeList', 'jobStepList', 'areaList', 'outletList');
-        } else if ($subcat == 'skills') {
+        } elseif ($subcat == 'skills') {
             $skillsList = Setting::skillsList();
             $skillsCategoryList = Setting::skillsCategoryList();
             array_push($return, 'skillsList', 'skillsCategoryList');
@@ -125,65 +100,67 @@ class EmployeeController extends Controller
         $jobStepList = Setting::jobStepList();
         $areaList = Setting::areaList();
         $outletList = Setting::outletList();
+
         return view('pages.employee.new', compact([
-            'main_link',
-            'sub_link',
-            'employeeList',
-            'provinceList',
-            'municipalityList',
-            'barangayList',
-            'emplStatusList',
-            'companyList',
-            'departmentList',
-            'sectionList',
-            'positionList',
-            'jobGradeList',
-            'jobStepList',
-            'areaList',
-            'outletList'
+            'main_link', 'sub_link', 'employeeList', 'provinceList', 'municipalityList',
+            'barangayList', 'emplStatusList', 'companyList', 'departmentList', 'sectionList',
+            'positionList', 'jobGradeList', 'jobStepList', 'areaList', 'outletList',
         ]));
+    }
+
+    /**
+     * Shared file-storage routine used by license, education certificate,
+     * work certificate, and contract uploads. Images get compressed to
+     * WebP; everything else is stored as-is.
+     */
+    protected static function storeEmployeeFile(UploadedFile $file, string $folder, string $fileName): string
+    {
+        if (in_array(mime_content_type($file->getRealPath()), ['image/jpeg', 'image/png'])) {
+            return basename(reduceImageFileSizeToWebP('s3', $file->getRealPath(), 1024, "{$folder}/{$fileName}"));
+        }
+
+        $file->storeAs($folder, $fileName, 's3');
+        return $fileName;
     }
 
     /** Save new employee */
     public static function createEmployee(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
-                'new-employee-number' => 'required|string|max:20', // Assuming unique employee number
+                'new-employee-number' => 'required|string|max:20',
                 'new-employee-firstname' => 'required|string|max:255',
-                'new-employee-middlename' => 'nullable|string|max:255', // Middlename can be optional
+                'new-employee-middlename' => 'nullable|string|max:255',
                 'new-employee-lastname' => 'required|string|max:255',
-                'new-employee-suffix' => 'nullable|string|max:50', // Suffix is optional, e.g. Jr., Sr.
-                'new-employee-email' => 'required|email|max:255', // Email should be unique
-                'new-employee-contact' => 'required|string|max:13', // Contact +639, 09
-                'new-employee-company-contact' => 'nullable|string|max:13', // Company contact is optional
-                'new-employee-telephone' => 'nullable|string|max:20', // Telephone is optional, range for length
+                'new-employee-suffix' => 'nullable|string|max:50',
+                'new-employee-email' => 'required|email|max:255',
+                'new-employee-contact' => 'required|string|max:13',
+                'new-employee-company-contact' => 'nullable|string|max:13',
+                'new-employee-telephone' => 'nullable|string|max:20',
                 'new-employee-padd-province' => 'nullable|string|max:255',
                 'new-employee-padd-city' => 'nullable|string|max:255',
                 'new-employee-padd-barangay' => 'nullable|string|max:255',
-                'new-employee-padd-specific' => 'nullable|string|max:255', // Specific address details, e.g., street
+                'new-employee-padd-specific' => 'nullable|string|max:255',
                 'new-employee-cadd-province' => 'nullable|string|max:255',
                 'new-employee-cadd-city' => 'nullable|string|max:255',
                 'new-employee-cadd-barangay' => 'nullable|string|max:255',
-                'new-employee-cadd-specific' => 'nullable|string|max:255', // Corresponding for current address if available
+                'new-employee-cadd-specific' => 'nullable|string|max:255',
                 'new-employee-badd-province' => 'nullable|string|max:255',
                 'new-employee-badd-city' => 'nullable|string|max:255',
                 'new-employee-badd-barangay' => 'nullable|string|max:255',
-                'new-employee-badd-specific' => 'nullable|string|max:255', // Birth address (optional)
-                'new-employee-birthdate' => 'required|date|before:today', // Birthdate must be a date and in the past
-                // 'new-employee-age' => 'required|numeric', // Employee age
-                'new-employee-civil-status' => 'required|in:Single,Married,Separated/Divorced,Widow/Widower', // Example statuses
-                'new-employee-sex' => 'required|in:Male,Female', // Gender
-                'new-employee-bloodtype' => 'nullable|string|max:3', // Blood type should be a 3-character string
-                'new-employee-height' => 'nullable|numeric|min:50|max:250', // Height in centimeters (realistic range)
-                'new-employee-weight' => 'nullable|numeric|min:20|max:300', // Weight in kilograms (realistic range)
+                'new-employee-badd-specific' => 'nullable|string|max:255',
+                'new-employee-birthdate' => 'required|date|before:today',
+                'new-employee-civil-status' => 'required|in:Single,Married,Separated/Divorced,Widow/Widower',
+                'new-employee-sex' => 'required|in:Male,Female',
+                'new-employee-bloodtype' => 'nullable|string|max:3',
+                'new-employee-height' => 'nullable|numeric|min:50|max:250',
+                'new-employee-weight' => 'nullable|numeric|min:20|max:300',
                 'new-employee-religion' => 'nullable|string|max:255',
                 'new-employee-dialect' => 'nullable|string|max:255',
-                'new-employee-sss' => 'nullable|string|max:50', // SSS number format (if applicable)
-                'new-employee-hdmf' => 'nullable|string|max:50', // HDMF (Pag-IBIG) number
-                'new-employee-phic' => 'nullable|string|max:50', // PHIC (PhilHealth) number
-                'new-employee-tin' => 'nullable|string|max:50', // TIN (Tax Identification Number)
+                'new-employee-sss' => 'nullable|string|max:50',
+                'new-employee-hdmf' => 'nullable|string|max:50',
+                'new-employee-phic' => 'nullable|string|max:50',
+                'new-employee-tin' => 'nullable|string|max:50',
                 'new-employee-date-hired' => 'required|date|before_or_equal:today',
                 'new-employee-employment-status' => 'required|string|max:50',
                 'new-employee-company' => 'required|string|max:50',
@@ -194,25 +171,15 @@ class EmployeeController extends Controller
                 'new-employee-job-grade' => 'required|string|max:50',
                 'new-employee-area' => 'required|string|max:50',
                 'new-employee-outlet' => 'required|string|max:50',
-                'new-employee-reportto' => 'nullable|string|max:50'
+                'new-employee-reportto' => 'nullable|string|max:50',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::createEmployee($validated);
-
-                // // Additional operations can go here, for example logging the action
-                // DB::table('employee_logs')->insert([
-                //     'employee_number' => $validated['new-employee-number'],
-                //     'action' => 'created',
-                //     'created_at' => now(),
-                // ]);
             });
 
             return redirect("/employee/profile/personal/{$validated['new-employee-number']}")->with('success', 'Employee created successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
-            // return response()->json(['error' => 'Failed to insert employee: ' . $e->getMessage()], 500);
             return redirect()->back()->withErrors(['error' => 'Failed to insert employee: ' . $e->getMessage()]);
         }
     }
@@ -232,8 +199,8 @@ class EmployeeController extends Controller
             ->where('pers_empno', 'like', "{$prefix}%")
             ->orderByDesc('pers_empno')
             ->first();
-        
-        if($search?->pers_empno){
+
+        if ($search?->pers_empno) {
             $parts = explode('-', $search?->pers_empno);
             return $prefix . '-' . str_pad((intval($parts[2] ?? 1) + 1), 3, '0', STR_PAD_LEFT);
         }
@@ -249,8 +216,6 @@ class EmployeeController extends Controller
             $empData->pers_firstname = '';
             $empData->pers_midname = '';
             $empData->pers_lastname = '';
-            // $empData->pers_empext = '';
-
             $empData->pers_birthdate = '';
             $empData->age = '';
             $empData->pers_civilstat = '';
@@ -260,12 +225,10 @@ class EmployeeController extends Controller
             $empData->pers_weight = '';
             $empData->pers_religion = '';
             $empData->pers_dialect = '';
-
             $empData->cont_email = '';
             $empData->cont_person_num = '';
             $empData->cont_company_num = '';
             $empData->cont_telephone = '';
-
             $empData->add_perm_prov = '';
             $empData->add_perm_city = '';
             $empData->add_perm_brngy = '';
@@ -278,7 +241,6 @@ class EmployeeController extends Controller
             $empData->add_birth_city = '';
             $empData->add_birth_brngy = '';
             $empData->add_birth_location = '';
-
             $empData->gov_sss = '';
             $empData->gov_pagibig = '';
             $empData->gov_philhealth = '';
@@ -291,67 +253,48 @@ class EmployeeController extends Controller
     public static function savePersonalInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
-                'employee-number' => 'required|string|max:20', // Assuming unique employee number
+                'employee-number' => 'required|string|max:20',
                 'personal-firstname' => 'required|string|max:255',
-                'personal-middlename' => 'nullable|string|max:255', // Middlename can be optional
+                'personal-middlename' => 'nullable|string|max:255',
                 'personal-lastname' => 'required|string|max:255',
-                'personal-suffix' => 'nullable|string|max:50', // Suffix is optional, e.g. Jr., Sr.
-
-                'personal-email' => 'required|email|max:255', // Email should be unique
-                'personal-contact' => 'required|string|max:13', // Contact +639, 09
-                'personal-company-contact' => 'nullable|string|max:13', // Company contact is optional
-                'personal-telephone' => 'nullable|string|max:20', // Telephone is optional, range for length
-
+                'personal-suffix' => 'nullable|string|max:50',
+                'personal-email' => 'required|email|max:255',
+                'personal-contact' => 'required|string|max:13',
+                'personal-company-contact' => 'nullable|string|max:13',
+                'personal-telephone' => 'nullable|string|max:20',
                 'personal-padd-province' => 'nullable|string|max:255',
                 'personal-padd-city' => 'nullable|string|max:255',
                 'personal-padd-barangay' => 'nullable|string|max:255',
-                'personal-padd-specific' => 'nullable|string|max:255', // Specific address details, e.g., street
+                'personal-padd-specific' => 'nullable|string|max:255',
                 'personal-cadd-province' => 'nullable|string|max:255',
                 'personal-cadd-city' => 'nullable|string|max:255',
                 'personal-cadd-barangay' => 'nullable|string|max:255',
-                'personal-cadd-specific' => 'nullable|string|max:255', // Corresponding for current address if available
+                'personal-cadd-specific' => 'nullable|string|max:255',
                 'personal-badd-province' => 'nullable|string|max:255',
                 'personal-badd-city' => 'nullable|string|max:255',
                 'personal-badd-barangay' => 'nullable|string|max:255',
-                'personal-badd-specific' => 'nullable|string|max:255', // Birth address (optional)
-                'personal-birthdate' => 'required|date|before:today', // Birthdate must be a date and in the past
-                // 'personal-age' => 'required|numeric', // Employee age
-                'personal-civil-status' => 'required|in:Single,Married,Separated/Divorced,Widow/Widower', // Example statuses
-                'personal-sex' => 'required|in:Male,Female', // Gender
-                'personal-bloodtype' => 'nullable|string|max:3', // Blood type should be a 3-character string
-                'personal-height' => 'nullable|numeric', // |min:50|max:250 Height in centimeters (realistic range)
-                'personal-weight' => 'nullable|numeric', // |min:20|max:300 Weight in kilograms (realistic range)
+                'personal-badd-specific' => 'nullable|string|max:255',
+                'personal-birthdate' => 'required|date|before:today',
+                'personal-civil-status' => 'required|in:Single,Married,Separated/Divorced,Widow/Widower',
+                'personal-sex' => 'required|in:Male,Female',
+                'personal-bloodtype' => 'nullable|string|max:3',
+                'personal-height' => 'nullable|numeric',
+                'personal-weight' => 'nullable|numeric',
                 'personal-religion' => 'nullable|string|max:255',
                 'personal-dialect' => 'nullable|string|max:255',
-                'personal-sss' => 'nullable|string|max:50', // SSS number format (if applicable)
-                'personal-hdmf' => 'nullable|string|max:50', // HDMF (Pag-IBIG) number
-                'personal-phic' => 'nullable|string|max:50', // PHIC (PhilHealth) number
-                'personal-tin' => 'nullable|string|max:50', // TIN (Tax Identification Number)
-
-                // 'new-employee-date-hired' => 'required|date|before_or_equal:today',
-                // 'new-employee-employment-status' => 'required|string|max:50',
-                // 'new-employee-company' => 'required|string|max:50',
-                // 'new-employee-department' => 'required|string|max:50',
-                // 'new-employee-section' => 'required|string|max:50',
-                // 'new-employee-position' => 'required|string|max:50',
-                // 'new-employee-job-step' => 'required|string|max:50',
-                // 'new-employee-job-grade' => 'required|string|max:50',
-                // 'new-employee-area' => 'required|string|max:50',
-                // 'new-employee-outlet' => 'required|string|max:50',
-                // 'new-employee-reportto' => 'nullable|string|max:50'
+                'personal-sss' => 'nullable|string|max:50',
+                'personal-hdmf' => 'nullable|string|max:50',
+                'personal-phic' => 'nullable|string|max:50',
+                'personal-tin' => 'nullable|string|max:50',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::savePersonalInfo($validated);
             });
 
             return redirect("/employee/profile/personal/{$validated['employee-number']}")->with('success', 'Personal Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
-            // return response()->json(['error' => 'Failed to insert employee: ' . $e->getMessage()], 500);
             return redirect()->back()->withErrors(['error' => 'Failed to update personal info: ' . $e->getMessage()]);
         }
     }
@@ -359,27 +302,15 @@ class EmployeeController extends Controller
     public static function savePersonalImg(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'empno' => 'required|string',
-                'image' => 'mimes:jpg,jpeg,png'
+                'image' => 'mimes:jpg,jpeg,png',
             ]);
 
             if ($request->hasFile('image')) {
                 $file = $request->file('image');
                 $fileName = $validated['empno'] . '.' . $file->getClientOriginalExtension();
-                // $file->move($_SERVER['DOCUMENT_ROOT'].'/zen/assets/image/img', $fileName);
-
-                if(in_array(mime_content_type($file->getRealPath()), ['image/jpeg', 'image/png'])){
-                    $fileName = basename(reduceImageFileSizeToWebP(
-                        's3',
-                        $file->getRealPath(), 
-                        1024, 
-                        'images/employees/'.$fileName
-                    ));
-                }else{
-                    $file->storeAs('images/employees', $fileName, 's3');
-                }
+                self::storeEmployeeFile($file, 'images/employees', $fileName);
 
                 return response()->json(['success' => true]);
             }
@@ -399,7 +330,6 @@ class EmployeeController extends Controller
     public static function saveFamilyInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'family-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -414,16 +344,14 @@ class EmployeeController extends Controller
                 'family-contact' => 'required|string',
                 'family-address' => 'required|string',
                 'family-occupation' => 'nullable|string',
-                'family-workplace' => 'nullable|string'
+                'family-workplace' => 'nullable|string',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveFamilyInfo($validated);
             });
 
             return redirect("/employee/profile/family/{$validated['employee-number']}")->with('success', 'Family Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update family info: ' . $e->getMessage()]);
         }
@@ -433,11 +361,8 @@ class EmployeeController extends Controller
     public static function removeFamilyInfo($empno, $id)
     {
         try {
-
             Employee::removeFamilyInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update family info: ' . $e->getMessage()]);
         }
@@ -452,22 +377,19 @@ class EmployeeController extends Controller
     public static function saveSkillsInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'skill-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
                 'skill-category' => 'required|numeric',
                 'skill-type' => 'nullable|numeric',
-                'skill-other' => 'nullable|string'
+                'skill-other' => 'nullable|string',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveSkillsInfo($validated);
             });
 
             return redirect("/employee/profile/skills/{$validated['employee-number']}")->with('success', 'Skills Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update skills info: ' . $e->getMessage()]);
         }
@@ -477,11 +399,8 @@ class EmployeeController extends Controller
     public static function removeSkillsInfo($empno, $id)
     {
         try {
-
             Employee::removeSkillsInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update skills info: ' . $e->getMessage()]);
         }
@@ -496,7 +415,6 @@ class EmployeeController extends Controller
     public static function saveEducationInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'education-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -506,18 +424,16 @@ class EmployeeController extends Controller
                 'education-school' => 'nullable|string',
                 'education-address' => 'nullable|string',
                 'education-year-graduated' => 'nullable|numeric',
-                'education-curstat' => 'nullable|string'
+                'education-curstat' => 'nullable|string',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveEducationInfo($validated);
             });
 
             return redirect("/employee/profile/education/{$validated['employee-number']}")->with('success', 'Education Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['error' => 'Failed to update skills info: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Failed to update education info: ' . $e->getMessage()]);
         }
     }
 
@@ -525,13 +441,10 @@ class EmployeeController extends Controller
     public static function removeEducationInfo($empno, $id)
     {
         try {
-
             Employee::removeEducationInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => 'Failed to update skills info: ' . $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => 'Failed to update education info: ' . $e->getMessage()]);
         }
     }
 
@@ -544,7 +457,6 @@ class EmployeeController extends Controller
     public static function saveLicenseInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'license-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -553,64 +465,31 @@ class EmployeeController extends Controller
                 'license-type' => 'required|string',
                 'license-profession' => 'nullable|string',
                 'license-attachment' => 'nullable|file',
-                'license-attachment-current' => 'nullable|string'
+                'license-attachment-current' => 'nullable|string',
             ]);
-
-            // $request->validate([
-            //     'file' => ['required', 'file', function ($attribute, $value, $fail) {
-            //         $allowedExtensions = ['jpeg', 'png', 'pdf'];
-            //         $extension = $value->getClientOriginalExtension();
-            //         if (!in_array($extension, $allowedExtensions)) {
-            //             $fail('The ' . $attribute . ' must be a file of type: jpeg, png, pdf.');
-            //         }
-            //     }],
-            // ]);
-            // $request->validate([
-            //     'file' => 'required|file|mimes:jpeg,png,pdf|max:2048', // Validation rules
-            // ]);
 
             if ($request->hasFile('license-attachment')) {
                 $file = $request->file('license-attachment');
-                // $fileName = time() . '_' . $file->getClientOriginalName();
-                // $path = $file->storeAs('', $fileName, 'custom_s3');
                 $fileName = $validated['employee-number'] . '_' . time() . '.' . $file->getClientOriginalExtension();
-                // $file->move($_SERVER['DOCUMENT_ROOT'].'/zen/assets/license', $fileName);
-
-                if(in_array(mime_content_type($file->getRealPath()), ['image/jpeg', 'image/png'])){
-                    $fileName = basename(reduceImageFileSizeToWebP(
-                        's3',
-                        $file->getRealPath(), 
-                        1024, 
-                        'licenses/'.$fileName
-                    ));
-                }else{
-                    $file->storeAs('licenses', $fileName, 's3');
-                }
-
-                $validated['license-attachment'] = $fileName;
+                $validated['license-attachment'] = self::storeEmployeeFile($file, 'licenses', $fileName);
             }
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveLicenseInfo($validated);
             });
 
             return redirect("/employee/professional/license/{$validated['employee-number']}")->with('success', 'License Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update license/eligibility info: ' . $e->getMessage()]);
         }
     }
 
-    /** Save employee license/eligibility info */
+    /** Remove employee license/eligibility info */
     public static function removeLicenseInfo($empno, $id)
     {
         try {
-
             Employee::removeLicenseInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update license/eligibility info: ' . $e->getMessage()]);
         }
@@ -625,7 +504,6 @@ class EmployeeController extends Controller
     public static function saveEduCertificateInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'educcertificate-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -634,37 +512,20 @@ class EmployeeController extends Controller
                 'educcertificate-completion-date' => 'required|date|before_or_equal:today',
                 'educcertificate-speaker' => 'nullable|string',
                 'educcertificate-attachment' => 'nullable|file',
-                'educcertificate-attachment-current' => 'nullable|string'
+                'educcertificate-attachment-current' => 'nullable|string',
             ]);
 
             if ($request->hasFile('educcertificate-attachment')) {
                 $file = $request->file('educcertificate-attachment');
-                // $fileName = time() . '_' . $file->getClientOriginalName();
-                // $path = $file->storeAs('', $fileName, 'custom_s3');
                 $fileName = $validated['employee-number'] . '_' . time() . '.' . $file->getClientOriginalExtension();
-                // $file->move($_SERVER['DOCUMENT_ROOT'].'/zen/assets/certificate', $fileName);
-
-                if(in_array(mime_content_type($file->getRealPath()), ['image/jpeg', 'image/png'])){
-                    $fileName = basename(reduceImageFileSizeToWebP(
-                        's3',
-                        $file->getRealPath(), 
-                        1024, 
-                        'certificates/'.$fileName
-                    ));
-                }else{
-                    $file->storeAs('certificates', $fileName, 's3');
-                }
-
-                $validated['educcertificate-attachment'] = $fileName;
+                $validated['educcertificate-attachment'] = self::storeEmployeeFile($file, 'certificates', $fileName);
             }
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveEduCertificateInfo($validated);
             });
 
             return redirect("/employee/professional/certificate/{$validated['employee-number']}")->with('success', 'Professional certificate Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update certificate info: ' . $e->getMessage()]);
         }
@@ -674,11 +535,8 @@ class EmployeeController extends Controller
     public static function removeEduCertificateInfo($empno, $id)
     {
         try {
-
             Employee::removeEduCertificateInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update certificate info: ' . $e->getMessage()]);
         }
@@ -689,11 +547,10 @@ class EmployeeController extends Controller
         return Employee::employmentInfo($empno);
     }
 
-    /** Save employee employement info */
+    /** Save employee employment info */
     public static function saveEmploymentInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'employment-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -704,30 +561,25 @@ class EmployeeController extends Controller
                 'employment-position' => 'nullable|string',
                 'employment-contact' => 'nullable|string',
                 'employment-supervisor' => 'nullable|string',
-                'employment-reason' => 'nullable|string'
+                'employment-reason' => 'nullable|string',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveEmploymentInfo($validated);
             });
 
             return redirect("/employee/work/employment/{$validated['employee-number']}")->with('success', 'Employment Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update employment info: ' . $e->getMessage()]);
         }
     }
 
-    /** Remove employee employement info */
+    /** Remove employee employment info */
     public static function removeEmploymentInfo($empno, $id)
     {
         try {
-
             Employee::removeEmploymentInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update employment info: ' . $e->getMessage()]);
         }
@@ -741,37 +593,32 @@ class EmployeeController extends Controller
     public static function saveJobInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
-                'employee-number' => 'required|string|max:20', // Assuming unique employee number
+                'employee-number' => 'required|string|max:20',
                 'jobinfo-date-hired' => 'required|date|before_or_equal:today',
                 'jobinfo-date-regular' => 'nullable|date',
                 'jobinfo-date-resigned' => 'nullable|date',
-                'jobinfo-remarks' => 'required|in:Active,Inactive', // Gender
+                'jobinfo-remarks' => 'required|in:Active,Inactive',
                 'jobinfo-separation-type' => 'nullable|string|max:50',
-                'jobinfo-remarks-description' => 'nullable|string|max:255'
+                'jobinfo-remarks-description' => 'nullable|string|max:255',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveJobInfo($validated);
             });
 
             return redirect("/employee/work/job/{$validated['employee-number']}")->with('success', 'Job Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
-            // return response()->json(['error' => 'Failed to insert employee: ' . $e->getMessage()], 500);
-            return redirect()->back()->withErrors(['error' => 'Failed to update personal info: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Failed to update job info: ' . $e->getMessage()]);
         }
     }
 
     public static function saveJobRecord(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
-                'employee-number' => 'required|string|max:20', // Assuming unique employee number
-                'jobrec-id' => 'nullable|numeric', // Assuming unique employee number
+                'employee-number' => 'required|string|max:20',
+                'jobrec-id' => 'nullable|numeric',
                 'jobrec-date-effect' => 'required|date',
                 'jobrec-company' => 'required|string|max:50',
                 'jobrec-department' => 'required|string|max:50',
@@ -782,32 +629,25 @@ class EmployeeController extends Controller
                 'jobrec-area' => 'required|string|max:50',
                 'jobrec-outlet' => 'required|string|max:50',
                 'jobrec-reportto' => 'nullable|string|max:50',
-                'jobrec-status' => 'required|string|in:Primary,Secondary,Inactive'
+                'jobrec-status' => 'required|string|in:Primary,Secondary,Inactive',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveJobRecord($validated);
             });
 
             return redirect("/employee/work/job/{$validated['employee-number']}")->with('success', 'Job Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
-            // return response()->json(['error' => 'Failed to insert employee: ' . $e->getMessage()], 500);
-            return redirect()->back()->withErrors(['error' => 'Failed to update personal info: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Failed to update job info: ' . $e->getMessage()]);
         }
     }
 
     public static function removeJobRecord($empno, $id)
     {
         try {
-
             Employee::removeJobRecord($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
-            // return response()->json(['error' => 'Failed to insert employee: ' . $e->getMessage()], 500);
             return response()->json(['success' => false, 'error' => 'Failed to update job info: ' . $e->getMessage()]);
         }
     }
@@ -821,7 +661,6 @@ class EmployeeController extends Controller
     public static function saveWorkCertificateInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'internalcertificate-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -830,37 +669,20 @@ class EmployeeController extends Controller
                 'internalcertificate-completion-date' => 'required|date|before_or_equal:today',
                 'internalcertificate-speaker' => 'nullable|string',
                 'internalcertificate-attachment' => 'nullable|file',
-                'internalcertificate-attachment-current' => 'nullable|string'
+                'internalcertificate-attachment-current' => 'nullable|string',
             ]);
 
             if ($request->hasFile('internalcertificate-attachment')) {
                 $file = $request->file('internalcertificate-attachment');
-                // $fileName = time() . '_' . $file->getClientOriginalName();
-                // $path = $file->storeAs('', $fileName, 'custom_s3');
                 $fileName = $validated['employee-number'] . '_' . time() . '.' . $file->getClientOriginalExtension();
-                // $file->move($_SERVER['DOCUMENT_ROOT'].'/zen/assets/certificate', $fileName);
-
-                if(in_array(mime_content_type($file->getRealPath()), ['image/jpeg', 'image/png'])){
-                    $fileName = basename(reduceImageFileSizeToWebP(
-                        's3',
-                        $file->getRealPath(), 
-                        1024, 
-                        'certificates/'.$fileName
-                    ));
-                }else{
-                    $file->storeAs('certificates', $fileName, 's3');
-                }
-
-                $validated['internalcertificate-attachment'] = $fileName;
+                $validated['internalcertificate-attachment'] = self::storeEmployeeFile($file, 'certificates', $fileName);
             }
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveWorkCertificateInfo($validated);
             });
 
             return redirect("/employee/work/certificate/{$validated['employee-number']}")->with('success', 'Certificate Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update certificate info: ' . $e->getMessage()]);
         }
@@ -870,11 +692,8 @@ class EmployeeController extends Controller
     public static function removeWorkCertificateInfo($empno, $id)
     {
         try {
-
             Employee::removeWorkCertificateInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update certificate info: ' . $e->getMessage()]);
         }
@@ -894,7 +713,6 @@ class EmployeeController extends Controller
     public static function saveContractInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'contract-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -903,7 +721,7 @@ class EmployeeController extends Controller
                 'contract-end-date' => 'required|date',
                 'contract-attachment.*' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
                 'contract-attachment-current' => 'nullable|array',
-                'contract-attachment-current.*' => 'string'
+                'contract-attachment-current.*' => 'string',
             ]);
 
             $data = [
@@ -913,40 +731,26 @@ class EmployeeController extends Controller
                 'start-date' => $validated['contract-start-date'],
                 'end-date' => $validated['contract-end-date'],
                 'filenames' => null,
-                'curfiles' => $validated['contract-attachment-current'] ?? []
+                'curfiles' => $validated['contract-attachment-current'] ?? [],
             ];
 
             if ($request->hasFile('contract-attachment')) {
                 $uploadedFiles = $request->file('contract-attachment');
                 $data['filenames'] = [];
-                foreach ($uploadedFiles as $f => $file) {
-                    $fileName = $data['emp'] . '_' . time() . ($f ? '(' . $f . ')' : '') . '.' . $file->getClientOriginalExtension();
-                    // $file->move($_SERVER['DOCUMENT_ROOT'].'/zen/assets/contract', $fileName);
-
-                    if(in_array(mime_content_type($file->getRealPath()), ['image/jpeg', 'image/png'])){
-                        $fileName = basename(reduceImageFileSizeToWebP(
-                            's3',
-                            $file->getRealPath(), 
-                            1024, 
-                            'contracts/'.$fileName
-                        ));
-                    }else{
-                        $file->storeAs('contracts', $fileName, 's3');
-                    }
-
-                    $data['filenames'][] = $fileName;
+                foreach ($uploadedFiles as $index => $file) {
+                    $suffix = $index ? "({$index})" : '';
+                    $fileName = $data['emp'] . '_' . time() . $suffix . '.' . $file->getClientOriginalExtension();
+                    $data['filenames'][] = self::storeEmployeeFile($file, 'contracts', $fileName);
                 }
             }
 
             $data['filenames'] = json_encode(array_merge($data['filenames'] ?? [], $data['curfiles'] ?? []));
 
             DB::transaction(function () use ($data) {
-                // Insert the employee data into the employees table
                 Contract::store($data);
             });
 
             return redirect("/employee/work/contracts/{$validated['employee-number']}")->with('success', 'Contract Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update contract info: ' . $e->getMessage()]);
         }
@@ -958,7 +762,6 @@ class EmployeeController extends Controller
         try {
             Contract::destroy($id);
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update contract info: ' . $e->getMessage()]);
         }
@@ -973,7 +776,6 @@ class EmployeeController extends Controller
     public static function saveCharacterrefInfo(Request $request)
     {
         try {
-            // Validate the form data
             $validated = $request->validate([
                 'characterref-id' => 'nullable|numeric',
                 'employee-number' => 'required|string|max:20',
@@ -982,30 +784,25 @@ class EmployeeController extends Controller
                 'characterref-company' => 'nullable|string',
                 'characterref-address' => 'required|string',
                 'characterref-contact' => 'required|string',
-                'characterref-relationship' => 'required|string'
+                'characterref-relationship' => 'required|string',
             ]);
 
             DB::transaction(function () use ($validated) {
-                // Insert the employee data into the employees table
                 Employee::saveCharacterrefInfo($validated);
             });
 
             return redirect("/employee/work/characterref/{$validated['employee-number']}")->with('success', 'Character reference Info updated successfully!');
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Failed to update character reference info: ' . $e->getMessage()]);
         }
     }
 
-    /** Remoev employee character reference info */
+    /** Remove employee character reference info */
     public static function removeCharacterrefInfo($empno, $id)
     {
         try {
-
             Employee::removeCharacterrefInfo($empno, $id);
-
             return response()->json(['success' => true]);
-            // } catch (QueryException $e) {
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => 'Failed to update character reference info: ' . $e->getMessage()]);
         }
@@ -1041,48 +838,105 @@ class EmployeeController extends Controller
         return Employee::vakInfo($empno);
     }
 
+    // ── Personality results, pre-formatted for display ──
+    // Pulled out of the showInfo() if-chain so each map/transform lives
+    // next to its raw-data counterpart above, and the dispatch table stays
+    // a flat one-resolver-per-tab lookup.
+
+    public static function formattedEnneagramInfo($empno)
+    {
+        return self::enneagramInfo($empno)->map(function ($item) {
+            $item->result = $item->result->map(fn ($v, $k) => "{$k}: {$v}")->implode(', ');
+            return $item;
+        });
+    }
+
+    public static function formattedTaptInfo($empno)
+    {
+        return self::taptInfo($empno)->map(function ($item) {
+            $item->result = $item->result->implode(', ');
+            return $item;
+        });
+    }
+
+    public static function formattedDiscInfo($empno)
+    {
+        return self::discInfo($empno)->map(function ($item) {
+            $item->result = $item->result->keys()->implode(', ');
+            return $item;
+        });
+    }
+
+    public static function formattedMiqInfo($empno)
+    {
+        return self::miqInfo($empno)->map(function ($item) {
+            $item->result = $item->result->map(fn ($v, $k) => "{$k}: {$v}")->implode(', ');
+            return $item;
+        });
+    }
+
+    public static function formattedColorInfo($empno)
+    {
+        return self::colorInfo($empno)->map(function ($item) {
+            $item->result = $item->result->keys()->implode(', ');
+            return $item;
+        });
+    }
+
+    public static function formattedVakInfo($empno)
+    {
+        return self::vakInfo($empno)->map(function ($item) {
+            $item->result = $item->result->keys()->implode(', ');
+            return $item;
+        });
+    }
+
     public static function outgoingList()
     {
         $data = Employee::outgoingList();
 
-        $html = "<table class='table table-bordered table-sm table-hover table-striped' style='width: 100%;'>";
-        $html .= "<thead>";
-        $html .= "<tr>";
-        $html .= "<th>Emp #</th>";
-        $html .= "<th>Company</th>";
-        $html .= "<th>Department</th>";
-        $html .= "<th>Name</th>";
-        $html .= "<th>Position</th>";
-        $html .= "<th>Last Day</th>";
-        $html .= "</tr>";
-        $html .= "</thead>";
+        // Scoped styles (unique wrapper class) so this renders consistently
+        // wherever it's injected, without leaking into the rest of the page.
+        $html = "<div class='outgoing-list-wrap'>";
+        $html .= "<style>";
+        $html .= ".outgoing-list-wrap table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }";
+        $html .= ".outgoing-list-wrap thead th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #868e96; background: #fcfcfd; border-bottom: 1px solid #e9ecef; padding: .8rem 1rem; white-space: nowrap; }";
+        $html .= ".outgoing-list-wrap tbody td { padding: .8rem 1rem; border-bottom: 1px solid #f1f3f5; color: #343a40; vertical-align: middle; }";
+        $html .= ".outgoing-list-wrap tbody tr { cursor: pointer; transition: background-color .12s ease; }";
+        $html .= ".outgoing-list-wrap tbody tr:hover { background-color: #f8f9fb; }";
+        $html .= ".outgoing-list-wrap tbody tr:last-child td { border-bottom: none; }";
+        $html .= ".outgoing-list-wrap .og-name { font-weight: 600; color: #1c1f24; }";
+        $html .= ".outgoing-list-wrap .og-lastday { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #FDEEEE; color: #9c2b2b; font-size: 12px; font-weight: 600; white-space: nowrap; }";
+        $html .= ".outgoing-list-wrap .og-empty { padding: 3rem 1rem; text-align: center; color: #868e96; font-size: 13.5px; }";
+        $html .= "</style>";
+
+        $html .= "<table class='table table-sm mb-0'>";
+        $html .= "<thead><tr>";
+        $html .= "<th>Emp #</th><th>Company</th><th>Department</th><th>Name</th><th>Position</th><th>Last Day</th>";
+        $html .= "</tr></thead>";
         $html .= "<tbody>";
 
+        if (count($data) === 0) {
+            $html .= "<tr><td colspan='6' class='og-empty'>No outgoing employees found.</td></tr>";
+        }
+
+        // e() escapes each value individually so employee-supplied data
+        // (name, position, etc.) can't inject markup into the report.
         foreach ($data as $v) {
-            $html .= "<tr ondblclick=\"viewInfo('" . $v->pers_empno . "')\">";
-            $html .= "<td>" . $v->pers_empno . "</td>";
-            $html .= "<td>" . $v->C_Name . "</td>";
-            $html .= "<td>" . $v->Dept_Name . "</td>";
-            $html .= "<td>" . trim(ucwords($v->pers_lastname . ', ' . $v->pers_firstname)) . "</td>";
-            $html .= "<td>" . $v->jd_title . "</td>";
-            $html .= "<td>" . $v->ji_resdate . "</td>";
+            $empno = e($v->pers_empno);
+            $html .= "<tr ondblclick=\"viewInfo('" . $empno . "')\">";
+            $html .= "<td>" . $empno . "</td>";
+            $html .= "<td>" . e($v->C_Name) . "</td>";
+            $html .= "<td>" . e($v->Dept_Name) . "</td>";
+            $html .= "<td class='og-name'>" . e(trim(ucwords($v->pers_lastname . ', ' . $v->pers_firstname))) . "</td>";
+            $html .= "<td>" . e($v->jd_title) . "</td>";
+            $html .= "<td><span class='og-lastday'>" . e($v->ji_resdate) . "</span></td>";
             $html .= "</tr>";
         }
 
         $html .= "</tbody>";
-
-        $html .= "<tfoot>";
-        $html .= "<tr>";
-        $html .= "<th></th>";
-        $html .= "<th></th>";
-        $html .= "<th></th>";
-        $html .= "<th></th>";
-        $html .= "<th></th>";
-        $html .= "<th></th>";
-        $html .= "</tr>";
-        $html .= "</tfoot>";
-
         $html .= "</table>";
+        $html .= "</div>";
 
         return $html;
     }
@@ -1091,37 +945,65 @@ class EmployeeController extends Controller
     {
         $data = collect();
         foreach (Employee::retentionList($ym) as $v) {
-            // $v->duration = ($v->ji_datehired ? date('m/d/Y', strtotime($v->ji_datehired)) : 'N/A') . '-' . ($v->ji_resdate ? date('m/d/Y', strtotime($v->ji_resdate)) : 'N/A');
-
-            if(!$data->has($v->C_Code)){
+            if (!$data->has($v->C_Code)) {
                 $data->put($v->C_Code, collect());
             }
-            if(!$data[$v->C_Code]->has($v->Dept_Name)){
+            if (!$data[$v->C_Code]->has($v->Dept_Name)) {
                 $data[$v->C_Code]->put($v->Dept_Name, collect());
             }
-            if(date('Y-m', strtotime($v->ji_resdate)) == $ym){
-                if(!$data[$v->C_Code][$v->Dept_Name]->has('separated')){
+            if (date('Y-m', strtotime($v->ji_resdate)) == $ym) {
+                if (!$data[$v->C_Code][$v->Dept_Name]->has('separated')) {
                     $data[$v->C_Code][$v->Dept_Name]->put('separated', collect());
                 }
                 $data[$v->C_Code][$v->Dept_Name]['separated']->push($v);
             }
-            if(date('Y-m', strtotime($v->ji_datehired)) == $ym){
-                if(!$data[$v->C_Code][$v->Dept_Name]->has('new')){
+            if (date('Y-m', strtotime($v->ji_datehired)) == $ym) {
+                if (!$data[$v->C_Code][$v->Dept_Name]->has('new')) {
                     $data[$v->C_Code][$v->Dept_Name]->put('new', collect());
                 }
                 $data[$v->C_Code][$v->Dept_Name]['new']->push($v);
             }
-            if(date('Y-m', strtotime($v->ji_datehired)) < $ym){
-                if(!$data[$v->C_Code][$v->Dept_Name]->has('old')){
+            if (date('Y-m', strtotime($v->ji_datehired)) < $ym) {
+                if (!$data[$v->C_Code][$v->Dept_Name]->has('old')) {
                     $data[$v->C_Code][$v->Dept_Name]->put('old', collect());
                 }
                 $data[$v->C_Code][$v->Dept_Name]['old']->push($v);
             }
         }
 
-        // echo "<pre>";print_r($data);echo "</pre>";exit;
+        // Rate math defined once and reused for both the company summary
+        // row and each department sub-row (previously duplicated 2x).
+        $turnoverRate = fn ($total, $remaining, $separated) => $total
+            ? round(($remaining ? $separated / $remaining : 0) * 100) . '%'
+            : '-';
+        $retentionRate = fn ($total, $remaining) => $total
+            ? round(($total ? $remaining / $total : 0) * 100) . '%'
+            : '-';
+        // Escapes each name individually before joining with a literal
+        // <br> (previously concatenated unescaped, an XSS risk).
+        $names = fn ($collection) => $collection?->map(
+            fn ($i) => e(ucwords(trim($i->pers_lastname . ', ' . $i->pers_firstname)))
+        )->implode('<br>');
 
-        $html = "<table class='table table-bordered table-sm table-hover' style='width: 100%;'>";
+        // Scoped styles (unique wrapper class) so this renders consistently
+        // wherever it's injected, without leaking into the rest of the page.
+        $html = "<div class='retention-list-wrap'>";
+        $html .= "<style>";
+        $html .= ".retention-list-wrap table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }";
+        $html .= ".retention-list-wrap thead th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #868e96; background: #fcfcfd; border-bottom: 1px solid #e9ecef; padding: .8rem 1rem; white-space: nowrap; }";
+        $html .= ".retention-list-wrap tbody td { padding: .75rem 1rem; border-bottom: 1px solid #f1f3f5; color: #343a40; vertical-align: middle; }";
+        $html .= ".retention-list-wrap .rl-company-row { background: #f5f6f8; cursor: pointer; font-weight: 600; color: #1c1f24; }";
+        $html .= ".retention-list-wrap .rl-company-row td { font-weight: 600; }";
+        $html .= ".retention-list-wrap .rl-dept-row { cursor: pointer; color: #495057; }";
+        $html .= ".retention-list-wrap .rl-dept-row td:nth-child(2) { padding-left: 2rem; }";
+        $html .= ".retention-list-wrap .rl-names-row td { background: #fafbfc; font-size: 12.5px; color: #868e96; line-height: 1.7; }";
+        $html .= ".retention-list-wrap .rl-rate { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }";
+        $html .= ".retention-list-wrap .rl-rate-good { background: #E1F5EE; color: #085041; }";
+        $html .= ".retention-list-wrap .rl-rate-bad { background: #FDEEEE; color: #9c2b2b; }";
+        $html .= ".retention-list-wrap .rl-empty { padding: 3rem 1rem; text-align: center; color: #868e96; font-size: 13.5px; }";
+        $html .= "</style>";
+
+        $html .= "<table class='table table-sm mb-0'>";
         $html .= "<thead>";
         $html .= "<tr>";
         $html .= "<th>Company</th>";
@@ -1137,55 +1019,67 @@ class EmployeeController extends Controller
         $html .= "</thead>";
         $html .= "<tbody>";
 
+        if (count($data) === 0) {
+            $html .= "<tr><td colspan='9' class='rl-empty'>No retention data for this period.</td></tr>";
+        }
+
+        // Wraps a rate value in a green/red pill depending on whether it
+        // reads as favorable, so the table communicates at a glance.
+        $rateBadge = fn ($value, $good) => $value === '-'
+            ? '-'
+            : "<span class='rl-rate " . ($good ? 'rl-rate-good' : 'rl-rate-bad') . "'>{$value}</span>";
+
         foreach ($data as $c => $cv) {
             $old = $cv->sum(fn ($item) => ($item['old'] ?? null)?->count());
             $new = $cv->sum(fn ($item) => ($item['new'] ?? null)?->count());
             $separated = $cv->sum(fn ($item) => ($item['separated'] ?? null)?->count());
-            // $separated_old = $cv->sum(fn ($item) => ($item['separated'] ?? null)?->filter(fn ($i) => date('Y-m', strtotime($i->ji_datehired)) != date('Y-m', strtotime($i->ji_resdate)))->count());
-            // $average_employee = ($old + ($old + $new - $separated)) / 2;
             $remaining = ($old + $new - $separated);
             $total = ($old + $new);
 
-            $html .= "<tr class='list1 list-" . $c . "' listsub='" . $c . "'>";
-            $html .= "<td colspan=\"2\">" . $c . "</td>";
+            $cEsc = e($c);
+            $cAttr = e(str_replace(' ', '', $c));
+
+            $html .= "<tr class='list1 rl-company-row list-" . $cAttr . "' listsub='" . $cAttr . "'>";
+            $html .= "<td colspan=\"2\">" . $cEsc . "</td>";
             $html .= "<td style=\"display: none;\"></td>";
             $html .= "<td>" . $old . "</td>";
             $html .= "<td>" . $new . "</td>";
             $html .= "<td>" . $total . "</td>";
             $html .= "<td>" . $separated . "</td>";
             $html .= "<td>" . $remaining . "</td>";
-            $html .= "<td>" . ($total ? round(($remaining ? $separated / $remaining : 0) * 100) . '%' : '-') . "</td>";
-            $html .= "<td>" . ($total ? round(($total ? $remaining / $total : 0) * 100) . '%' : '-') . "</td>";
+            $html .= "<td>" . $rateBadge($turnoverRate($total, $remaining, $separated), false) . "</td>";
+            $html .= "<td>" . $rateBadge($retentionRate($total, $remaining), true) . "</td>";
             $html .= "</tr>";
 
             foreach ($cv as $d => $dv) {
                 $old = ($dv['old'] ?? null)?->count();
                 $new = ($dv['new'] ?? null)?->count();
                 $separated = ($dv['separated'] ?? null)?->count();
-                // $separated_old = ($dv['separated'] ?? null)?->filter(fn ($i) => date('Y-m', strtotime($i->ji_datehired)) != date('Y-m', strtotime($i->ji_resdate)))->count();
-                // $average_employee = ($old + ($old + $new - $separated)) / 2;
                 $remaining = ($old + $new - $separated);
                 $total = ($old + $new);
 
-                $html .= "<tr class='list2 list-" . $c . "' listsub='" . $c . str_replace(' ', '', $d) . "' style='display: none;'>";
+                $dEsc = e($d);
+                $dAttr = e($c . str_replace(' ', '', $d));
+
+                $html .= "<tr class='list2 rl-dept-row list-" . $cAttr . "' listsub='" . $dAttr . "' style='display: none;'>";
                 $html .= "<td></td>";
-                $html .= "<td>" . $d . "</td>";
+                $html .= "<td>" . $dEsc . "</td>";
                 $html .= "<td>" . $old . "</td>";
                 $html .= "<td>" . $new . "</td>";
                 $html .= "<td>" . $total . "</td>";
                 $html .= "<td>" . $separated . "</td>";
                 $html .= "<td>" . $remaining . "</td>";
-                $html .= "<td>" . ($total ? round(($remaining ? $separated / $remaining : 0) * 100) . '%' : '-') . "</td>";
-                $html .= "<td>" . ($total ? round(($total ? $remaining / $total : 0) * 100) . '%' : '-') . "</td>";
+                $html .= "<td>" . $rateBadge($turnoverRate($total, $remaining, $separated), false) . "</td>";
+                $html .= "<td>" . $rateBadge($retentionRate($total, $remaining), true) . "</td>";
                 $html .= "</tr>";
 
-                $html .= "<tr class='list3 list-" . $c . " list-" . $c . str_replace(' ', '', $d) . "' style='display: none;'>";
+                $html .= "<tr class='list3 rl-names-row list-" . $cAttr . " list-" . $dAttr . "' style='display: none;'>";
                 $html .= "<td></td>";
                 $html .= "<td></td>";
-                $html .= "<td>" . ($dv['old'] ?? null)?->map(fn ($i) => ucwords(trim($i->pers_lastname . ', ' . $i->pers_firstname)))->implode('<br>') . "</td>";
-                $html .= "<td>" . ($dv['new'] ?? null)?->map(fn ($i) => ucwords(trim($i->pers_lastname . ', ' . $i->pers_firstname)))->implode('<br>') . "</td>";
+                $html .= "<td>" . ($names($dv['old'] ?? null) ?? '') . "</td>";
+                $html .= "<td>" . ($names($dv['new'] ?? null) ?? '') . "</td>";
                 $html .= "<td></td>";
-                $html .= "<td>" . ($dv['separated'] ?? null)?->map(fn ($i) => ucwords(trim($i->pers_lastname . ', ' . $i->pers_firstname)))->implode('<br>') . "</td>";
+                $html .= "<td>" . ($names($dv['separated'] ?? null) ?? '') . "</td>";
                 $html .= "<td></td>";
                 $html .= "<td></td>";
                 $html .= "<td></td>";
@@ -1194,19 +1088,8 @@ class EmployeeController extends Controller
         }
 
         $html .= "</tbody>";
-
-        // $html .= "<tfoot>";
-        // $html .= "<tr>";
-        // $html .= "<th></th>";
-        // $html .= "<th></th>";
-        // $html .= "<th></th>";
-        // $html .= "<th></th>";
-        // $html .= "<th></th>";
-        // $html .= "<th></th>";
-        // $html .= "</tr>";
-        // $html .= "</tfoot>";
-
         $html .= "</table>";
+        $html .= "</div>";
 
         return $html;
     }

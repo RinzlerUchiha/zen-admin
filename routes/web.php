@@ -267,6 +267,19 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    Route::prefix('recruitment/manpower')->name('recruitment.manpower.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'index'])->name('index');
+        Route::get('/list/{stat}', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'list'])->name('list');
+        Route::get('/counts', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'counts'])->name('counts');
+        Route::get('/{id}', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'show'])->name('show');
+        Route::post('/save', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'store'])->name('store');
+        Route::post('/{id}/status', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'updateStatus'])->name('status');
+        Route::post('/{id}/request-update', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'requestUpdate'])->name('requestUpdate');
+        Route::post('/update/{mpuId}/approve', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'approveUpdate'])->name('approveUpdate');
+        Route::post('/update/{mpuId}/decline', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'declineUpdate'])->name('declineUpdate');
+        Route::delete('/{id}', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'destroy'])->name('destroy');
+    });
+
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);
     Route::get('/manpower/jobspec/{pos}', [ManpowerRequestController::class, 'viewSpec']);
     Route::get('/manpower/applicant/{id}/interviews', [ManpowerRequestController::class, 'applicantInterviews']);
