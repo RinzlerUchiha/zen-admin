@@ -1,34 +1,36 @@
-<table class="table table-sm table-hover">
+<table class="table table-sm table-bordered table-hover table-striped" style="width: 100%;">
     <thead>
         <tr>
             <th>Date Prepared</th>
-            <th>Requested By</th>
-            <th>Department</th>
-            @if($stat == 'declined')
-                <th>Reason</th>
-            @endif
+            <th class="text-start">Requestor</th>
+            <th class="text-start">Department</th>
+            <th>Status</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-        @forelse($data as $v)
-            <tr data-id="{{ $v->mp_id }}" style="cursor:pointer;" onclick="viewManpowerRequest({{ $v->mp_id }})">
-                <td>{{ $v->mp_dtprepared }}</td>
-                <td>{{ $v->requestor_name }}</td>
-                <td>{{ $v->requestor_dept }}</td>
-                @if($stat == 'declined')
-                    <td>{{ $v->mp_decline_reason }}</td>
-                @endif
-                <td>
-                    @if($v->mp_requestby == $user_empno && in_array($stat, ['draft']))
-                        <button type="button" class="btn btn-sm btn-danger" onclick="event.stopPropagation(); removeManpowerRequest({{ $v->mp_id }})">
-                            <i class="fa fa-trash"></i>
+        @foreach ($data as $v)
+            <tr>
+                <td class="text-nowrap">{{ $v->mp_dtprepared }}</td>
+                <td class="text-start">{{ $v->requestor_name }}</td>
+                <td class="text-start">{{ $v->requestor_dept }}</td>
+                <td>{{ ucfirst($v->mp_status) }}</td>
+                <td class="text-nowrap">
+                    @if ($v->mp_status == 'draft')
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="modal" data-bs-target="#modal-mpr-form"
+                            data-id="{{ $v->mp_id }}">
+                            <i class="fa fa-edit"></i>
+                        </button>
+                    @else
+                        <button type="button" class="btn btn-sm btn-outline-info"
+                            data-bs-toggle="modal" data-bs-target="#modal-mpr-view"
+                            data-id="{{ $v->mp_id }}">
+                            <i class="fa fa-eye"></i>
                         </button>
                     @endif
                 </td>
             </tr>
-        @empty
-            <tr><td colspan="6" class="text-center text-muted">No requests found.</td></tr>
-        @endforelse
+        @endforeach
     </tbody>
 </table>
