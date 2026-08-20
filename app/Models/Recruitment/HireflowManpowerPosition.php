@@ -34,6 +34,17 @@ class HireflowManpowerPosition extends Model
             ->where('jspec_id', $this->jobspec_id)
             ->first();
     }
+    /**
+     * Resolves this position's short code (e.g. "CT") to its full title
+     * (e.g. "Computer Technician") via HireFlow's tbl_jobdescription lookup.
+     */
+    public function positionTitle()
+    {
+        return \Illuminate\Support\Facades\DB::connection('hrd2')
+            ->table('tbl_jobdescription')
+            ->where('jd_code', $this->position)
+            ->value('jd_title') ?? $this->position;
+    }
 
     /**
      * Postings already created for this position (recruitment module's own table)

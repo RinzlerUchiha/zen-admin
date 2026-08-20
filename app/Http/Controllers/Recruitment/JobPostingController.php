@@ -26,15 +26,23 @@ class JobPostingController extends Controller
             }])
             ->get();
 
-        return view('pages.recruitment.job-postings.index', compact('eligibleRequests'));
-    }
+            return view('pages.recruitment.job-postings.index', [
+                'eligibleRequests' => $eligibleRequests,
+                'main_link' => 'recruitment',
+                'sub_link' => 'job-postings',
+            ]);
+        }
 
-    public function show(JobPosting $jobPosting)
-    {
-        $jobPosting->load('hireflowPosition.request');
-
-        return view('pages.recruitment.job-postings.show', compact('jobPosting'));
-    }
+        public function show(JobPosting $jobPosting)
+        {
+            $jobPosting->load('hireflowPosition.request');
+    
+            return view('pages.recruitment.job-postings.show', [
+                'jobPosting' => $jobPosting,
+                'main_link' => 'recruitment',
+                'sub_link' => 'job-postings',
+            ]);
+        }
 
     public function store(Request $request)
     {
