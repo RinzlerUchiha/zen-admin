@@ -20,6 +20,7 @@ use App\Http\Controllers\MemoController;
 use App\Http\Controllers\PAController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\Recruitment\JobPostingController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Requests\SubmitRequest;
@@ -278,6 +279,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/update/{mpuId}/approve', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'approveUpdate'])->name('approveUpdate');
         Route::post('/update/{mpuId}/decline', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'declineUpdate'])->name('declineUpdate');
         Route::delete('/{id}', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('recruitment/job-postings')->name('recruitment.job-postings.')->group(function () {
+        Route::get('/', [JobPostingController::class, 'index'])->name('index');
+        Route::get('/{jobPosting}', [JobPostingController::class, 'show'])->name('show');
+        Route::post('/', [JobPostingController::class, 'store'])->name('store');
+        Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('update-status');
     });
 
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);
