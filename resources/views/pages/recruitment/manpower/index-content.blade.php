@@ -8,6 +8,180 @@
         font-size: 11px;
         margin-left: 4px;
     }
+
+    /* Modal shell polish */
+    #modal-mpr-view .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 12px 32px rgba(31, 36, 48, .16);
+        overflow: hidden;
+    }
+    #modal-mpr-view .modal-header {
+        border-bottom: none;
+        padding: 22px 26px 4px;
+    }
+    #modal-mpr-view .modal-title {
+        font-size: 18px;
+        font-weight: 800;
+        color: #1F2430;
+        letter-spacing: -.2px;
+    }
+    #modal-mpr-view .modal-body {
+        padding: 14px 26px 24px;
+    }
+    #modal-mpr-view .modal-footer {
+        border-top: 1px solid #F1F2F5;
+        background: #FAFBFC;
+        padding: 14px 26px;
+    }
+
+    /* Header info card */
+    .mpv-header-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+        background: #F5F6F9;
+        border: 1px solid #E7E9EE;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 18px;
+    }
+    .mpv-header-item .mpv-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: #8A93A3;
+        margin-bottom: 3px;
+    }
+    .mpv-header-item .mpv-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1F2430;
+    }
+
+    /* Status chip */
+    .mpv-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 20px;
+        padding: 5px 14px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .2px;
+        box-shadow: 0 2px 6px rgba(31, 36, 48, .06);
+    }
+    .mpv-chip::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+    .mpv-chip-draft     { background: #F1F2F5; color: #5B6474; }
+    .mpv-chip-pending   { background: #E8F0FE; color: #1B4FB0; }
+    .mpv-chip-approved  { background: #E7F6EC; color: #1E9E4C; }
+    .mpv-chip-returned  { background: #FFF1EC; color: #5C2A18; }
+    .mpv-chip-rejected  { background: #FCEBEB; color: #791F1F; }
+    .mpv-chip-cancelled { background: #F1F2F5; color: #5B6474; }
+
+    /* Section dividers */
+    .mpv-section-divider {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 18px 0 10px;
+        font-weight: 700;
+        font-size: 12.5px;
+        color: #1F2430;
+    }
+    .mpv-section-divider .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2F6FE4, #1B4FB0);
+        box-shadow: 0 0 0 3px #E8F0FE;
+    }
+    .mpv-section-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #F1F2F5;
+    }
+
+    /* Position tables */
+    .mpv-table-wrap {
+        border: 1px solid #E7E9EE;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 8px rgba(31, 36, 48, .04);
+    }
+    .mpv-table-wrap table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 0;
+        font-size: 12.5px;
+    }
+    .mpv-table-wrap thead th {
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+        color: #8A93A3;
+        padding: 10px 14px;
+        border-bottom: 1px solid #E7E9EE;
+        background: #F5F6F9;
+        text-align: left;
+    }
+    .mpv-table-wrap tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #F1F2F5;
+        color: #1F2430;
+    }
+    .mpv-table-wrap tbody tr:hover {
+        background: #FAFBFF;
+    }
+    .mpv-table-wrap tbody tr:last-child td {
+        border-bottom: none;
+    }
+    .mpv-empty-row {
+        padding: 18px;
+        text-align: center;
+        color: #B0B6C0;
+        font-size: 12px;
+    }
+
+    /* Non-negotiable block */
+    .mpv-nn-label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: #8A93A3;
+        margin-top: 18px;
+    }
+    .mpv-nn-value {
+        background: #F5F6F9;
+        border: 1px solid #E7E9EE;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-top: 6px;
+        font-size: 13px;
+        color: #1F2430;
+    }
+
+    .mpv-hireflow-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 18px;
+        font-size: 12px;
+        color: #8A93A3;
+    }
 </style>
 
 <script type="text/javascript">
@@ -16,58 +190,6 @@
     $(function () {
         load_counts();
         load_manpower_list(currentStat);
-
-        $('#modal-mpr-form').on('shown.bs.modal', async function (e) {
-            let btn = $(e.relatedTarget);
-            let id = btn.data('id');
-
-            resetMprForm();
-
-            if (id) {
-                $('#mpr-id').val(id);
-                try {
-                    const response = await fetch('/recruitment/manpower/' + id);
-                    const data = await response.json();
-                    populateMprForm(data);
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Failed to load request.');
-                }
-            }
-        });
-
-        $('#form-mpr').submit(async function (e) {
-            e.preventDefault();
-            $('#mpr-err').html('');
-
-            let submitMode = $(document.activeElement).data('submit-mode') || 'draft';
-
-            let formData = new FormData();
-            formData.append('id', $('#mpr-id').val());
-            formData.append('replacement', JSON.stringify(collectSlots('replacement')));
-            formData.append('additional', JSON.stringify(collectSlots('additional')));
-            formData.append('nonnegotiable', $('#mpr-nonnegotiable').val());
-            formData.append('submit_mode', submitMode);
-
-            let response = await fetch('/recruitment/manpower/save', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-
-            let result = await response.json();
-
-            if (response.ok && result.success) {
-                $('#modal-mpr-form').modal('hide');
-                alert('Saved');
-                load_counts();
-                load_manpower_list(currentStat);
-            } else {
-                $('#mpr-err').html(`<p style="color: red;">Error: ${result.error}</p>`);
-            }
-        });
 
         $('#modal-mpr-view').on('shown.bs.modal', async function (e) {
             let btn = $(e.relatedTarget);
@@ -84,111 +206,49 @@
             }
         });
 
-        $('#btn-mpr-request-update, #btn-mpr-request-cancel').click(function () {
-            $('#mpr-view-action').val($(this).attr('id') === 'btn-mpr-request-cancel' ? 'cancel' : 'edit');
-            $('#mpr-view-update-panel').removeClass('d-none');
-        });
-
-        $('#form-mpr-update').submit(async function (e) {
-            e.preventDefault();
-
-            let id = $('#mpr-view-id').val();
-            let action = $('#mpr-view-action').val();
-            let reason = $('#mpr-view-update-reason').val();
-
-            let response = await fetch('/recruitment/manpower/' + id + '/request-update', {
-                method: 'POST',
-                body: new URLSearchParams({ action: action, reason: reason }),
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            });
-
-            let result = await response.json();
-
-            if (response.ok && result.success) {
-                $('#modal-mpr-view').modal('hide');
-                alert('Request submitted');
-                load_counts();
-                load_manpower_list(currentStat);
-            } else {
-                alert('Error: ' + result.error);
-            }
-        });
-
-        $('#mpr-add-replacement').click(() => addSlotRow('replacement'));
-        $('#mpr-add-additional').click(() => addSlotRow('additional'));
     });
 
-    function resetMprForm() {
-        $('#mpr-id').val('');
-        $('#mpr-nonnegotiable').val('');
-        $('#mpr-replacement-rows').html('');
-        $('#mpr-additional-rows').html('');
-        $('#mpr-err').html('');
-    }
+    const MP_STATUS_CLASS = {
+        'Draft': 'mpv-chip-draft',
+        'Pending': 'mpv-chip-pending',
+        'Approved': 'mpv-chip-approved',
+        'Returned': 'mpv-chip-returned',
+        'Rejected': 'mpv-chip-rejected',
+        'Cancelled': 'mpv-chip-cancelled'
+    };
 
-    function populateMprForm(data) {
-        $('#mpr-nonnegotiable').val(data.mp_nonnegotiable);
-
-        (data.replacement_slots || []).forEach(row => addSlotRow('replacement', row));
-        (data.additional_slots || []).forEach(row => addSlotRow('additional', row));
-    }
-
-    function addSlotRow(type, values = []) {
-        let idx = $(`#mpr-${type}-rows tr`).length;
-        let row = `
+    function mpvRenderRows(rows) {
+        if (rows.length === 0) {
+            return '<tr><td colspan="5" class="mpv-empty-row">No positions added.</td></tr>';
+        }
+        return rows.map(p => `
             <tr>
-                <td><input type="text" class="form-control form-control-sm slot-position" value="${values[0] || ''}" placeholder="Position"></td>
-                <td><input type="number" class="form-control form-control-sm slot-count" value="${values[1] || 1}" min="1"></td>
-                <td><input type="text" class="form-control form-control-sm slot-reason" value="${values[2] || ''}" placeholder="Reason"></td>
-                <td><input type="date" class="form-control form-control-sm slot-date" value="${values[3] || ''}"></td>
-                <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="$(this).closest('tr').remove()"><i class="fa fa-times"></i></button></td>
-            </tr>`;
-        $(`#mpr-${type}-rows`).append(row);
-    }
-
-    function collectSlots(type) {
-        let rows = [];
-        $(`#mpr-${type}-rows tr`).each(function () {
-            rows.push({
-                position: $(this).find('.slot-position').val(),
-                count: $(this).find('.slot-count').val(),
-                reason: $(this).find('.slot-reason').val(),
-                date: $(this).find('.slot-date').val()
-            });
-        });
-        return rows;
+                <td>${p.position_title || p.position}</td>
+                <td>${p.headcount}</td>
+                <td>${p.reason || '—'}</td>
+                <td>${p.date_needed || '—'}</td>
+                <td>${p.filled ?? 0}</td>
+            </tr>
+        `).join('');
     }
 
     function populateMprView(data) {
-        $('#mpr-view-status').text(data.mp_status);
-        $('#mpr-view-dtprepared').text(data.mp_dtprepared);
-        $('#mpr-view-nonnegotiable').text(data.mp_nonnegotiable || '-');
+        $('#mpr-view-mrno').text(data.mr_no || '—');
+        $('#mpr-view-requestor').text(data.requestor_name || '—');
+        $('#mpr-view-dept').text(data.requestor_dept || '—');
 
-        let slotHtml = (label, slots) => {
-            if (!slots || slots.length === 0) return '';
-            let html = `<h6 class="mt-2">${label}</h6><ul class="mb-0">`;
-            slots.forEach(s => {
-                html += `<li>${s[0]} — qty ${s[1]} (${s[2] || 'no reason given'})</li>`;
-            });
-            return html + '</ul>';
-        };
+        $('#mpr-view-status')
+            .text(data.status)
+            .attr('class', 'mpv-chip ' + (MP_STATUS_CLASS[data.status] || 'mpv-chip-draft'));
 
-        $('#mpr-view-slots').html(
-            slotHtml('Replacement', data.replacement_slots) +
-            slotHtml('Additional', data.additional_slots)
-        );
+        let positions = data.positions || [];
+        let replacementRows = positions.filter(p => p.type === 'replacement');
+        let additionalRows = positions.filter(p => p.type === 'additional');
 
-        $('#mpr-view-update-panel').addClass('d-none');
-        $('#mpr-view-update-reason').val('');
+        $('#mpr-view-replacement-rows').html(mpvRenderRows(replacementRows));
+        $('#mpr-view-additional-rows').html(mpvRenderRows(additionalRows));
 
-        if (data.mp_status === 'approved') {
-            $('#mpr-view-actions').removeClass('d-none');
-        } else {
-            $('#mpr-view-actions').addClass('d-none');
-        }
+        $('#mpr-view-nonnegotiable').text(data.nonnegotiable || 'None specified.');
     }
 
     function load_counts() {
@@ -223,9 +283,6 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h5>Manpower Requests</h5>
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-mpr-form">
-            New Request
-        </button>
     </div>
 
     <ul class="nav nav-tabs mb-2" id="mpr-tabs">
@@ -241,53 +298,7 @@
     <div id="manpower-list"></div>
 </div>
 
-<!-- Form Modal: create + revise -->
-<div class="modal fade" id="modal-mpr-form" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5">Manpower Request</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="form-mpr">
-                <div class="modal-body">
-                    <div id="mpr-err"></div>
-                    <input type="hidden" id="mpr-id" value="">
-
-                    <h6>Replacement Slots</h6>
-                    <table class="table table-sm">
-                        <thead>
-                            <tr><th>Position</th><th>Count</th><th>Reason</th><th>Date Needed</th><th></th></tr>
-                        </thead>
-                        <tbody id="mpr-replacement-rows"></tbody>
-                    </table>
-                    <button type="button" class="btn btn-sm btn-outline-secondary mb-3" id="mpr-add-replacement">+ Add Replacement</button>
-
-                    <h6>Additional Slots</h6>
-                    <table class="table table-sm">
-                        <thead>
-                            <tr><th>Position</th><th>Count</th><th>Reason</th><th>Date Needed</th><th></th></tr>
-                        </thead>
-                        <tbody id="mpr-additional-rows"></tbody>
-                    </table>
-                    <button type="button" class="btn btn-sm btn-outline-secondary mb-3" id="mpr-add-additional">+ Add Additional</button>
-
-                    <div class="mb-3">
-                        <label class="form-label">Non-negotiables</label>
-                        <textarea id="mpr-nonnegotiable" class="form-control form-control-sm"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-outline-primary" data-submit-mode="draft">Save as Draft</button>
-                    <button type="submit" class="btn btn-primary" data-submit-mode="pending">Submit for Approval</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- View Modal: read-only + update/cancel toggle -->
+<!-- View Modal: read-only -->
 <div class="modal fade" id="modal-mpr-view" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -297,30 +308,49 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="mpr-view-id" value="">
-                <div class="row mb-2">
-                    <div class="col-md-4"><strong>Status:</strong> <span id="mpr-view-status"></span></div>
-                    <div class="col-md-4"><strong>Date Prepared:</strong> <span id="mpr-view-dtprepared"></span></div>
-                </div>
-                <div id="mpr-view-slots"></div>
-                <div class="mb-2">
-                    <strong>Non-negotiables:</strong>
-                    <p id="mpr-view-nonnegotiable"></p>
-                </div>
 
-                <div id="mpr-view-actions" class="d-none border-top pt-2 mt-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-mpr-request-update">Request Edit</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="btn-mpr-request-cancel">Request Cancel</button>
-
-                    <div id="mpr-view-update-panel" class="d-none mt-2">
-                        <form id="form-mpr-update">
-                            <input type="hidden" id="mpr-view-action" value="">
-                            <div class="mb-2">
-                                <label class="form-label">Reason</label>
-                                <textarea id="mpr-view-update-reason" class="form-control form-control-sm" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-primary">Submit Request</button>
-                        </form>
+                <div class="mpv-header-card">
+                    <div class="mpv-header-item">
+                        <div class="mpv-label">Requestor</div>
+                        <div class="mpv-value" id="mpr-view-requestor"></div>
                     </div>
+                    <div class="mpv-header-item">
+                        <div class="mpv-label">Department</div>
+                        <div class="mpv-value" id="mpr-view-dept"></div>
+                    </div>
+                    <div class="mpv-header-item">
+                        <div class="mpv-label">MR No.</div>
+                        <div class="mpv-value" id="mpr-view-mrno"></div>
+                    </div>
+                    <span id="mpr-view-status" class="mpv-chip"></span>
+                </div>
+
+                <div class="mpv-section-divider"><span class="dot"></span> Replacement positions</div>
+                <div class="mpv-table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Subject/Position</th><th>Number Needed</th><th>Reason</th><th>Date Needed</th><th>Fill</th></tr>
+                        </thead>
+                        <tbody id="mpr-view-replacement-rows"></tbody>
+                    </table>
+                </div>
+
+                <div class="mpv-section-divider"><span class="dot"></span> Additional positions</div>
+                <div class="mpv-table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Subject/Position</th><th>Number Needed</th><th>Reason</th><th>Date Needed</th><th>Fill</th></tr>
+                        </thead>
+                        <tbody id="mpr-view-additional-rows"></tbody>
+                    </table>
+                </div>
+
+                <div class="mpv-nn-label">Non-negotiable</div>
+                <div class="mpv-nn-value" id="mpr-view-nonnegotiable"></div>
+
+                <div class="mpv-hireflow-note">
+                    <i class="bi bi-info-circle"></i>
+                    This request is managed in HireFlow. To edit, cancel, or take action on it, please use HireFlow directly.
                 </div>
             </div>
             <div class="modal-footer">
