@@ -1,7 +1,5 @@
-@extends('layouts.layout')
 
-@section('content')
-<div class="container-fluid mt-5 pt-3">
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">Job Postings</h4>
     </div>
@@ -66,4 +64,48 @@ $(function () {
     });
 });
 </script>
-@endsection
+<hr class="my-4">
+
+<h5>Existing Postings</h5>
+
+@if($postings->isEmpty())
+    <p class="text-muted">No postings created yet.</p>
+@else
+    <table class="table table-sm table-hover">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Posted</th>
+                <th>Closed</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($postings as $posting)
+                <tr>
+                    <td>{{ $posting->posting_title }}</td>
+                    <td>
+                        <span class="badge
+                            @switch($posting->status)
+                                @case('Draft') bg-secondary @break
+                                @case('Published') bg-success @break
+                                @case('Closed') bg-dark @break
+                                @default bg-light text-dark
+                            @endswitch">
+                            {{ $posting->status }}
+                        </span>
+                    </td>
+                    <td>{{ $posting->posted_at?->format('M d, Y') ?? '—' }}</td>
+                    <td>{{ $posting->closed_at?->format('M d, Y') ?? '—' }}</td>
+                    <td>{{ $posting->created_at->format('M d, Y') }}</td>
+                    <td>
+                        <a href="{{ route('recruitment.job-postings.show', $posting->id) }}"
+                           class="btn btn-sm btn-outline-primary">View</a>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+@endif

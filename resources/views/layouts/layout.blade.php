@@ -191,7 +191,7 @@
             </button>
             <a class="navbar-brand d-flex align-items-center" href="{{ config('app.url') }}/">
                 <img class="img-fluid" id="site-logo" src="https://teamtngc.com/zen/assets/img/coffi.png" alt="Logo" class="d-inline-block align-text-top">
-                <span class="fs-5 ms-1" style="color: #5d2502;">Zenhub</span>
+                <span class="fs-5 ms-1" style="color: #5d2502;">Zen-Admin</span>
             </a>
             <a class="navbar-toggler" role="button" data-bs-toggle="offcanvas" href="#servicesMenu" aria-controls="servicesMenu">
                 <i class="bi bi-grid-3x3-gap-fill"></i>
@@ -267,7 +267,7 @@
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/manpower">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/recruitment">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/prf.png') }}">
                         <span class="mt-1">PRF</span>
                     </a>

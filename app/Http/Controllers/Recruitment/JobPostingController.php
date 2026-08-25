@@ -26,23 +26,30 @@ class JobPostingController extends Controller
             }])
             ->get();
 
-            return view('pages.recruitment.job-postings.index', [
-                'eligibleRequests' => $eligibleRequests,
-                'main_link' => 'recruitment',
-                'sub_link' => 'job-postings',
-            ]);
-        }
+        $postings = JobPosting::with('hireflowPosition')
+            ->orderByDesc('created_at')
+            ->get();
 
-        public function show(JobPosting $jobPosting)
-        {
-            $jobPosting->load('hireflowPosition.request');
-    
-            return view('pages.recruitment.job-postings.show', [
-                'jobPosting' => $jobPosting,
-                'main_link' => 'recruitment',
-                'sub_link' => 'job-postings',
-            ]);
-        }
+        return view('pages.recruitment', [
+            'eligibleRequests' => $eligibleRequests,
+            'postings' => $postings,
+            'main_link' => 'recruitment',
+            'sub_link' => 'job-postings',
+            'maincat' => 'job-postings',
+            'page' => 'pages.recruitment.job-postings.index-content',
+        ]);
+    }
+
+    public function show(JobPosting $jobPosting)
+    {
+        $jobPosting->load('hireflowPosition.request');
+
+        return view('pages.recruitment.job-postings.show', [
+            'jobPosting' => $jobPosting,
+            'main_link' => 'recruitment',
+            'sub_link' => 'job-postings',
+        ]);
+    }
 
     public function store(Request $request)
     {

@@ -268,6 +268,10 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    Route::get('/recruitment', function () {
+        return redirect()->route('recruitment.manpower.index');
+    });
+
     Route::prefix('recruitment/manpower')->name('recruitment.manpower.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'index'])->name('index');
         Route::get('/list/{stat}', [\App\Http\Controllers\Recruitment\ManpowerController::class, 'list'])->name('list');

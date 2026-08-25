@@ -18,9 +18,11 @@ class ManpowerController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        return view('pages.recruitment.manpower.index', [
+        return view('pages.recruitment', [
             'main_link' => 'recruitment',
             'sub_link' => 'manpower',
+            'maincat' => 'manpower',
+            'page' => 'pages.recruitment.manpower.index-content',
             'user_empno' => $user->Emp_No,
             'department' => Setting::departmentList(0),
             'position' => Setting::positionList(),

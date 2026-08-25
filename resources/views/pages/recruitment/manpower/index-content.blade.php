@@ -1,6 +1,4 @@
-@extends('layouts.layout')
 
-@section('content')
 
 <style>
     #manpower-list {
@@ -332,4 +330,3 @@
     </div>
 </div>
 
-@stop
