@@ -53,4 +53,58 @@ class HireflowManpowerPosition extends Model
     {
         return $this->hasMany(JobPosting::class, 'request_position_id', 'id');
     }
+
+    /**
+     * Composes a draft job posting description from this position's linked
+     * Job Specification, plus this specific request's headcount. Excludes
+     * internal assessment/personality fields (MPA-G, TAPT, Enneagram, Raven,
+     * leadership, career, motivation) — those belong to the later
+     * screening/assessment phase, not a public job ad.
+     */
+    public function draftPostingDescription(): string
+    {
+        $spec = $this->jobSpec();
+        if (!$spec) {
+            return '';
+        }
+
+        $sections = [];
+
+        $requirements = [];
+        if (!empty($spec->jspec_emplstat)) {
+            $requirements[] = "Employment Status: " . $spec->jspec_emplstat;
+        }
+        if (!empty($spec->jspec_agerange)) {
+            $requirements[] = "Age Range: " . $spec->jspec_agerange;
+        }
+        if (!empty($spec->jspec_sex)) {
+            $requirements[] = "Sex: " . $spec->jspec_sex;
+        }
+        $requirements[] = "Headcount: " . $this->headcount;
+        $sections[] = "REQUIREMENTS\n" . implode("\n", $requirements);
+
+        if (!empty($spec->jspec_duties)) {
+            $sections[] = "DUTIES & RESPONSIBILITIES\n" . trim($spec->jspec_duties);
+        }
+        if (!empty($spec->jspec_education)) {
+            $sections[] = "EDUCATION\n" . trim($spec->jspec_education);
+        }
+        if (!empty($spec->jspec_workexp)) {
+            $sections[] = "WORK EXPERIENCE\n" . trim($spec->jspec_workexp);
+        }
+        if (!empty($spec->jspec_techcompetencies)) {
+            $sections[] = "TECHNICAL COMPETENCIES\n" . trim($spec->jspec_techcompetencies);
+        }
+        if (!empty($spec->jspec_competencies)) {
+            $sections[] = "COMPETENCIES\n" . trim($spec->jspec_competencies);
+        }
+        if (!empty($spec->jspec_computerskill)) {
+            $sections[] = "COMPUTER SKILLS\n" . trim($spec->jspec_computerskill);
+        }
+        if (!empty($spec->jspec_otherskill)) {
+            $sections[] = "OTHER SKILLS\n" . trim($spec->jspec_otherskill);
+        }
+
+        return implode("\n\n", $sections);
+    }
 }

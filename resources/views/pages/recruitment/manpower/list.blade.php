@@ -50,26 +50,28 @@
                             @if ($v->positions->isEmpty())
                                 <p class="text-muted small mb-0 ps-2">No positions on this request.</p>
                             @else
-                                <table class="table table-sm table-borderless mb-0">
-                                    <thead>
-                                        <tr class="text-muted small">
-                                            <th>Subject</th>
-                                            <th>Type</th>
-                                            <th>Headcount</th>
-                                            <th>Filled</th>
+                            <table class="table table-sm table-borderless mb-0">
+                                <thead>
+                                    <tr class="text-muted small">
+                                        <th>Subject</th>
+                                        <th>Type</th>
+                                        <th>Headcount</th>
+                                        <th>Non-Negotiable</th>
+                                        <th>Filled</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($v->positions as $p)
+                                        <tr>
+                                            <td>{{ $p->position_title }}</td>
+                                            <td>{{ ucfirst($p->type) }}</td>
+                                            <td>{{ $p->headcount }}</td>
+                                            <td>{{ $p->nonnegotiable ?: '—' }}</td>
+                                            <td>{{ $p->filled ?? 0 }}</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($v->positions as $p)
-                                            <tr>
-                                                <td>{{ $p->position_title }}</td>
-                                                <td>{{ ucfirst($p->type) }}</td>
-                                                <td>{{ $p->headcount }}</td>
-                                                <td>{{ $p->filled ?? 0 }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                    @endforeach
+                                </tbody>
+                            </table>
                             @endif
                         </div>
                     </div>

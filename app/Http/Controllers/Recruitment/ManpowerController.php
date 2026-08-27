@@ -60,16 +60,18 @@ class ManpowerController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        $employee = DB::table('tbl201_persinfo')
-            ->selectRaw("pers_empno, Dept_Name, TRIM(CONCAT(pers_lastname, ', ', pers_firstname)) as empname")
+        // Matches HireFlow's own auth.php lookup exactly: tbl201_basicinfo
+        // on the hrd2 connection, not tbl201_persinfo on the default connection.
+        $employee = DB::connection('hrd2')->table('tbl201_basicinfo')
+            ->selectRaw("bi_empno as pers_empno, Dept_Name, TRIM(CONCAT(bi_emplname, ', ', bi_empfname)) as empname")
             ->leftJoin('tbl201_jobrec', function ($join) {
-                $join->on('jrec_empno', '=', 'pers_empno')
+                $join->on('jrec_empno', '=', 'bi_empno')
                     ->on('jrec_status', '=', DB::raw("'Primary'"));
             })
             ->leftJoin('tbl_department', 'Dept_Code', '=', 'jrec_department')
             ->get();
 
-            $data = $this->buildListQuery(self::STATUS_MAP[$stat], $user)
+        $data = $this->buildListQuery(self::STATUS_MAP[$stat], $user)
             ->orderBy('id', 'desc')
             ->get()
             ->map(function ($v) use ($employee) {
@@ -116,15 +118,16 @@ class ManpowerController extends Controller
             $position->position_title = $position->positionTitle();
         });
 
-        // Resolve requestor name/department the same way list() does.
-        $requestor = DB::table('tbl201_persinfo')
-            ->selectRaw("pers_empno, Dept_Name, TRIM(CONCAT(pers_lastname, ', ', pers_firstname)) as empname")
+        // Matches HireFlow's own auth.php lookup exactly: tbl201_basicinfo
+        // on the hrd2 connection, not tbl201_persinfo on the default connection.
+        $requestor = DB::connection('hrd2')->table('tbl201_basicinfo')
+            ->selectRaw("bi_empno as pers_empno, Dept_Name, TRIM(CONCAT(bi_emplname, ', ', bi_empfname)) as empname")
             ->leftJoin('tbl201_jobrec', function ($join) {
-                $join->on('jrec_empno', '=', 'pers_empno')
+                $join->on('jrec_empno', '=', 'bi_empno')
                     ->on('jrec_status', '=', DB::raw("'Primary'"));
             })
             ->leftJoin('tbl_department', 'Dept_Code', '=', 'jrec_department')
-            ->where('pers_empno', $data->requestor_employee_id)
+            ->where('bi_empno', $data->requestor_employee_id)
             ->first();
 
         $data->requestor_name = $requestor?->empname ?? '—';

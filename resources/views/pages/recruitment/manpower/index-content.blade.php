@@ -88,6 +88,17 @@
     .mpv-chip-rejected  { background: #FCEBEB; color: #791F1F; }
     .mpv-chip-cancelled { background: #F1F2F5; color: #5B6474; }
 
+    .mpv-type-chip {
+        display: inline-block;
+        white-space: nowrap;
+        border-radius: 6px;
+        padding: 3px 10px;
+        font-size: 10.5px;
+        font-weight: 700;
+    }
+    .mpv-type-replacement { background: #F1EEFE; color: #6A4FE0; }
+    .mpv-type-additional  { background: #E8F0FE; color: #1B4FB0; }
+
     /* Section dividers */
     .mpv-section-divider {
         display: flex;
@@ -122,6 +133,7 @@
     }
     .mpv-table-wrap table {
         width: 100%;
+        table-layout: fixed;
         border-collapse: collapse;
         margin-bottom: 0;
         font-size: 12.5px;
@@ -141,6 +153,27 @@
         padding: 10px 14px;
         border-bottom: 1px solid #F1F2F5;
         color: #1F2430;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+    .mpv-table-wrap th:nth-child(1),
+    .mpv-table-wrap td:nth-child(1) {
+        width: 130px;
+    }
+    .mpv-table-wrap th:nth-child(5),
+    .mpv-table-wrap td:nth-child(5) {
+        white-space: nowrap;
+        width: 90px;
+    }
+    .mpv-table-wrap th:nth-child(6),
+    .mpv-table-wrap td:nth-child(6) {
+        width: 32%;
+    }
+    .mpv-table-wrap th:nth-child(7),
+    .mpv-table-wrap td:nth-child(7) {
+        white-space: nowrap;
+        width: 50px;
+        text-align: center;
     }
     .mpv-table-wrap tbody tr:hover {
         background: #FAFBFF;
@@ -232,6 +265,28 @@
         `).join('');
     }
 
+    const MP_TYPE_CLASS = {
+        'replacement': 'mpv-type-replacement',
+        'additional': 'mpv-type-additional'
+    };
+
+    function mpvRenderAllRows(rows) {
+        if (rows.length === 0) {
+            return '<tr><td colspan="7" class="mpv-empty-row">No positions added.</td></tr>';
+        }
+        return rows.map(p => `
+            <tr>
+                <td><span class="mpv-type-chip ${MP_TYPE_CLASS[p.type] || ''}">${p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1) : '—'}</span></td>
+                <td>${p.position_title || p.position}</td>
+                <td>${p.headcount}</td>
+                <td>${p.reason || '—'}</td>
+                <td>${p.date_needed || '—'}</td>
+                <td>${p.nonnegotiable || '—'}</td>
+                <td>${p.filled ?? 0}</td>
+            </tr>
+        `).join('');
+    }
+
     function populateMprView(data) {
         $('#mpr-view-mrno').text(data.mr_no || '—');
         $('#mpr-view-requestor').text(data.requestor_name || '—');
@@ -242,13 +297,7 @@
             .attr('class', 'mpv-chip ' + (MP_STATUS_CLASS[data.status] || 'mpv-chip-draft'));
 
         let positions = data.positions || [];
-        let replacementRows = positions.filter(p => p.type === 'replacement');
-        let additionalRows = positions.filter(p => p.type === 'additional');
-
-        $('#mpr-view-replacement-rows').html(mpvRenderRows(replacementRows));
-        $('#mpr-view-additional-rows').html(mpvRenderRows(additionalRows));
-
-        $('#mpr-view-nonnegotiable').text(data.nonnegotiable || 'None specified.');
+        $('#mpr-view-position-rows').html(mpvRenderAllRows(positions));
     }
 
     function load_counts() {
@@ -300,7 +349,7 @@
 
 <!-- View Modal: read-only -->
 <div class="modal fade" id="modal-mpr-view" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl" style="max-width: 1300px;">
         <div class="modal-content">
             <div class="modal-header">
                 <h1 class="modal-title fs-5">Request Details</h1>
@@ -325,28 +374,15 @@
                     <span id="mpr-view-status" class="mpv-chip"></span>
                 </div>
 
-                <div class="mpv-section-divider"><span class="dot"></span> Replacement positions</div>
+                <div class="mpv-section-divider"><span class="dot"></span> Positions</div>
                 <div class="mpv-table-wrap">
                     <table>
                         <thead>
-                            <tr><th>Subject/Position</th><th>Number Needed</th><th>Reason</th><th>Date Needed</th><th>Fill</th></tr>
+                            <tr><th>Type</th><th>Subject/Position</th><th>Number Needed</th><th>Reason</th><th>Date Needed</th><th>Non-Negotiable</th><th>Fill</th></tr>
                         </thead>
-                        <tbody id="mpr-view-replacement-rows"></tbody>
+                        <tbody id="mpr-view-position-rows"></tbody>
                     </table>
                 </div>
-
-                <div class="mpv-section-divider"><span class="dot"></span> Additional positions</div>
-                <div class="mpv-table-wrap">
-                    <table>
-                        <thead>
-                            <tr><th>Subject/Position</th><th>Number Needed</th><th>Reason</th><th>Date Needed</th><th>Fill</th></tr>
-                        </thead>
-                        <tbody id="mpr-view-additional-rows"></tbody>
-                    </table>
-                </div>
-
-                <div class="mpv-nn-label">Non-negotiable</div>
-                <div class="mpv-nn-value" id="mpr-view-nonnegotiable"></div>
 
                 <div class="mpv-hireflow-note">
                     <i class="bi bi-info-circle"></i>

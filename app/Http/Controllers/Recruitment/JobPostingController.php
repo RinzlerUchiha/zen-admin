@@ -40,6 +40,14 @@ class JobPostingController extends Controller
         ]);
     }
 
+    public function draft(HireflowManpowerPosition $position)
+    {
+        return response()->json([
+            'title' => $position->positionTitle(),
+            'description' => $position->draftPostingDescription(),
+        ]);
+    }
+
     public function show(JobPosting $jobPosting)
     {
         $jobPosting->load('hireflowPosition.request');
