@@ -20,11 +20,13 @@ class JobPostingController extends Controller
         $postedPositionIds = JobPosting::whereIn('status', ['Draft', 'Published'])
             ->pluck('request_position_id');
 
-        $eligibleRequests = HireflowManpowerRequest::approved()
+            $eligibleRequests = HireflowManpowerRequest::approved()
             ->with(['positions' => function ($q) use ($postedPositionIds) {
                 $q->whereNotIn('id', $postedPositionIds);
             }])
-            ->get();
+            ->get()
+            ->filter(fn ($request) => $request->positions->isNotEmpty())
+            ->values();
 
         $postings = JobPosting::with('hireflowPosition')
             ->orderByDesc('created_at')
@@ -81,9 +83,10 @@ class JobPostingController extends Controller
             'created_by'            => Auth::user()->Emp_No ?? null,
         ]);
 
-        return redirect()
-            ->route('recruitment.job-postings.show', $jobPosting)
-            ->with('success', 'Job posting created.');
+        return response()->json([
+            'success' => true,
+            'id' => $jobPosting->id,
+        ]);
     }
 
     public function updateStatus(Request $request, JobPosting $jobPosting)

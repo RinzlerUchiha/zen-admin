@@ -119,12 +119,12 @@
 
         async function api(path, options = {}) {
             const res = await fetch(`${BASE}/${path}`, {
+                ...options,
                 headers: {
                     ...DEFAULT_HEADERS,
                     'X-CSRF-TOKEN': CSRF,
                     ...(options.headers || {})
-                },
-                ...options
+                }
             });
 
             if (!res.ok) {
