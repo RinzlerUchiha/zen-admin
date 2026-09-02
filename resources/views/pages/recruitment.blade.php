@@ -68,7 +68,7 @@
         <ul class="nav flex-column" id="page-tabs">
             <li class="nav-item"><a href="{{ config('app.url') }}/recruitment/manpower" class="nav-link gap-2 icon-link d-flex {{$maincat == 'manpower' ? 'active' : ''}}"><img class="rounded-circle" width="30" height="30" src="{{ asset('icon/prf.png') }}"> Manpower Request</a></li>
             <li class="nav-item"><a href="{{ config('app.url') }}/recruitment/job-postings" class="nav-link gap-2 icon-link d-flex {{$maincat == 'job-postings' ? 'active' : ''}}"><img class="rounded-circle" width="30" height="30" src="{{ asset('icon/job-posting.png') }}"> Job Postings</a></li>
-            <li class="nav-item"><span class="nav-link gap-2 icon-link d-flex disabled"><img class="rounded-circle" width="30" height="30" src="{{ asset('icon/applicant.png') }}"> Applicant Intake</span></li>
+            <li class="nav-item"><a href="{{ config('app.url') }}/recruitment/applicant-intake" class="nav-link gap-2 icon-link d-flex {{$maincat == 'applicant-intake' ? 'active' : ''}}"><img class="rounded-circle" width="30" height="30" src="{{ asset('icon/applicant.png') }}"> Applicant Intake</a></li>
             <li class="nav-item"><span class="nav-link gap-2 icon-link d-flex disabled"><img class="rounded-circle" width="30" height="30" src="{{ asset('icon/screening.png') }}"> Screening</span></li>
             <li class="nav-item"><span class="nav-link gap-2 icon-link d-flex disabled"><img class="rounded-circle" width="30" height="30" src="{{ asset('icon/interview.png') }}"> Interview / Offer</span></li>
             <li class="nav-item"><span class="nav-link gap-2 icon-link d-flex disabled"><img class="rounded-circle" width="30" height="30" src="{{ asset('icon/onboarding.png') }}"> Onboarding</span></li>

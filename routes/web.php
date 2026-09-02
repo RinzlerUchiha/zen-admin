@@ -287,6 +287,12 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('update-status');
     });
 
+    Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'index'])->name('index');
+        Route::get('/data', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'data'])->name('data');
+        Route::get('/counts', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'counts'])->name('counts');
+    });
+
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);
     Route::get('/manpower/jobspec/{pos}', [ManpowerRequestController::class, 'viewSpec']);
     Route::get('/manpower/applicant/{id}/interviews', [ManpowerRequestController::class, 'applicantInterviews']);

@@ -19,6 +19,10 @@
     {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script> --}}
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/js/all.min.js" integrity="sha512-b+nQTCdtTBIRIbraqNEwsjB6UvL3UEMkXnhzd8awtCYh0Kcsjl9uEgwVFVbhoj3uu1DO1ZMacNvLoyJJiNfcvg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -256,20 +260,20 @@
             <button type="button" class="btn-close float-end" data-bs-dismiss="offcanvas" data-bs-target="#servicesMenu" aria-label="Close"></button>
             <ul class="nav"><li class="nav-item h6">HIRING</li></ul>
             <ul class="nav row row-cols-4">
-                <li class="nav-item col">
+                {{-- <li class="nav-item col">
                     <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ route('applicant.index') }}">
                         {{-- <i class="bi bi-people"></i> --}}
                         {{-- <svg width="30" height="30" class="rounded-circle">
                             <image width="30" height="30" href="{{ asset('icon/applicant.png') }}"  x="0" y="0" alt="...">
                         </svg> --}}
-                        <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/applicant.png') }}">
-                        <span class="mt-1">Applicant</span>
+                        {{-- <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/applicant.png') }}">
+                        <span class="mt-1">Applicant</span> --}}
                     </a>
-                </li>
+                </li> 
                 <li class="nav-item col">
                     <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/recruitment">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/prf.png') }}">
-                        <span class="mt-1">PRF</span>
+                        <span class="mt-1">Recruitment</span>
                     </a>
                 </li>
             </ul>
