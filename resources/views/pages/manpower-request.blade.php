@@ -15,10 +15,10 @@
 
     <style>
         /* ============================================================
-                               MPR module — scoped dark theme
-                               Everything lives under #mpr-app so the rest of the app
-                               (layout, sidebar, other pages) is untouched.
-                               ============================================================ */
+                                   MPR module — scoped dark theme
+                                   Everything lives under #mpr-app so the rest of the app
+                                   (layout, sidebar, other pages) is untouched.
+                                   ============================================================ */
         #mpr-app {
             --mpr-page-bg: #f7f7f5;
             --mpr-bg-raised: #ffffff;
@@ -1082,51 +1082,51 @@
         <!-- #mpr-app itself closes after the modals below, not here -->
 
         <!--
-                            NOTE ON THE TABLE PARTIAL
-                            =========================
-                            The actual <tr> markup for each MPR list comes from the server response
-                            of GET /manpower/list/{stat} (a separate Blade partial not included in
-                            the file you shared), so I can't restyle those rows from here directly.
+                                NOTE ON THE TABLE PARTIAL
+                                =========================
+                                The actual <tr> markup for each MPR list comes from the server response
+                                of GET /manpower/list/{stat} (a separate Blade partial not included in
+                                the file you shared), so I can't restyle those rows from here directly.
 
-                            To match the mockup, that partial's <table> should use:
-                              <table class="mpr-table">
-                                <thead><tr><th>Reference</th><th>Requested by</th><th>Positions</th><th>Date filed</th><th></th></tr></thead>
-                                <tbody>
-                                  <tr>
-                                    <td class="mpr-ref" data-bs-toggle="modal" data-bs-target="#modal-view-mpr" ...>MPR-2025-007</td>
-                                    <td>
-                                      <div class="mpr-requestor">
-                                        <div class="mpr-avatar" style="background:#3b5bdb;">JD</div>
-                                        <div>
-                                          <div class="mpr-requestor-name">Juan Dela Cruz</div>
-                                          <div class="mpr-requestor-dept">Finance</div>
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td>
-                                      <span class="mpr-pill">Accountant</span>
-                                      <span class="mpr-pill">Bookkeeper</span>
-                                    </td>
-                                    <td>Jun 18, 2025</td>
-                                    <td>
-                                      <div class="mpr-row-actions">
-                                        <button class="approve" onclick="approve(7)"><i class="fa fa-check"></i></button>
-                                        <button class="decline" onclick="decline(7)"><i class="fa fa-times"></i></button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
+                                To match the mockup, that partial's <table> should use:
+                                  <table class="mpr-table">
+                                    <thead><tr><th>Reference</th><th>Requested by</th><th>Positions</th><th>Date filed</th><th></th></tr></thead>
+                                    <tbody>
+                                      <tr>
+                                        <td class="mpr-ref" data-bs-toggle="modal" data-bs-target="#modal-view-mpr" ...>MPR-2025-007</td>
+                                        <td>
+                                          <div class="mpr-requestor">
+                                            <div class="mpr-avatar" style="background:#3b5bdb;">JD</div>
+                                            <div>
+                                              <div class="mpr-requestor-name">Juan Dela Cruz</div>
+                                              <div class="mpr-requestor-dept">Finance</div>
+                                            </div>
+                                          </div>
+                                        </td>
+                                        <td>
+                                          <span class="mpr-pill">Accountant</span>
+                                          <span class="mpr-pill">Bookkeeper</span>
+                                        </td>
+                                        <td>Jun 18, 2025</td>
+                                        <td>
+                                          <div class="mpr-row-actions">
+                                            <button class="approve" onclick="approve(7)"><i class="fa fa-check"></i></button>
+                                            <button class="decline" onclick="decline(7)"><i class="fa fa-times"></i></button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
 
-                            Avatar background colors can rotate through a small palette keyed off
-                            employee id, e.g.: ['#3b5bdb','#c2410c','#15803d','#7e22ce','#0e7490'].
+                                Avatar background colors can rotate through a small palette keyed off
+                                employee id, e.g.: ['#3b5bdb','#c2410c','#15803d','#7e22ce','#0e7490'].
 
-                            Empty state (when the list is empty), drop this in place of the table:
-                              <div class="mpr-empty">
-                                <i class="fa fa-inbox"></i>
-                                <div>No requests in this tab yet.</div>
-                              </div>
-                        -->
+                                Empty state (when the list is empty), drop this in place of the table:
+                                  <div class="mpr-empty">
+                                    <i class="fa fa-inbox"></i>
+                                    <div>No requests in this tab yet.</div>
+                                  </div>
+                            -->
 
         <div class="modal fade" id="modal-mpr" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
             aria-labelledby="modal-mpr-label" aria-hidden="true">
@@ -1148,7 +1148,7 @@
                                     <input type="hidden" id="mpr-submit-mode" name="submit_mode" value="draft">
 
                                     <!-- Master applicant option list — used as a clone source so each
-                                                    slot dropdown doesn't need its own Blade loop render. -->
+                                                        slot dropdown doesn't need its own Blade loop render. -->
                                     <select id="mpr-applicant-master-options" class="d-none">
                                         <option value="">-</option>
                                         @foreach ($applicants ?? [] as $a)
@@ -1253,7 +1253,7 @@
                                                             </td>
                                                             <td>
                                                                 <!-- Applicant slots — one chip/dropdown per Number Needed.
-                                                                                     Rendered/managed entirely by rebuildApplicantSlots(). -->
+                                                                                         Rendered/managed entirely by rebuildApplicantSlots(). -->
                                                                 <div class="mpr-applicant-slots"></div>
                                                             </td>
                                                             <td style="max-width: 100px;">
@@ -1302,7 +1302,7 @@
 
                                 <div class="mpr-modal-col-side">
                                     <!-- Always visible; shows an empty state until an applicant
-                                                         is picked in either table on the left. -->
+                                                             is picked in either table on the left. -->
                                     <div id="mpr-applicant-interview-panel">
                                         <div class="mpr-section-divider additional">
                                             <span class="dot"></span> Applicant interview history
@@ -3234,7 +3234,7 @@
          * Without it, scopeForRow() finds no ancestor modal and falls back to
          * the 'mpr' scope, pointing chip clicks at the wrong interview panel.
          */
-         function buildViewSlotRow(item, {
+        function buildViewSlotRow(item, {
             rowClass,
             fillClass
         }, $tbody, locked = false) {
@@ -3507,7 +3507,7 @@
 
             /* Simple client-side filter wired to the new search box; relies on
                DataTables' search() if the active table is a DataTable. */
-               $('#mpr-global-search').on('keyup', function() {
+            $('#mpr-global-search').on('keyup', function() {
                 const val = $(this).val();
                 // Descendant selector — see activeDataTable() for why
                 // "> table" breaks after DataTables wraps the element.
@@ -3676,9 +3676,9 @@
                 // approves the edit/cancel. Cancelled and declined requests
                 // are always locked, since there's no action left to take on
                 // them.
-                const locked = (curtab === 'update' && main_tr.data('mpu-stat') === 'pending')
-                    || curtab === 'cancelled'
-                    || curtab === 'declined' || curtab === 'pending' || curtab === 'approved';
+                const locked = (curtab === 'update' && main_tr.data('mpu-stat') === 'pending') ||
+                    curtab === 'cancelled' ||
+                    curtab === 'declined' || curtab === 'pending' || curtab === 'approved';
 
                 $('#view-mpr-id').val(main_tr.data('id') || '');
                 $('#view-mpr-nonnegotiable').html((main_tr.data('nonnegotiable') || '').replace(/\r?\n/g,
@@ -4073,7 +4073,8 @@
                             const hasSearch = $('#mpr-global-search').val().trim().length > 0;
                             $('#mpr-results-count').text(
                                 hasSearch ?
-                                (info.recordsDisplay + ' result' + (info.recordsDisplay === 1 ? '' : 's')) :
+                                (info.recordsDisplay + ' result' + (info.recordsDisplay === 1 ? '' :
+                                    's')) :
                                 ''
                             );
                             renderPager(api);
@@ -4090,6 +4091,31 @@
                     if (currentSearch) {
                         api.search(currentSearch).draw();
                     }
+
+                    /* Expandable "Positions" detail row — DataTables child-row API.
+                       The partial emits a <template> per row; we clone its content
+                       into a DataTables child row on click. */
+                    $table.find('tbody').off('click.mprToggle').on('click.mprToggle', 'tr.mpr-row-toggle', function(e) {
+                        if ($(e.target).closest('button').length) return;
+
+                        const $tr = $(this);
+                        const row = api.row($tr);
+                        const $icon = $tr.find('.mpr-toggle-icon');
+
+                        if (row.child.isShown()) {
+                            row.child.hide();
+                            $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+                            return;
+                        }
+
+                        const tpl = document.getElementById('mpr-positions-' + $tr.data('id'));
+                        const html = tpl ?
+                            tpl.innerHTML :
+                            '<p class="text-muted small mb-0 ps-2">No positions on this request.</p>';
+
+                        row.child(html).show();
+                        $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                    });
                 }
             } catch (error) {
                 console.error('Error fetching the list:', error);

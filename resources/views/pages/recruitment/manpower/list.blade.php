@@ -13,7 +13,7 @@
     </thead>
     <tbody>
         @foreach ($data as $v)
-            <tr class="mpr-row-toggle" data-bs-toggle="collapse" data-bs-target="#mpr-positions-{{ $v->id }}" style="cursor:pointer;">
+        <tr class="mpr-row-toggle" data-id="{{ $v->id }}" style="cursor:pointer;">
                 <td class="text-center"><i class="fa fa-chevron-right mpr-toggle-icon"></i></td>
                 <td class="text-nowrap">{{ $v->mr_no }}</td>
                 <td class="text-nowrap">{{ \Illuminate\Support\Carbon::parse($v->created_at)->format('M d, Y') }}</td>
@@ -43,53 +43,36 @@
                     </button>
                 </td>
             </tr>
-            <tr>
-                <td colspan="8" class="p-0 border-0">
-                    <div class="collapse" id="mpr-positions-{{ $v->id }}">
-                        <div class="p-2 bg-light">
-                            @if ($v->positions->isEmpty())
-                                <p class="text-muted small mb-0 ps-2">No positions on this request.</p>
-                            @else
-                            <table class="table table-sm table-borderless mb-0">
-                                <thead>
-                                    <tr class="text-muted small">
-                                        <th>Subject</th>
-                                        <th>Type</th>
-                                        <th>Headcount</th>
-                                        <th>Non-Negotiable</th>
-                                        <th>Filled</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($v->positions as $p)
-                                        <tr>
-                                            <td>{{ $p->position_title }}</td>
-                                            <td>{{ ucfirst($p->type) }}</td>
-                                            <td>{{ $p->headcount }}</td>
-                                            <td>{{ $p->nonnegotiable ?: '—' }}</td>
-                                            <td>{{ $p->filled ?? 0 }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                            @endif
-                        </div>
-                    </div>
-                </td>
-            </tr>
+            <template id="mpr-positions-{{ $v->id }}">
+                <div class="p-2 bg-light">
+                    @if ($v->positions->isEmpty())
+                        <p class="text-muted small mb-0 ps-2">No positions on this request.</p>
+                    @else
+                    <table class="table table-sm table-borderless mb-0">
+                        <thead>
+                            <tr class="text-muted small">
+                                <th>Subject</th>
+                                <th>Type</th>
+                                <th>Headcount</th>
+                                <th>Non-Negotiable</th>
+                                <th>Filled</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($v->positions as $p)
+                                <tr>
+                                    <td>{{ $p->position_title }}</td>
+                                    <td>{{ ucfirst($p->type) }}</td>
+                                    <td>{{ $p->headcount }}</td>
+                                    <td>{{ $p->nonnegotiable ?: '—' }}</td>
+                                    <td>{{ $p->filled ?? 0 }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                    @endif
+                </div>
+            </template>
         @endforeach
     </tbody>
 </table>
-
-<script>
-    document.querySelectorAll('.mpr-row-toggle').forEach(function (row) {
-        var target = document.querySelector(row.getAttribute('data-bs-target'));
-        if (!target) return;
-        target.addEventListener('show.bs.collapse', function () {
-            row.querySelector('.mpr-toggle-icon').classList.replace('fa-chevron-right', 'fa-chevron-down');
-        });
-        target.addEventListener('hide.bs.collapse', function () {
-            row.querySelector('.mpr-toggle-icon').classList.replace('fa-chevron-down', 'fa-chevron-right');
-        });
-    });
-</script>
