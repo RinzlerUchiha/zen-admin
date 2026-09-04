@@ -61,6 +61,23 @@ class JobPostingController extends Controller
         ]);
     }
 
+    public function showJson(JobPosting $jobPosting)
+    {
+        $jobPosting->load('hireflowPosition.request');
+
+        return response()->json([
+            'id' => $jobPosting->id,
+            'posting_title' => $jobPosting->posting_title,
+            'status' => $jobPosting->status,
+            'position_title' => $jobPosting->hireflowPosition?->positionTitle() ?? '—',
+            'mr_no' => $jobPosting->hireflowPosition?->request?->mr_no ?? '—',
+            'posting_description' => $jobPosting->posting_description,
+            'created_by' => $jobPosting->created_by,
+            'posted_at' => $jobPosting->posted_at?->format('M d, Y h:i A'),
+            'closed_at' => $jobPosting->closed_at?->format('M d, Y h:i A'),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

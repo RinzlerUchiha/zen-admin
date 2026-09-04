@@ -282,6 +282,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('recruitment/job-postings')->name('recruitment.job-postings.')->group(function () {
         Route::get('/', [JobPostingController::class, 'index'])->name('index');
         Route::get('/draft/{position}', [JobPostingController::class, 'draft'])->name('draft');
+        Route::get('/{jobPosting}/json', [JobPostingController::class, 'showJson'])->name('show-json');
         Route::get('/{jobPosting}', [JobPostingController::class, 'show'])->name('show');
         Route::post('/', [JobPostingController::class, 'store'])->name('store');
         Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('update-status');
