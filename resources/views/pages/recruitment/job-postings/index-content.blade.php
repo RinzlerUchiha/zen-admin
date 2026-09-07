@@ -32,7 +32,9 @@
     }
 
     @media (max-width: 900px) {
-        .jp-eligible-grid { grid-template-columns: 1fr; }
+        .jp-eligible-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .jp-mr-group {
@@ -107,7 +109,10 @@
         padding-left: 10px;
     }
 
-    .jp-capsule-meta .sep { color: #C7CBD3; margin: 0 4px; }
+    .jp-capsule-meta .sep {
+        color: #C7CBD3;
+        margin: 0 4px;
+    }
 
     .jp-capsule-meta .jp-type-inline {
         font-weight: 700;
@@ -115,10 +120,17 @@
         display: inline-block;
     }
 
-    .jp-capsule-meta .jp-type-additional { color: #1B4FB0; }
-    .jp-capsule-meta .jp-type-replacement { color: #6A4FE0; }
+    .jp-capsule-meta .jp-type-additional {
+        color: #1B4FB0;
+    }
 
-    .jp-capsule-meta .headcount { color: #8A93A3; }
+    .jp-capsule-meta .jp-type-replacement {
+        color: #6A4FE0;
+    }
+
+    .jp-capsule-meta .headcount {
+        color: #8A93A3;
+    }
 
     .jp-btn-create-mini {
         border: none;
@@ -133,7 +145,10 @@
         transition: filter .15s ease, transform .15s ease;
     }
 
-    .jp-btn-create-mini:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .jp-btn-create-mini:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
 
     .jp-empty-state {
         text-align: center;
@@ -144,7 +159,11 @@
         border-radius: 14px;
     }
 
-    .jp-empty-state i { font-size: 26px; margin-bottom: 8px; display: block; }
+    .jp-empty-state i {
+        font-size: 26px;
+        margin-bottom: 8px;
+        display: block;
+    }
 
     /* ===== Status chip ===== */
     .jp-status-chip {
@@ -166,9 +185,20 @@
         background: currentColor;
     }
 
-    .jp-status-draft     { background: #F1F2F5; color: #5B6474; }
-    .jp-status-published { background: #E7F6EC; color: #1E9E4C; }
-    .jp-status-closed    { background: #EAEBEF; color: #2B303B; }
+    .jp-status-draft {
+        background: #F1F2F5;
+        color: #5B6474;
+    }
+
+    .jp-status-published {
+        background: #E7F6EC;
+        color: #1E9E4C;
+    }
+
+    .jp-status-closed {
+        background: #EAEBEF;
+        color: #2B303B;
+    }
 
     /* ===== Section divider ===== */
     .jp-section-divider {
@@ -249,14 +279,18 @@
         color: #1F2430;
     }
 
-    table.jp-list-table tbody tr:last-child td { border-bottom: none; }
+    table.jp-list-table tbody tr:last-child td {
+        border-bottom: none;
+    }
 
     table.jp-list-table tbody tr.jp-row-link {
         cursor: pointer;
         transition: background .15s ease;
     }
 
-    table.jp-list-table tbody tr.jp-row-link:hover { background: #FAFBFF; }
+    table.jp-list-table tbody tr.jp-row-link:hover {
+        background: #FAFBFF;
+    }
 
     .jp-row-chevron {
         color: #C7CBD3;
@@ -277,10 +311,27 @@
         overflow: hidden;
     }
 
-    #modal-create-posting .modal-header { border-bottom: none; padding: 22px 26px 4px; }
-    #modal-create-posting .modal-title { font-size: 18px; font-weight: 800; color: #1F2430; letter-spacing: -.2px; }
-    #modal-create-posting .modal-body { padding: 14px 26px 24px; }
-    #modal-create-posting .modal-footer { border-top: 1px solid #F1F2F5; background: #FAFBFC; padding: 14px 26px; }
+    #modal-create-posting .modal-header {
+        border-bottom: none;
+        padding: 22px 26px 4px;
+    }
+
+    #modal-create-posting .modal-title {
+        font-size: 18px;
+        font-weight: 800;
+        color: #1F2430;
+        letter-spacing: -.2px;
+    }
+
+    #modal-create-posting .modal-body {
+        padding: 14px 26px 24px;
+    }
+
+    #modal-create-posting .modal-footer {
+        border-top: 1px solid #F1F2F5;
+        background: #FAFBFC;
+        padding: 14px 26px;
+    }
 
     #modal-create-posting .form-label {
         font-size: 10px;
@@ -290,10 +341,21 @@
         color: #8A93A3;
     }
 
-    #modal-create-posting .form-control { border-radius: 9px; border: 1px solid #E7E9EE; }
-    #modal-create-posting .form-control:focus { border-color: #9FB8ED; box-shadow: 0 0 0 3px #E8F0FE; }
+    #modal-create-posting .form-control {
+        border-radius: 9px;
+        border: 1px solid #E7E9EE;
+    }
 
-    #alert-box .alert { border-radius: 10px; border: none; font-size: 13px; }
+    #modal-create-posting .form-control:focus {
+        border-color: #9FB8ED;
+        box-shadow: 0 0 0 3px #E8F0FE;
+    }
+
+    #alert-box .alert {
+        border-radius: 10px;
+        border: none;
+        font-size: 13px;
+    }
 
     /* ===== Slide-over panel ===== */
     .jp-panel-backdrop {
@@ -322,12 +384,30 @@
         box-shadow: -12px 0 32px rgba(31, 36, 48, .16);
         z-index: 1051;
         transform: translateX(100%);
-        transition: transform .25s ease;
+        transition: transform .25s ease, width .2s ease;
         display: flex;
         flex-direction: column;
     }
 
-    .jp-panel.open { transform: translateX(0); }
+    .jp-panel.open {
+        transform: translateX(0);
+    }
+
+    /* Expanded width — toggled by #jp-panel-expand-btn */
+    .jp-panel.jp-panel-wide {
+        width: 880px;
+    }
+
+    .jp-panel-wide .jp-panel-desc-textarea {
+        min-height: 55vh;
+    }
+
+    .jp-panel-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
 
     .jp-panel-head {
         display: flex;
@@ -359,7 +439,10 @@
         transition: background .15s ease, color .15s ease;
     }
 
-    .jp-panel-close:hover { background: #E8F0FE; color: #1B4FB0; }
+    .jp-panel-close:hover {
+        background: #E8F0FE;
+        color: #1B4FB0;
+    }
 
     .jp-panel-body {
         padding: 20px 24px;
@@ -367,10 +450,24 @@
         flex: 1;
     }
 
-    .jp-panel-field { margin-bottom: 18px; }
-    .jp-panel-field:last-child { margin-bottom: 0; }
+    .jp-panel-field {
+        margin-bottom: 18px;
+    }
+
+    .jp-panel-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .jp-panel-field-inline {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
 
     .jp-panel-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         font-size: 10px;
         font-weight: 700;
         letter-spacing: .05em;
@@ -379,18 +476,111 @@
         margin-bottom: 5px;
     }
 
-    .jp-panel-value { font-size: 13.5px; color: #1F2430; }
+    .jp-panel-label i {
+        font-size: 11px;
+        color: #C7CBD3;
+    }
+
+    .jp-panel-value {
+        font-size: 13.5px;
+        color: #1F2430;
+    }
 
     .jp-panel-value.mono {
         white-space: pre-wrap;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 12px;
+        line-height: 1.6;
         background: #F5F6F9;
         border: 1px solid #E7E9EE;
         border-radius: 10px;
-        padding: 12px 14px;
-        max-height: 280px;
+        padding: 14px 16px;
+        max-height: 260px;
         overflow-y: auto;
+    }
+
+    .jp-panel-value.mono::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .jp-panel-value.mono::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .jp-panel-value.mono::-webkit-scrollbar-thumb {
+        background: #D7DBE3;
+        border-radius: 6px;
+    }
+
+    .jp-panel-desc-textarea {
+        width: 100%;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #1F2430;
+        background: #F5F6F9;
+        border: 1px solid #E7E9EE;
+        border-radius: 10px;
+        padding: 14px 16px;
+        resize: vertical;
+        transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .jp-panel-desc-textarea:focus {
+        outline: none;
+        background: #fff;
+        border-color: #9FB8ED;
+        box-shadow: 0 0 0 3px #E8F0FE;
+    }
+
+    .jp-panel-desc-textarea::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .jp-panel-desc-textarea::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .jp-panel-desc-textarea::-webkit-scrollbar-thumb {
+        background: #D7DBE3;
+        border-radius: 6px;
+    }
+
+    .jp-desc-hint {
+        font-size: 11px;
+        color: #B0B6C0;
+        margin-top: 6px;
+    }
+
+    .jp-field-tag {
+        margin-left: auto;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        background: #F1F2F5;
+        color: #8A93A3;
+        border-radius: 20px;
+        padding: 2px 8px;
+    }
+
+    .jp-field-tag-live {
+        background: #E7F6EC;
+        color: #1E9E4C;
+    }
+
+    .jp-public-warning {
+        margin-top: 8px;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #9A5B12;
+        background: #FFF6E6;
+        border: 1px solid #FFE2B0;
+        border-radius: 9px;
+        padding: 9px 12px;
+    }
+
+    .jp-public-warning i {
+        margin-right: 5px;
     }
 
     .jp-panel-footer {
@@ -399,18 +589,24 @@
         background: #FAFBFC;
         display: flex;
         gap: 10px;
+        box-shadow: 0 -4px 12px rgba(31, 36, 48, .05);
+        flex-shrink: 0;
     }
 
     .jp-panel-btn {
+        flex: 1;
         border: none;
         border-radius: 9px;
         font-weight: 700;
         font-size: 13px;
-        padding: 10px 18px;
+        padding: 12px 18px;
         transition: filter .15s ease, transform .15s ease;
     }
 
-    .jp-panel-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .jp-panel-btn:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
 
     .jp-panel-btn-publish {
         background: linear-gradient(135deg, #34C471, #1E9E4C);
@@ -418,11 +614,33 @@
         box-shadow: 0 2px 8px rgba(30, 158, 76, .25);
     }
 
-    .jp-panel-btn-close {
-        background: linear-gradient(135deg, #3A4152, #1F2430);
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(31, 36, 48, .25);
-    }
+    /* "Close Posting" — ends the posting. NOT the same as the X that
+    dismisses the panel (.jp-panel-close). Kept visually distinct. */
+ .jp-panel-btn-close {
+     background: linear-gradient(135deg, #E0693F, #C7472B);
+     color: #fff;
+     box-shadow: 0 2px 8px rgba(199, 71, 43, .25);
+ }
+
+ .jp-panel-btn-save {
+     background: #fff;
+     color: #1B4FB0;
+     border: 1px solid #C3D3F2;
+     box-shadow: none;
+ }
+
+ .jp-panel-btn-save:disabled {
+     opacity: .65;
+     transform: none;
+ }
+
+ .jp-panel-btn i {
+     margin-right: 6px;
+ }
+
+ .jp-panel-footer:empty {
+     display: none;
+ }
 
     .jp-panel-loading {
         text-align: center;
@@ -440,8 +658,8 @@
 
     @forelse ($eligibleRequests as $request)
         @if ($loop->first)
-        <div class="jp-eligible-card">
-        <div class="jp-eligible-grid">
+            <div class="jp-eligible-card">
+                <div class="jp-eligible-grid">
         @endif
 
         <div class="jp-mr-group">
@@ -456,7 +674,8 @@
                                 <span class="sep">·</span>
                                 <span class="jp-type-inline {{ $typeClass }}">{{ ucfirst($position->type) }}</span>
                                 <span class="sep">·</span>
-                                <span class="headcount">{{ $position->headcount }} ({{ $position->filled }} filled)</span>
+                                <span class="headcount">{{ $position->headcount }} ({{ $position->filled }}
+                                    filled)</span>
                             </span>
                         </span>
                         <button type="button" class="jp-btn-create-mini btn-open-create-posting"
@@ -471,59 +690,59 @@
         </div>
 
         @if ($loop->last)
-        </div>
-        </div>
-        @endif
-    @empty
-        <div class="jp-empty-state">
-            <i class="bi bi-inbox"></i>
-            No approved requests with eligible positions found.
-        </div>
-    @endforelse
+</div>
+</div>
+@endif
+@empty
+<div class="jp-empty-state">
+    <i class="bi bi-inbox"></i>
+    No approved requests with eligible positions found.
+</div>
+@endforelse
 
-    <div class="jp-section-divider"><span class="dot"></span> Existing Postings</div>
+<div class="jp-section-divider"><span class="dot"></span> Existing Postings</div>
 
-    @if ($postings->isEmpty())
-        <div class="jp-empty-state">
-            <i class="bi bi-file-earmark-post"></i>
-            No postings created yet.
-        </div>
-    @else
-        <div class="jp-table-card">
-            <table class="jp-list-table">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Status</th>
-                        <th>Posted</th>
-                        <th>Closed</th>
-                        <th>Created</th>
-                        <th></th>
+@if ($postings->isEmpty())
+    <div class="jp-empty-state">
+        <i class="bi bi-file-earmark-post"></i>
+        No postings created yet.
+    </div>
+@else
+    <div class="jp-table-card">
+        <table class="jp-list-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Posted</th>
+                    <th>Closed</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($postings as $posting)
+                    @php
+                        $statusClass = match ($posting->status) {
+                            'Draft' => 'jp-status-draft',
+                            'Published' => 'jp-status-published',
+                            'Closed' => 'jp-status-closed',
+                            default => 'jp-status-draft',
+                        };
+                    @endphp
+                    <tr class="jp-row-link" data-posting-id="{{ $posting->id }}">
+                        <td>{{ $posting->posting_title }}</td>
+                        <td><span class="jp-status-chip {{ $statusClass }}">{{ $posting->status }}</span></td>
+                        <td>{{ $posting->posted_at?->format('M d, Y') ?? '—' }}</td>
+                        <td>{{ $posting->closed_at?->format('M d, Y') ?? '—' }}</td>
+                        <td>{{ $posting->created_at->format('M d, Y') }}</td>
+                        <td class="text-end"><i class="fa fa-chevron-right jp-row-chevron"></i></td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach ($postings as $posting)
-                        @php
-                            $statusClass = match ($posting->status) {
-                                'Draft' => 'jp-status-draft',
-                                'Published' => 'jp-status-published',
-                                'Closed' => 'jp-status-closed',
-                                default => 'jp-status-draft',
-                            };
-                        @endphp
-                        <tr class="jp-row-link" data-posting-id="{{ $posting->id }}">
-                            <td>{{ $posting->posting_title }}</td>
-                            <td><span class="jp-status-chip {{ $statusClass }}">{{ $posting->status }}</span></td>
-                            <td>{{ $posting->posted_at?->format('M d, Y') ?? '—' }}</td>
-                            <td>{{ $posting->closed_at?->format('M d, Y') ?? '—' }}</td>
-                            <td>{{ $posting->created_at->format('M d, Y') }}</td>
-                            <td class="text-end"><i class="fa fa-chevron-right jp-row-chevron"></i></td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endif
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+@endif
 </div>
 
 <!-- Create Posting modal -->
@@ -551,7 +770,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="cp-save-btn">Save as Draft</button>
+                <button type="button" class="btn btn-outline-primary" id="cp-save-btn">Save as Draft</button>
+                <button type="button" class="btn btn-success" id="cp-publish-btn">Publish</button>
             </div>
         </div>
     </div>
@@ -565,34 +785,58 @@
             <h6 id="jpp-title">—</h6>
             <span id="jpp-status" class="jp-status-chip jp-status-draft">—</span>
         </div>
-        <button type="button" class="jp-panel-close" id="jp-panel-close-btn"><i class="fa fa-times"></i></button>
+        <div class="jp-panel-head-actions">
+            <button type="button" class="jp-panel-close" id="jp-panel-expand-btn" title="Expand panel">
+                <i class="fa fa-expand-alt"></i>
+            </button>
+            <button type="button" class="jp-panel-close" id="jp-panel-close-btn" title="Dismiss panel">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
     </div>
     <div class="jp-panel-body">
         <div id="jp-panel-loading" class="jp-panel-loading">Loading…</div>
         <div id="jp-panel-content" class="d-none">
             <div class="jp-panel-field">
-                <div class="jp-panel-label">Position</div>
+                <div class="jp-panel-label"><i class="fa fa-briefcase"></i> Position</div>
                 <div class="jp-panel-value" id="jpp-position">—</div>
             </div>
             <div class="jp-panel-field">
-                <div class="jp-panel-label">Request</div>
+                <div class="jp-panel-label"><i class="fa fa-file-alt"></i> Request</div>
                 <div class="jp-panel-value" id="jpp-mrno">—</div>
             </div>
             <div class="jp-panel-field">
-                <div class="jp-panel-label">Description</div>
-                <div class="jp-panel-value mono" id="jpp-description">—</div>
-            </div>
-            <div class="jp-panel-field">
-                <div class="jp-panel-label">Created By</div>
+                <div class="jp-panel-label"><i class="fa fa-user"></i> Created By</div>
                 <div class="jp-panel-value" id="jpp-createdby">—</div>
             </div>
-            <div class="jp-panel-field">
-                <div class="jp-panel-label">Posted At</div>
-                <div class="jp-panel-value" id="jpp-postedat">—</div>
+            <div class="jp-panel-field jp-panel-field-inline">
+                <div>
+                    <div class="jp-panel-label"><i class="fa fa-calendar-check"></i> Posted At</div>
+                    <div class="jp-panel-value" id="jpp-postedat">—</div>
+                </div>
+                <div>
+                    <div class="jp-panel-label"><i class="fa fa-calendar-times"></i> Closed At</div>
+                    <div class="jp-panel-value" id="jpp-closedat">—</div>
+                </div>
             </div>
             <div class="jp-panel-field">
-                <div class="jp-panel-label">Closed At</div>
-                <div class="jp-panel-value" id="jpp-closedat">—</div>
+                <div class="jp-panel-label"><i class="fa fa-lock"></i> Internal Jobspec <span
+                        class="jp-field-tag">Not public</span></div>
+                <textarea class="jp-panel-desc-textarea" id="jpp-description-input" rows="10"></textarea>
+                <div class="jp-desc-hint">Auto-drafted from the jobspec. HR reference only — never shown on the
+                    careers page.</div>
+            </div>
+            <div class="jp-panel-field">
+                <div class="jp-panel-label"><i class="fa fa-globe"></i> Public Ad <span
+                        class="jp-field-tag jp-field-tag-live">Careers page</span></div>
+                <textarea class="jp-panel-desc-textarea" id="jpp-public-input" rows="14"
+                    placeholder="Write the ad applicants will read. Emoji and Taglish are fine — this is the copy that goes live."></textarea>
+                <div class="jp-desc-hint" id="jpp-desc-hint">Click <strong>Save Description</strong> below. Saving
+                    does not change the posting status.</div>
+                <div class="jp-public-warning d-none" id="jpp-public-warning">
+                    <i class="fa fa-exclamation-triangle"></i> No public ad written. The careers page will fall back
+                    to the internal jobspec, which exposes age, sex and headcount publicly.
+                </div>
             </div>
         </div>
     </div>
@@ -624,26 +868,62 @@
             }
         });
 
-        $('#cp-save-btn').on('click', async function() {
+        async function createPosting() {
             const title = $('#cp-title').val();
             const description = $('#cp-description').val();
 
             if (!title) {
                 $('#alert-box').html(
                     '<div class="alert alert-danger">Posting title is required.</div>');
-                return;
+                return null;
             }
 
+            return await POST('recruitment/job-postings', {
+                request_position_id: currentPositionId,
+                posting_title: title,
+                posting_description: description
+            });
+        }
+
+        $('#cp-save-btn').on('click', async function() {
             try {
-                await POST('recruitment/job-postings', {
-                    request_position_id: currentPositionId,
-                    posting_title: title,
-                    posting_description: description
-                });
+                const result = await createPosting();
+                if (!result) return;
                 location.reload();
             } catch (err) {
                 $('#alert-box').html(
                     '<div class="alert alert-danger">Failed to create posting.</div>');
+            }
+        });
+
+        $('#cp-publish-btn').on('click', async function() {
+            try {
+                const result = await createPosting();
+                if (!result) return;
+
+                console.log('createPosting() result:', result);
+
+                const res = await fetch(`${BASE}/recruitment/job-postings/${result.id}/status`, {
+                    method: 'PATCH',
+                    redirect: 'error',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF
+                    },
+                    body: JSON.stringify({ status: 'Published' })
+                });
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Status ${res.status}: ${text}`);
+                }
+
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                $('#alert-box').html(
+                    '<div class="alert alert-danger">Failed to publish posting: ' + err.message + '</div>');
             }
         });
 
@@ -662,17 +942,83 @@
         function closePanel() {
             $('#jp-panel-backdrop').removeClass('open');
             $('#jp-panel').removeClass('open');
+            setPanelWide(false);
         }
 
         function renderFooter(status) {
+            const editable = status !== 'Closed';
             let html = '';
-            if (status === 'Draft') {
-                html = '<button type="button" class="jp-panel-btn jp-panel-btn-publish jp-panel-status-btn" data-status="Published">Publish</button>';
-            } else if (status === 'Published') {
-                html = '<button type="button" class="jp-panel-btn jp-panel-btn-close jp-panel-status-btn" data-status="Closed">Close</button>';
+
+            if (editable) {
+                html +=
+                    '<button type="button" class="jp-panel-btn jp-panel-btn-save" id="jp-save-desc-btn">' +
+                    '<i class="fa fa-save"></i>Save Description</button>';
             }
+
+            if (status === 'Draft') {
+                html +=
+                    '<button type="button" class="jp-panel-btn jp-panel-btn-publish jp-panel-status-btn" data-status="Published">' +
+                    '<i class="fa fa-bullhorn"></i>Publish Posting</button>';
+            } else if (status === 'Published') {
+                html +=
+                    '<button type="button" class="jp-panel-btn jp-panel-btn-close jp-panel-status-btn" data-status="Closed">' +
+                    '<i class="fa fa-lock"></i>Close Posting</button>';
+            }
+
             $('#jp-panel-footer').html(html);
+            $('#jpp-description-input').prop('readonly', !editable);
+            $('#jpp-public-input').prop('readonly', !editable);
+            $('#jpp-desc-hint').toggle(editable);
         }
+
+        // ===== Expand / shrink panel (resets every time the panel closes) =====
+        function setPanelWide(wide) {
+            $('#jp-panel').toggleClass('jp-panel-wide', wide);
+            $('#jp-panel-expand-btn')
+                .attr('title', wide ? 'Shrink panel' : 'Expand panel')
+                .find('i').attr('class', wide ? 'fa fa-compress-alt' : 'fa fa-expand-alt');
+        }
+
+        $('#jp-panel-expand-btn').on('click', function() {
+            setPanelWide(!$('#jp-panel').hasClass('jp-panel-wide'));
+        });
+
+        // ===== Save description only (no status change) =====
+        $(document).on('click', '#jp-save-desc-btn', async function() {
+            const $btn = $(this);
+            const posting_description = $('#jpp-description-input').val();
+            const public_description = $('#jpp-public-input').val();
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>Saving…');
+
+            try {
+                const res = await fetch(`${BASE}/recruitment/job-postings/${currentPostingId}/description`, {
+                    method: 'PATCH',
+                    redirect: 'error',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF
+                    },
+                    body: JSON.stringify({ posting_description, public_description })
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Status ${res.status}: ${await res.text()}`);
+                }
+
+                $('#jpp-public-warning').toggleClass('d-none', !!public_description.trim());
+                $btn.html('<i class="fa fa-check"></i>Saved');
+                setTimeout(function() {
+                    $btn.prop('disabled', false).html('<i class="fa fa-save"></i>Save Description');
+                }, 1500);
+            } catch (err) {
+                console.error(err);
+                $btn.prop('disabled', false).html('<i class="fa fa-save"></i>Save Description');
+                $('#alert-box').html(
+                    '<div class="alert alert-danger">Failed to save description: ' + err.message + '</div>');
+            }
+        });
 
         async function loadPosting(id) {
             currentPostingId = id;
@@ -685,10 +1031,13 @@
                 const data = await GET('recruitment/job-postings/' + id + '/json');
 
                 $('#jpp-title').text(data.posting_title);
-                $('#jpp-status').text(data.status).attr('class', 'jp-status-chip ' + (STATUS_CLASS[data.status] || 'jp-status-draft'));
+                $('#jpp-status').text(data.status).attr('class', 'jp-status-chip ' + (STATUS_CLASS[data
+                    .status] || 'jp-status-draft'));
                 $('#jpp-position').text(data.position_title);
                 $('#jpp-mrno').text(data.mr_no);
-                $('#jpp-description').text(data.posting_description || 'No description provided.');
+                $('#jpp-description-input').val(data.posting_description || '');
+                $('#jpp-public-input').val(data.public_description || '');
+                $('#jpp-public-warning').toggleClass('d-none', !!(data.public_description || '').trim());
                 $('#jpp-createdby').text(data.created_by ?? '—');
                 $('#jpp-postedat').text(data.posted_at ?? 'Not yet published');
                 $('#jpp-closedat').text(data.closed_at ?? 'Not closed');
@@ -712,20 +1061,38 @@
 
         $(document).on('click', '.jp-panel-status-btn', async function() {
             const status = $(this).data('status');
+            const posting_description = $('#jpp-description-input').val();
+
+            if (status === 'Closed' &&
+                !confirm('Close this job posting? It will stop accepting applicants. This does not close the panel.')) {
+                return;
+            }
+
             try {
-                await fetch(`${BASE}/recruitment/job-postings/${currentPostingId}/status`, {
+                const res = await fetch(`${BASE}/recruitment/job-postings/${currentPostingId}/status`, {
                     method: 'PATCH',
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': CSRF
                     },
-                    body: JSON.stringify({ status })
+                    body: JSON.stringify({
+                        status,
+                        posting_description
+                    })
                 });
+
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Status ${res.status}: ${text}`);
+                }
+
                 loadPosting(currentPostingId);
                 location.reload();
             } catch (err) {
-                $('#alert-box').html('<div class="alert alert-danger">Failed to update status.</div>');
+                console.error(err);
+                $('#alert-box').html(
+                    '<div class="alert alert-danger">Failed to update status: ' + err.message + '</div>');
             }
         });
     });

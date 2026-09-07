@@ -36,27 +36,54 @@ class ApplicantIntakeController extends Controller
             );
     }
 
-    private function enrich($app)
+    /**
+     * Batched replacement for the old per-row enrich().
+     *
+     * Resolves posting_title and mr_no for the whole application set using
+     * exactly two lookup queries (one per foreign connection) regardless of
+     * how many applications are returned, instead of two queries per row.
+     *
+     * Output per application is identical to the previous implementation,
+     * including the '—' fallback when the FK is null or points at a row
+     * that no longer exists.
+     */
+    private function enrichAll($applications)
     {
-        $app->applicant_name = trim(
-            $app->app_fname . ' ' .
-            ($app->app_mname ? substr($app->app_mname, 0, 1) . '. ' : '') .
-            $app->app_lname
-        );
+        // 1 & 4. Distinct, non-null FK values. filter() drops null/0/'' —
+        // those rows fall through to the '—' fallback exactly as before.
+        $postingIds  = $applications->pluck('job_posting_id')->filter()->unique()->values();
+        $positionIds = $applications->pluck('request_position_id')->filter()->unique()->values();
 
-        $posting = DB::connection('mysql')->table('tbl_job_posting')
-            ->where('id', $app->job_posting_id)
-            ->first();
-        $app->posting_title = $posting->posting_title ?? '—';
+        // 2 & 3. One query on the zen-admin (default) connection, keyed by id.
+        $postingTitles = $postingIds->isEmpty()
+            ? collect()
+            : DB::connection('mysql')->table('tbl_job_posting')
+                ->whereIn('id', $postingIds)
+                ->pluck('posting_title', 'id');
 
-        $position = DB::connection('hrd2')->table('tbl_manpower_request_position as pos')
-            ->leftJoin('tbl_manpower_request as r', 'r.id', '=', 'pos.request_id')
-            ->select('r.mr_no')
-            ->where('pos.id', $app->request_position_id)
-            ->first();
-        $app->mr_no = $position->mr_no ?? '—';
+        // 5 & 6. One query on the hrd2 (HireFlow) connection, keyed by position id.
+        // Aliased in the SELECT so pluck() never has to guess at a qualified name.
+        $positionMrNos = $positionIds->isEmpty()
+            ? collect()
+            : DB::connection('hrd2')->table('tbl_manpower_request_position as pos')
+                ->leftJoin('tbl_manpower_request as r', 'r.id', '=', 'pos.request_id')
+                ->whereIn('pos.id', $positionIds)
+                ->select('pos.id as position_id', 'r.mr_no')
+                ->pluck('mr_no', 'position_id');
 
-        return $app;
+        // 7. Enrich from memory. No queries inside this loop.
+        return $applications->map(function ($app) use ($postingTitles, $positionMrNos) {
+            $app->applicant_name = trim(
+                $app->app_fname . ' ' .
+                ($app->app_mname ? substr($app->app_mname, 0, 1) . '. ' : '') .
+                $app->app_lname
+            );
+
+            $app->posting_title = $postingTitles[$app->job_posting_id] ?? '—';
+            $app->mr_no         = $positionMrNos[$app->request_position_id] ?? '—';
+
+            return $app;
+        });
     }
 
     /**
@@ -66,10 +93,11 @@ class ApplicantIntakeController extends Controller
      */
     public function data()
     {
-        $applications = $this->baseQuery()
-            ->orderByDesc('a.applied_at')
-            ->get()
-            ->map(fn ($app) => $this->enrich($app));
+        $applications = $this->enrichAll(
+            $this->baseQuery()
+                ->orderByDesc('a.applied_at')
+                ->get()
+        );
 
         $grouped = $applications->groupBy('app_id')->map(function ($apps) {
             $first = $apps->first();

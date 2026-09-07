@@ -39,15 +39,6 @@
                     {{ $v->position_count }}
                     <small>{{ Str::plural('position', $v->position_count) }}</small>
                 </div>
-
-                <div></div>
-
-                <button type="button" class="mpr-view-btn"
-                    data-bs-toggle="modal" data-bs-target="#modal-mpr-view"
-                    data-id="{{ $v->id }}"
-                    onclick="event.stopPropagation();" title="View details">
-                    <i class="fa fa-eye"></i>
-                </button>
             </div>
 
             <div class="mpr-detail-wrap"></div>
@@ -75,8 +66,16 @@
             </thead>
             <tbody>
                 @foreach ($v->positions as $p)
-                    <tr>
-                        <td>{{ $p->position_title }}</td>
+                    <tr class="mpr-pos-row" title="View full request details">
+                        <td>
+                            <button type="button" class="mpr-subject-btn"
+                                data-bs-toggle="modal" data-bs-target="#modal-mpr-view"
+                                data-id="{{ $v->id }}"
+                                title="View full request details">
+                                <span>{{ $p->position_title }}</span>
+                                <i class="fa fa-external-link-alt"></i>
+                            </button>
+                        </td>
                         <td>
                             @php $typeClass = strtolower($p->type) === 'additional' ? 'mpv-type-additional' : 'mpv-type-replacement'; @endphp
                             <span class="mpv-type-chip {{ $typeClass }}">{{ ucfirst($p->type) }}</span>
@@ -88,6 +87,9 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+    <div class="mpr-detail-hint">
+        <i class="fa fa-info-circle"></i> Click a position row to open the full request details.
     </div>
     @endif
 </template>

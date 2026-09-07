@@ -72,6 +72,7 @@ class JobPostingController extends Controller
             'position_title' => $jobPosting->hireflowPosition?->positionTitle() ?? '—',
             'mr_no' => $jobPosting->hireflowPosition?->request?->mr_no ?? '—',
             'posting_description' => $jobPosting->posting_description,
+            'public_description' => $jobPosting->public_description,
             'created_by' => $jobPosting->created_by,
             'posted_at' => $jobPosting->posted_at?->format('M d, Y h:i A'),
             'closed_at' => $jobPosting->closed_at?->format('M d, Y h:i A'),
@@ -110,7 +111,12 @@ class JobPostingController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:Draft,Published,Closed',
+            'posting_description' => 'nullable|string',
         ]);
+
+        if ($request->has('posting_description')) {
+            $jobPosting->posting_description = $validated['posting_description'];
+        }
 
         $jobPosting->status = $validated['status'];
 
@@ -124,6 +130,44 @@ class JobPostingController extends Controller
 
         $jobPosting->save();
 
-        return back()->with('success', 'Status updated.');
+        return response()->json([
+            'success'   => true,
+            'id'        => $jobPosting->id,
+            'status'    => $jobPosting->status,
+            'posted_at' => $jobPosting->posted_at?->format('M d, Y h:i A'),
+            'closed_at' => $jobPosting->closed_at?->format('M d, Y h:i A'),
+        ]);
+    }
+
+    public function updateDescription(Request $request, JobPosting $jobPosting)
+    {
+        if ($jobPosting->status === 'Closed') {
+            return response()->json([
+                'message' => 'A closed posting can no longer be edited.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'posting_description' => 'nullable|string',
+            'public_description'  => 'nullable|string',
+        ]);
+
+        // has() guards so a request carrying only one field cannot blank the other.
+        if ($request->has('posting_description')) {
+            $jobPosting->posting_description = $validated['posting_description'];
+        }
+
+        if ($request->has('public_description')) {
+            $jobPosting->public_description = $validated['public_description'];
+        }
+
+        $jobPosting->save();
+
+        return response()->json([
+            'success'             => true,
+            'id'                  => $jobPosting->id,
+            'posting_description' => $jobPosting->posting_description,
+            'public_description'  => $jobPosting->public_description,
+        ]);
     }
 }

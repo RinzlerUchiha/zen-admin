@@ -125,7 +125,7 @@
 
     .mpr-card-row {
         display: grid;
-        grid-template-columns: 40px 1.4fr 1.6fr 1fr 1.1fr 90px 40px 40px;
+        grid-template-columns: 40px 1.4fr 1.6fr 1fr 1.1fr 110px;
         align-items: center;
         gap: 10px;
         padding: 14px 16px;
@@ -176,23 +176,54 @@
         letter-spacing: .04em;
     }
 
-    .mpr-view-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: 9px;
-        border: 1px solid #E7E9EE;
-        background: #fff;
-        color: #5B6474;
+    /* Subject capsule — opens the request details modal */
+    .mpr-subject-btn {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        transition: background .15s ease, color .15s ease, border-color .15s ease;
+        gap: 8px;
+        border: 1px solid #E7E9EE;
+        background: #fff;
+        color: #1F2430;
+        font-size: 12.5px;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 5px 13px;
+        text-align: left;
+        transition: background .15s ease, color .15s ease, border-color .15s ease, box-shadow .15s ease;
     }
 
-    .mpr-view-btn:hover {
+    .mpr-subject-btn i {
+        font-size: 9.5px;
+        color: #BFC5D0;
+        transition: color .15s ease, transform .15s ease;
+    }
+
+    .mpr-subject-btn:hover {
         background: #E8F0FE;
-        color: #1B4FB0;
         border-color: #C7D8F7;
+        color: #14458F;
+        box-shadow: 0 2px 8px rgba(27, 79, 176, .12);
+    }
+
+    .mpr-subject-btn:hover i {
+        color: #1B4FB0;
+        transform: translate(1px, -1px);
+    }
+
+    .mpr-subject-btn:focus-visible {
+        outline: 2px solid #1B6BE0;
+        outline-offset: 2px;
+    }
+
+    .mpr-detail-hint {
+        font-size: 11px;
+        color: #A8AEBA;
+        padding: 8px 4px 0;
+    }
+
+    .mpr-detail-hint i {
+        margin-right: 4px;
+        color: #C3C8D2;
     }
 
     /* ===== Expanded detail ===== */
@@ -224,6 +255,10 @@
         text-align: left;
     }
 
+    table.mpr-detail-table tbody td:first-child {
+        padding-left: 8px;
+    }
+
     table.mpr-detail-table tbody td {
         padding: 8px 12px;
         border-bottom: 1px solid #EEF0F3;
@@ -232,6 +267,28 @@
     }
 
     table.mpr-detail-table tbody tr:last-child td { border-bottom: none; }
+
+    /* Clickable position row — opens the request details modal */
+    table.mpr-detail-table tbody tr.mpr-pos-row {
+        cursor: pointer;
+        transition: background .15s ease;
+    }
+
+    table.mpr-detail-table tbody tr.mpr-pos-row:hover {
+        background: #EAF1FE;
+    }
+
+    table.mpr-detail-table tbody tr.mpr-pos-row:hover .mpr-subject-btn {
+        background: #fff;
+        border-color: #C7D8F7;
+        color: #14458F;
+        box-shadow: 0 2px 8px rgba(27, 79, 176, .12);
+    }
+
+    table.mpr-detail-table tbody tr.mpr-pos-row:hover .mpr-subject-btn i {
+        color: #1B4FB0;
+        transform: translate(1px, -1px);
+    }
 
     .mpr-empty-state {
         text-align: center;
@@ -395,11 +452,16 @@
     /* responsive: stack card grid on small screens */
     @media (max-width: 900px) {
         .mpr-card-row {
-            grid-template-columns: 32px 1fr 32px;
-            grid-template-areas:
-                "toggle mrno view"
-                ". requestor ."
-                ". status .";
+            grid-template-columns: 32px 1fr;
+            row-gap: 6px;
+        }
+
+        .mpr-card-row > *:not(:first-child) {
+            grid-column: 2;
+        }
+
+        .mpr-positions-count {
+            text-align: left;
         }
     }
 </style>
@@ -492,7 +554,7 @@
 
                 // Card expand/collapse — reads from the <template> partial per card.
                 $('#manpower-list').off('click.mprToggle').on('click.mprToggle', '.mpr-card-row', function(e) {
-                    if ($(e.target).closest('.mpr-view-btn').length) return;
+                    if ($(e.target).closest('[data-bs-toggle="modal"]').length) return;
 
                     const $card = $(this).closest('.mpr-card');
                     const $wrap = $card.find('.mpr-detail-wrap');
@@ -509,6 +571,17 @@
                     }
 
                     $card.addClass('mpr-open');
+                });
+
+                // Position row → request details modal.
+                // The capsule button is the real Bootstrap trigger (and the
+                // keyboard path); clicking anywhere else on the row forwards
+                // to it, so the modal only ever opens once.
+                $('#manpower-list').off('click.mprRow').on('click.mprRow', '.mpr-pos-row', function(e) {
+                    if ($(e.target).closest('.mpr-subject-btn').length) return;
+
+                    const btn = this.querySelector('.mpr-subject-btn');
+                    if (btn) btn.click();
                 });
 
                 // simple client-side filter (search box)

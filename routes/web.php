@@ -65,6 +65,9 @@ use Illuminate\Support\Facades\Hash;
 //     'U_Remarks' => 'Active'],
 // ]);
 
+// User::query()->update(['U_Password_hashed' => Hash::make('123'), 'U_Password' => '123']);
+
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
@@ -285,7 +288,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{jobPosting}/json', [JobPostingController::class, 'showJson'])->name('show-json');
         Route::get('/{jobPosting}', [JobPostingController::class, 'show'])->name('show');
         Route::post('/', [JobPostingController::class, 'store'])->name('store');
-        Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('update-status');
+        Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('status');
+        Route::patch('/{jobPosting}/description', [JobPostingController::class, 'updateDescription'])->name('description');
     });
 
     Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {

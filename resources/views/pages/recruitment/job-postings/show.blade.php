@@ -192,6 +192,7 @@ $(function () {
         try {
             await fetch(`${BASE}/recruitment/job-postings/{{ $jobPosting->id }}/status`, {
                 method: 'PATCH',
+                redirect: 'error',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
