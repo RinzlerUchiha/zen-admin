@@ -552,6 +552,28 @@
         margin-top: 6px;
     }
 
+    .jp-gen-btn {
+        margin-left: auto;
+        border: 1px solid #C7D8F7;
+        background: #EAF1FE;
+        color: #14458F;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .02em;
+        text-transform: none;
+        padding: 3px 10px;
+        transition: background .15s ease;
+    }
+
+    .jp-gen-btn:hover { background: #D8E6FD; }
+
+    .jp-gen-btn:disabled { opacity: .6; }
+
+    .jp-gen-btn i { margin-right: 4px; font-size: 9px; }
+
+    .jp-gen-btn + .jp-field-tag { margin-left: 6px; }
+
     .jp-field-tag {
         margin-left: auto;
         font-size: 9px;
@@ -567,6 +589,26 @@
         background: #E7F6EC;
         color: #1E9E4C;
     }
+
+    .jp-sync-state {
+        font-size: 11px;
+        line-height: 1.5;
+        border-radius: 8px;
+        padding: 7px 11px;
+        margin-bottom: 7px;
+    }
+
+    .jp-sync-auto {
+        background: #EAF1FE;
+        color: #14458F;
+    }
+
+    .jp-sync-custom {
+        background: #F5F6F9;
+        color: #5B6474;
+    }
+
+    .jp-sync-state i { margin-right: 5px; }
 
     .jp-public-warning {
         margin-top: 8px;
@@ -606,6 +648,19 @@
     .jp-panel-btn:hover {
         filter: brightness(1.08);
         transform: translateY(-1px);
+    }
+
+    .jp-panel-btn:disabled,
+    .jp-panel-btn:disabled:hover {
+        opacity: .6;
+        filter: none;
+        transform: none;
+        cursor: default;
+    }
+
+    .jp-row-link:focus-visible {
+        outline: 2px solid #1B6BE0;
+        outline-offset: -2px;
     }
 
     .jp-panel-btn-publish {
@@ -730,7 +785,7 @@
                             default => 'jp-status-draft',
                         };
                     @endphp
-                    <tr class="jp-row-link" data-posting-id="{{ $posting->id }}">
+                    <tr class="jp-row-link" tabindex="0" data-posting-id="{{ $posting->id }}">
                         <td>{{ $posting->posting_title }}</td>
                         <td><span class="jp-status-chip {{ $statusClass }}">{{ $posting->status }}</span></td>
                         <td>{{ $posting->posted_at?->format('M d, Y') ?? '—' }}</td>
@@ -760,11 +815,18 @@
                         <label class="form-label">Posting Title</label>
                         <input type="text" id="cp-title" class="form-control">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Internal Jobspec <span class="jp-field-tag">Not public</span></label>
+                        <textarea id="cp-description" class="form-control" rows="8" style="font-family: monospace; font-size: 12.5px;"></textarea>
+                        <div class="form-text">Pre-filled from this position's Job Specification. HR reference only —
+                            never shown to applicants.</div>
+                    </div>
                     <div class="mb-2">
-                        <label class="form-label">Description</label>
-                        <textarea id="cp-description" class="form-control" rows="14" style="font-family: monospace; font-size: 12.5px;"></textarea>
-                        <div class="form-text">Pre-filled from this position's Job Specification. Review and edit before
-                            saving.</div>
+                        <label class="form-label">Public Ad <span class="jp-field-tag jp-field-tag-live">Careers
+                                page</span></label>
+                        <textarea id="cp-public" class="form-control" rows="14" style="font-size: 13px;"></textarea>
+                        <div class="form-text">Auto-composed from the Job Specification. This is what applicants read —
+                            edit the wording freely before saving.</div>
                     </div>
                 </div>
             </div>
@@ -779,7 +841,7 @@
 
 <!-- Slide-over panel: posting details -->
 <div class="jp-panel-backdrop" id="jp-panel-backdrop"></div>
-<div class="jp-panel" id="jp-panel">
+<div class="jp-panel" id="jp-panel" role="dialog" aria-modal="true" aria-labelledby="jpp-title" tabindex="-1">
     <div class="jp-panel-head">
         <div>
             <h6 id="jpp-title">—</h6>
@@ -827,8 +889,13 @@
                     careers page.</div>
             </div>
             <div class="jp-panel-field">
-                <div class="jp-panel-label"><i class="fa fa-globe"></i> Public Ad <span
-                        class="jp-field-tag jp-field-tag-live">Careers page</span></div>
+                <div class="jp-panel-label"><i class="fa fa-globe"></i> Public Ad
+                    <button type="button" class="jp-gen-btn" id="jpp-generate-btn"
+                        title="Re-compose from the Job Specification"><i class="fa fa-wand-magic-sparkles"></i>
+                        Generate</button>
+                    <span class="jp-field-tag jp-field-tag-live">Careers page</span>
+                </div>
+                <div class="jp-sync-state" id="jpp-sync-state"></div>
                 <textarea class="jp-panel-desc-textarea" id="jpp-public-input" rows="14"
                     placeholder="Write the ad applicants will read. Emoji and Taglish are fine — this is the copy that goes live."></textarea>
                 <div class="jp-desc-hint" id="jpp-desc-hint">Click <strong>Save Description</strong> below. Saving
@@ -847,9 +914,21 @@
     $(function() {
         let currentPositionId = null;
         let currentPostingId = null;
+        let panelTrigger = null;
+
+        // One place to write and clear the banner, so a stale error cannot
+        // survive a later successful action.
+        function showAlert(type, message) {
+            $('#alert-box').html('<div class="alert alert-' + type + '">' + message + '</div>');
+        }
+
+        function clearAlert() {
+            $('#alert-box').empty();
+        }
 
         // ===== Create Posting modal (unchanged behavior) =====
         $('.btn-open-create-posting').on('click', async function() {
+            clearAlert();
             currentPositionId = $(this).data('position-id');
 
             $('#create-posting-loading').removeClass('d-none');
@@ -860,10 +939,11 @@
                 const draft = await GET('recruitment/job-postings/draft/' + currentPositionId);
                 $('#cp-title').val(draft.title);
                 $('#cp-description').val(draft.description);
+                $('#cp-public').val(draft.public_ad || '');
                 $('#create-posting-loading').addClass('d-none');
                 $('#create-posting-form').removeClass('d-none');
             } catch (err) {
-                $('#alert-box').html('<div class="alert alert-danger">Failed to load draft.</div>');
+                showAlert('danger', 'Failed to load draft.');
                 $('#modal-create-posting').modal('hide');
             }
         });
@@ -871,17 +951,18 @@
         async function createPosting() {
             const title = $('#cp-title').val();
             const description = $('#cp-description').val();
+            const publicAd = $('#cp-public').val();
 
             if (!title) {
-                $('#alert-box').html(
-                    '<div class="alert alert-danger">Posting title is required.</div>');
+                showAlert('danger', 'Posting title is required.');
                 return null;
             }
 
             return await POST('recruitment/job-postings', {
                 request_position_id: currentPositionId,
                 posting_title: title,
-                posting_description: description
+                posting_description: description,
+                public_description: publicAd
             });
         }
 
@@ -891,8 +972,7 @@
                 if (!result) return;
                 location.reload();
             } catch (err) {
-                $('#alert-box').html(
-                    '<div class="alert alert-danger">Failed to create posting.</div>');
+                showAlert('danger', 'Failed to create posting.');
             }
         });
 
@@ -922,8 +1002,7 @@
                 location.reload();
             } catch (err) {
                 console.error(err);
-                $('#alert-box').html(
-                    '<div class="alert alert-danger">Failed to publish posting: ' + err.message + '</div>');
+                showAlert('danger', 'Failed to publish posting: ' + err.message );
             }
         });
 
@@ -937,12 +1016,26 @@
         function openPanel() {
             $('#jp-panel-backdrop').addClass('open');
             $('#jp-panel').addClass('open');
+
+            // Move focus into the panel so keyboard users are not left
+            // behind the backdrop.
+            $('#jp-panel-close-btn').trigger('focus');
         }
 
         function closePanel() {
+            if (!$('#jp-panel').hasClass('open')) {
+                return;
+            }
+
             $('#jp-panel-backdrop').removeClass('open');
             $('#jp-panel').removeClass('open');
             setPanelWide(false);
+
+            // Return focus to the row that opened the panel.
+            if (panelTrigger && document.body.contains(panelTrigger)) {
+                $(panelTrigger).trigger('focus');
+            }
+            panelTrigger = null;
         }
 
         function renderFooter(status) {
@@ -968,6 +1061,7 @@
             $('#jp-panel-footer').html(html);
             $('#jpp-description-input').prop('readonly', !editable);
             $('#jpp-public-input').prop('readonly', !editable);
+            $('#jpp-generate-btn').prop('disabled', !editable);
             $('#jpp-desc-hint').toggle(editable);
         }
 
@@ -983,8 +1077,50 @@
             setPanelWide(!$('#jp-panel').hasClass('jp-panel-wide'));
         });
 
+        // Shows whether this ad tracks the jobspec or has been hand-written.
+        function renderSyncState(isCustom) {
+            const $el = $('#jpp-sync-state');
+
+            if (isCustom) {
+                $el.attr('class', 'jp-sync-state jp-sync-custom')
+                    .html('<i class="fa fa-pen"></i> Hand-edited — this wording is protected and will not be ' +
+                        'overwritten when the jobspec changes. Click Generate to return it to auto-sync.');
+            } else {
+                $el.attr('class', 'jp-sync-state jp-sync-auto')
+                    .html('<i class="fa fa-rotate"></i> Auto-synced with the Job Specification — correct the ' +
+                        'jobspec in HireFlow and this ad follows automatically.');
+            }
+        }
+
+        // ===== Re-compose the public ad from the jobspec =====
+        // Fills the textarea only — nothing is stored until Save.
+        $(document).on('click', '#jpp-generate-btn', async function() {
+            clearAlert();
+            const $btn = $(this);
+            const current = $('#jpp-public-input').val().trim();
+
+            if (current && !confirm('Replace the current public ad with a freshly composed one? Your edits will be lost.')) {
+                return;
+            }
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Composing…');
+
+            try {
+                const data = await GET('recruitment/job-postings/' + currentPostingId + '/suggest-ad');
+                $('#jpp-public-input').val(data.public_description || '');
+                $('#jpp-public-warning').addClass('d-none');
+                showAlert('info', 'Ad composed from the Job Specification. Review it, then click Save Description.');
+            } catch (err) {
+                console.error(err);
+                showAlert('danger', 'Could not compose an ad for this posting.');
+            } finally {
+                $btn.prop('disabled', false).html('<i class="fa fa-wand-magic-sparkles"></i> Generate');
+            }
+        });
+
         // ===== Save description only (no status change) =====
         $(document).on('click', '#jp-save-desc-btn', async function() {
+            clearAlert();
             const $btn = $(this);
             const posting_description = $('#jpp-description-input').val();
             const public_description = $('#jpp-public-input').val();
@@ -1008,6 +1144,7 @@
                 }
 
                 $('#jpp-public-warning').toggleClass('d-none', !!public_description.trim());
+                try { renderSyncState((await res.clone().json()).ad_is_custom); } catch (e) {}
                 $btn.html('<i class="fa fa-check"></i>Saved');
                 setTimeout(function() {
                     $btn.prop('disabled', false).html('<i class="fa fa-save"></i>Save Description');
@@ -1015,12 +1152,12 @@
             } catch (err) {
                 console.error(err);
                 $btn.prop('disabled', false).html('<i class="fa fa-save"></i>Save Description');
-                $('#alert-box').html(
-                    '<div class="alert alert-danger">Failed to save description: ' + err.message + '</div>');
+                showAlert('danger', 'Failed to save description: ' + err.message );
             }
         });
 
         async function loadPosting(id) {
+            clearAlert();
             currentPostingId = id;
             $('#jp-panel-loading').removeClass('d-none');
             $('#jp-panel-content').addClass('d-none');
@@ -1038,6 +1175,7 @@
                 $('#jpp-description-input').val(data.posting_description || '');
                 $('#jpp-public-input').val(data.public_description || '');
                 $('#jpp-public-warning').toggleClass('d-none', !!(data.public_description || '').trim());
+                renderSyncState(data.ad_is_custom);
                 $('#jpp-createdby').text(data.created_by ?? '—');
                 $('#jpp-postedat').text(data.posted_at ?? 'Not yet published');
                 $('#jpp-closedat').text(data.closed_at ?? 'Not closed');
@@ -1047,20 +1185,35 @@
                 $('#jp-panel-loading').addClass('d-none');
                 $('#jp-panel-content').removeClass('d-none');
             } catch (err) {
-                $('#alert-box').html('<div class="alert alert-danger">Failed to load posting.</div>');
+                showAlert('danger', 'Failed to load posting.');
                 closePanel();
             }
         }
 
         $(document).on('click', '.jp-row-link', function() {
+            panelTrigger = this;
             const id = $(this).data('posting-id');
             loadPosting(id);
         });
 
         $('#jp-panel-close-btn, #jp-panel-backdrop').on('click', closePanel);
 
+        // Escape closes the slide-over, matching the Bootstrap modal on the
+        // same page. Ignored while the create-posting modal is open so the
+        // two do not both react to one keypress.
+        $(document).on('keydown.jpPanel', function(e) {
+            if (e.key !== 'Escape') {
+                return;
+            }
+            if ($('#modal-create-posting').hasClass('show')) {
+                return;
+            }
+            closePanel();
+        });
+
         $(document).on('click', '.jp-panel-status-btn', async function() {
-            const status = $(this).data('status');
+            const $btn = $(this);
+            const status = $btn.data('status');
             const posting_description = $('#jpp-description-input').val();
 
             if (status === 'Closed' &&
@@ -1068,9 +1221,18 @@
                 return;
             }
 
+            clearAlert();
+
+            // Both footer buttons lock while the request is in flight, so a
+            // slow publish cannot be double-submitted.
+            const original = $btn.html();
+            $('#jp-panel-footer .jp-panel-btn').prop('disabled', true);
+            $btn.html('<i class="fa fa-spinner fa-spin"></i>Saving…');
+
             try {
                 const res = await fetch(`${BASE}/recruitment/job-postings/${currentPostingId}/status`, {
                     method: 'PATCH',
+                    redirect: 'error',
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
@@ -1087,12 +1249,14 @@
                     throw new Error(`Status ${res.status}: ${text}`);
                 }
 
-                loadPosting(currentPostingId);
+                // The full page reload repaints the list and the panel state,
+                // so re-fetching the posting first would only be discarded.
                 location.reload();
             } catch (err) {
                 console.error(err);
-                $('#alert-box').html(
-                    '<div class="alert alert-danger">Failed to update status: ' + err.message + '</div>');
+                $('#jp-panel-footer .jp-panel-btn').prop('disabled', false);
+                $btn.html(original);
+                showAlert('danger', 'Failed to update status: ' + err.message);
             }
         });
     });

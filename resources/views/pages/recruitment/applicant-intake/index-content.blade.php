@@ -13,8 +13,12 @@
         margin: 0;
     }
 
-    /* ===== Status chip (shared pattern) ===== */
-    .mpv-chip {
+    /* ===== Status chip =====
+       Prefixed .ai- rather than .mpv-: the Manpower view defines the same
+       .mpv-chip* names and both are rendered inside pages.recruitment, so
+       identical names on one page let either view's edits silently
+       restyle the other. ===== */
+    .ai-chip {
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -25,7 +29,7 @@
         letter-spacing: .2px;
     }
 
-    .mpv-chip::before {
+    .ai-chip::before {
         content: '';
         width: 7px;
         height: 7px;
@@ -33,24 +37,93 @@
         background: currentColor;
     }
 
-    .mpv-chip-pending {
+    .ai-chip-pending {
         background: #E8F0FE;
         color: #1B4FB0;
     }
 
-    .mpv-chip-approved {
+    .ai-chip-approved {
         background: #E7F6EC;
         color: #1E9E4C;
     }
 
-    .mpv-chip-rejected {
+    .ai-chip-rejected {
         background: #FCEBEB;
         color: #791F1F;
     }
 
-    .mpv-chip-draft {
+    .ai-chip-draft {
         background: #F1F2F5;
         color: #5B6474;
+    }
+
+    /* The only status tblapp_applications currently stores. */
+    .ai-chip-applied {
+        background: #E8F0FE;
+        color: #1B4FB0;
+    }
+
+    /* Any status not in the map renders neutral rather than borrowing
+       another status's colour. */
+    .ai-chip-unknown {
+        background: #F1F2F5;
+        color: #5B6474;
+    }
+
+    .ai-chip-stack {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    /* ===== Expand affordance ===== */
+    td.dt-control {
+        cursor: pointer;
+        width: 34px;
+    }
+
+    /* DataTables paints its own marker on dt-control; ours replaces it. */
+    td.dt-control::before {
+        display: none !important;
+    }
+
+    .ai-chev {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #F1F2F5;
+        color: #5B6474;
+        font-size: 10px;
+        transition: transform .2s ease, background .15s ease, color .15s ease;
+    }
+
+    tr.shown .ai-chev {
+        background: #E8F0FE;
+        color: #1B4FB0;
+        transform: rotate(90deg);
+    }
+
+    /* ===== Inline states ===== */
+    #ai-alert .alert {
+        border-radius: 10px;
+        border: none;
+        font-size: 13px;
+    }
+
+    .ai-empty {
+        color: #98A0AE;
+        padding: 26px 10px;
+        text-align: center;
+    }
+
+    .ai-empty i {
+        display: block;
+        font-size: 24px;
+        margin-bottom: 8px;
+        color: #C7CBD3;
     }
 
     /* ===== Table card wrap ===== */
@@ -222,6 +295,14 @@
         font-size: 12.5px;
     }
 
+    /* A native select sizes to its widest option, and the browser draws its
+       arrow inside that width. "50"/"100"/"All" are short enough that the
+       arrow would sit on top of the text, so reserve room for it. */
+    #applicant-intake-table_wrapper .dataTables_length select {
+        min-width: 76px;
+        padding-right: 28px;
+    }
+
     #applicant-intake-table_wrapper .dataTables_filter input:focus,
     #applicant-intake-table_wrapper .dataTables_length select:focus {
         outline: none;
@@ -256,6 +337,8 @@
         <h5>Applicant Intake</h5>
     </div>
 
+    <div id="ai-alert"></div>
+
     <div class="ai-table-card">
         <table id="applicant-intake-table" class="table table-sm table-bordered table-hover table-striped"
             style="width: 100%;">
@@ -267,6 +350,7 @@
                     <th>Email</th>
                     <th>Contact</th>
                     <th># Applications</th>
+                    <th>Status</th>
                 </tr>
             </thead>
         </table>
@@ -274,21 +358,36 @@
 </div>
 
 <script>
+    // Statuses tblapp_applications actually stores today. Anything else
+    // renders neutral instead of borrowing another status's colour.
+    const STATUS_CLASS = {
+        'Applied': 'ai-chip-applied'
+    };
+
+    // Single place that turns a status string into a chip, used by both the
+    // parent row summary and the expanded child table.
+    // The child table and the chips are built as raw HTML, so every value
+    // interpolated into them must be escaped. posting_title in particular is
+    // operator-supplied through the Job Posting form. DataTables escapes its
+    // own columns; this hand-built markup does not.
+    function esc(value) {
+        return $('<div>').text(value == null ? '' : value).html();
+    }
+
+    function statusChip(status) {
+        const cls = STATUS_CLASS[status] || 'ai-chip-unknown';
+        return '<span class="ai-chip ' + cls + '">' + esc(status) + '</span>';
+    }
+
     function formatApplicantChild(applicant) {
         const baseUrl = document.querySelector('meta[name="base-url"]').content;
-
-        const STATUS_CLASS = {
-            'Pending': 'mpv-chip-pending',
-            'Approved': 'mpv-chip-approved',
-            'Rejected': 'mpv-chip-rejected'
-        };
 
         let rows = applicant.applications.map(app => `
             <tr>
                 <td>${new Date(app.applied_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' })}</td>
-                <td>${app.posting_title}</td>
-                <td>${app.mr_no}</td>
-                <td><span class="mpv-chip ${STATUS_CLASS[app.status] || 'mpv-chip-pending'}">${app.status}</span></td>
+                <td>${esc(app.posting_title)}</td>
+                <td>${esc(app.mr_no)}</td>
+                <td>${statusChip(app.status)}</td>
                 <td class="text-end">
                     <a href="${baseUrl}/applicant/info/${app.app_id}" class="ai-view-link">View</a>
                 </td>
@@ -302,7 +401,7 @@
                         <tr>
                             <th>Date Applied</th>
                             <th>Position</th>
-                            <th>REQ ID</th>
+                            <th>MR No.</th>
                             <th>Status</th>
                             <th></th>
                         </tr>
@@ -316,6 +415,10 @@
     $(function() {
         const urlPrefix = document.querySelector('meta[name="url-prefix"]')?.getAttribute('content') || '';
 
+        // Surface load failures in the page instead of a browser alert.
+        // Scoped by the fact that this view renders one table.
+        $.fn.dataTable.ext.errMode = 'none';
+
         const table = $('#applicant-intake-table').DataTable({
             ajax: {
                 url: urlPrefix + '/recruitment/applicant-intake/data',
@@ -324,8 +427,10 @@
             columns: [{
                     className: 'dt-control',
                     orderable: false,
+                    searchable: false,
                     data: null,
-                    defaultContent: ''
+                    defaultContent: '<span class="ai-chev" aria-hidden="true">' +
+                        '<i class="fa fa-chevron-right"></i></span>'
                 },
                 {
                     data: 'latest_applied_at',
@@ -346,17 +451,61 @@
                 },
                 {
                     data: 'application_count'
+                },
+                {
+                    // Summarised from the applicant's own applications, so no
+                    // extra query is needed. Counts appear only when an
+                    // applicant has more than one at the same status.
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    render: function (data, type, row) {
+                        const tally = {};
+                        (row.applications || []).forEach(function (app) {
+                            tally[app.status] = (tally[app.status] || 0) + 1;
+                        });
+
+                        const chips = Object.keys(tally).map(function (status) {
+                            const suffix = tally[status] > 1 ? ' \u00D7' + tally[status] : '';
+                            const cls = STATUS_CLASS[status] || 'ai-chip-unknown';
+                            return '<span class="ai-chip ' + cls + '">' + esc(status) + suffix + '</span>';
+                        });
+
+                        return chips.length
+                            ? '<span class="ai-chip-stack">' + chips.join('') + '</span>'
+                            : '—';
+                    }
                 }
             ],
+            processing: true,
+            language: {
+                emptyTable: '<div class="ai-empty"><i class="bi bi-inbox"></i>' +
+                    'No applications yet. Applications appear here once someone applies ' +
+                    'through the Careers portal.</div>',
+                zeroRecords: '<div class="ai-empty"><i class="bi bi-search"></i>' +
+                    'No applicants match your search.</div>',
+                processing: 'Loading applications…'
+            },
             order: [
                 [1, 'desc']
             ],
             scrollY: '55vh',
             scrollCollapse: true,
-            lengthMenu: [50, 100, {
-                label: 'All',
-                value: -1
-            }]
+            // DataTables 1.13 does not support the { label, value } object
+            // form introduced in 2.x — it stringifies to "[object Object]".
+            // The paired-array form works on both.
+            lengthMenu: [
+                [50, 100, -1],
+                [50, 100, 'All']
+            ]
+        });
+
+        $('#applicant-intake-table').on('error.dt', function (e, settings, techNote, message) {
+            console.error('[applicant-intake]', message);
+            $('#ai-alert').html(
+                '<div class="alert alert-danger">Could not load applications. ' +
+                'Please refresh the page — if it keeps happening, your session may have expired.</div>'
+            );
         });
 
         $('#applicant-intake-table tbody').on('click', 'td.dt-control', function() {

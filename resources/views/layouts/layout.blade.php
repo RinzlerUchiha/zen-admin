@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name') }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="url-prefix" content="{{ config('app.url') }}">
+    <meta name="url-prefix" content="{{ url('/') }}">
     <meta name="base-url" content="{{ url('/') }}">
     <link rel="icon" href="https://teamtngc.com/zen/assets/img/coffi.png" type="image/png">
 
@@ -193,7 +193,7 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <a class="navbar-brand d-flex align-items-center" href="{{ config('app.url') }}/">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
                 <img class="img-fluid" id="site-logo" src="https://teamtngc.com/zen/assets/img/coffi.png" alt="Logo" class="d-inline-block align-text-top">
                 <span class="fs-5 ms-1" style="color: #5d2502;">Zen-Admin</span>
             </a>
@@ -233,7 +233,7 @@
                         </li>
                         <li class="nav-item dropdown" id="user-dropdown">
                             <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                <img id="usr-img" src="{{ config('app.url')."/profile/img/".Auth::user()->Emp_No }}" class="rounded-circle img-fluid" alt="user image">
+                                <img id="usr-img" src="{{ url('/profile/img/'.Auth::user()->Emp_No) }}" class="rounded-circle img-fluid" alt="user image">
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><h5 class="dropdown-header">{{ Auth::user()->FirstLastName }}</h5></li>
@@ -271,7 +271,7 @@
                     </a>
                 </li> 
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/recruitment">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/recruitment') }}">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/prf.png') }}">
                         <span class="mt-1">Recruitment</span>
                     </a>
@@ -283,37 +283,37 @@
             <ul class="nav"><li class="nav-item h6">RECORDS</li></ul>
             <ul class="nav row row-cols-4">
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/employee">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/employee') }}">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/201.png') }}">
                         <span class="mt-1">201</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/report">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/report') }}">
                         <i class="bi bi-file-text" style="width: 30px; height: 30px;"></i>
                         <span class="mt-1">Report</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" id="link-grievance" href="{{ config('app.url') }}/grievance">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" id="link-grievance" href="{{ url('/grievance') }}">
                         <i class="bi bi-file-text" style="width: 30px; height: 30px;"></i>
                         <span class="mt-1">Grievance</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/contracts">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/contracts') }}">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/contracts.png') }}">
                         <span class="mt-1">Contracts</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/clearance">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/clearance') }}">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/clearance.png') }}">
                         <span class="mt-1">Clearance</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/kamustahan">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/kamustahan') }}">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/kamustahan.png') }}">
                         <span class="mt-1">Kamustahan</span>
                     </a>
@@ -343,19 +343,19 @@
             <ul class="nav"><li class="nav-item h6">Others</li></ul>
             <ul class="nav row row-cols-4">
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/announcement">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/announcement') }}">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/announcement.png') }}">
                         <span class="mt-1">Announcements</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/events">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/events') }}">
                         <img class="rounded-circle" width="30" height="30" src="{{ asset('icon/events.png') }}">
                         <span class="mt-1">Events</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/memo">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/memo') }}">
                         <i class="bi bi-file-text" style="width: 30px; height: 30px;"></i>
                         <span class="mt-1">Memo</span>
                     </a>
@@ -367,13 +367,13 @@
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/admin">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/admin') }}">
                         <i class="bi bi-file-text" style="width: 30px; height: 30px;"></i>
                         <span class="mt-1">Admin</span>
                     </a>
                 </li>
                 <li class="nav-item col">
-                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ config('app.url') }}/maintenance">
+                    <a class="nav-link d-flex flex-column align-items-center text-center" href="{{ url('/maintenance') }}">
                         <i class="bi bi-gear" style="width: 30px; height: 30px;"></i>
                         <span class="mt-1">Maintenance</span>
                     </a>

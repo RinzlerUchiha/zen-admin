@@ -13,6 +13,12 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+
+        // Keeps auto-composed public job ads in step with HireFlow jobspec
+        // edits. Hand-edited ads are skipped by the command itself.
+        $schedule->command('recruitment:sync-job-ads')
+            ->dailyAt('05:30')
+            ->withoutOverlapping();
     }
 
     /**

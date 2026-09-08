@@ -122,17 +122,4 @@ class ApplicantIntakeController extends Controller
 
         return response()->json(['data' => $grouped]);
     }
-
-    public function counts()
-    {
-        $counts = $this->baseQuery()
-            ->selectRaw('a.status, count(*) as total')
-            ->groupBy('a.status')
-            ->pluck('total', 'status');
-
-        return response()->json([
-            'Applied' => $counts['Applied'] ?? 0,
-            'total' => $counts->sum(),
-        ]);
-    }
 }

@@ -186,7 +186,7 @@
 
 <script type="text/javascript">
     $(function(){
-        const link_item = $("#page-tabs a[href='{{ config('app.url').'/recruitment/'.$maincat }}']").parent()[0];
+        const link_item = $("#page-tabs a[href='{{ url('/recruitment/'.$maincat) }}']").parent()[0];
         if(link_item){
             link_item.scrollIntoView({
                 block: 'center'
@@ -251,7 +251,7 @@
             <li class="rc-group">Hiring Pipeline</li>
 
             <li class="nav-item rc-item">
-                <a href="{{ config('app.url') }}/recruitment/manpower"
+                <a href="{{ url('/recruitment/manpower') }}"
                     class="rc-link {{ $maincat == 'manpower' ? 'active' : '' }}">
                     <span class="rc-step">1</span>
                     <span class="rc-ico"><svg><use href="#ri-manpower" /></svg></span>
@@ -260,7 +260,7 @@
             </li>
 
             <li class="nav-item rc-item">
-                <a href="{{ config('app.url') }}/recruitment/job-postings"
+                <a href="{{ url('/recruitment/job-postings') }}"
                     class="rc-link {{ $maincat == 'job-postings' ? 'active' : '' }}">
                     <span class="rc-step">2</span>
                     <span class="rc-ico"><svg><use href="#ri-job-postings" /></svg></span>
@@ -269,7 +269,7 @@
             </li>
 
             <li class="nav-item rc-item">
-                <a href="{{ config('app.url') }}/recruitment/applicant-intake"
+                <a href="{{ url('/recruitment/applicant-intake') }}"
                     class="rc-link {{ $maincat == 'applicant-intake' ? 'active' : '' }}">
                     <span class="rc-step">3</span>
                     <span class="rc-ico"><svg><use href="#ri-applicant-intake" /></svg></span>

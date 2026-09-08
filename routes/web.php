@@ -286,6 +286,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [JobPostingController::class, 'index'])->name('index');
         Route::get('/draft/{position}', [JobPostingController::class, 'draft'])->name('draft');
         Route::get('/{jobPosting}/json', [JobPostingController::class, 'showJson'])->name('show-json');
+        Route::get('/{jobPosting}/suggest-ad', [JobPostingController::class, 'suggestAd'])->name('suggest-ad');
         Route::get('/{jobPosting}', [JobPostingController::class, 'show'])->name('show');
         Route::post('/', [JobPostingController::class, 'store'])->name('store');
         Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('status');
@@ -295,7 +296,6 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'index'])->name('index');
         Route::get('/data', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'data'])->name('data');
-        Route::get('/counts', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'counts'])->name('counts');
     });
 
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);
