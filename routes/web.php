@@ -170,6 +170,13 @@ Route::middleware(['auth'])->group(function () {
                 ->middleware('can:applicant-documents.review')->name('documents.request');
             Route::post('{id}/document-requests/{request}/cancel', [ApplicantDocumentController::class, 'cancelRequest'])
                 ->middleware('can:applicant-documents.review')->name('documents.request.cancel');
+
+            // Document completion: the deadline and attempt allowance shared by
+            // every request in one run (HireFlow 2.5 · M3).
+            Route::post('{id}/document-completion', [ApplicantDocumentController::class, 'startProcess'])
+                ->middleware('can:applicant-documents.review')->name('documents.completion.start');
+            Route::post('{id}/document-completion/{process}', [ApplicantDocumentController::class, 'updateProcess'])
+                ->middleware('can:applicant-documents.review')->name('documents.completion.update');
         });
 
 

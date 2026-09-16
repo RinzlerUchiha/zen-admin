@@ -3,6 +3,7 @@
 namespace App\Services\Recruitment;
 
 use App\Models\Applicant\ApplicantDocument;
+use App\Models\Applicant\ApplicantDocumentProcess;
 use App\Models\Applicant\ApplicantDocumentRequest;
 use App\Models\Applicant\ApplicantPersonal;
 use Illuminate\Support\Collection;
@@ -66,6 +67,16 @@ class ApplicantDocumentReview
             ->unique(fn ($d) => $d->app_id . '|' . $d->doc_type)
             ->keyBy(fn ($d) => $d->app_id . '|' . $d->doc_type);
 
+        // The completion run each applicant is in, if any (M3). The active one
+        // wins; otherwise the most recent outcome, which is what keeps a
+        // non-progressing candidate visible instead of losing them.
+        $processes = $appIds->isEmpty() ? collect() : ApplicantDocumentProcess::whereIn('app_id', $appIds)
+            ->orderByRaw("status = '" . ApplicantDocumentProcess::ACTIVE . "' DESC")
+            ->orderByDesc('id')
+            ->get()
+            ->unique('app_id')
+            ->keyBy('app_id');
+
         $requests = $appIds->isEmpty() ? collect() : ApplicantDocumentRequest::whereIn('app_id', $appIds)
             ->whereIn('doc_type', $types)
             ->active()
@@ -77,6 +88,7 @@ class ApplicantDocumentReview
         $out = [];
 
         foreach ($appIds as $appId) {
+            $process = $processes->get($appId);
             $slots = collect($types)->map(function ($type) use ($appId, $documents, $requests, $required) {
                 $document = $documents->get($appId . '|' . $type);
 
@@ -102,6 +114,8 @@ class ApplicantDocumentReview
                 'pending' => $slots->where('state', 'pending')->count(),
                 'rejected' => $slots->where('state', 'rejected')->count(),
                 'open_requests' => $slots->filter(fn ($s) => $s['request'])->count(),
+                'process' => $process,
+                'in_candidate_pool' => (bool) $process?->in_candidate_pool,
             ];
         }
 
@@ -126,6 +140,9 @@ class ApplicantDocumentReview
                 ->where('doc_type', $current->doc_type)
                 ->active()
                 ->update(['status' => 'closed', 'closed_by' => $empno, 'closed_at' => now()]);
+
+            // Accepting costs no attempt, but it can finish the run (M3).
+            DocumentCompletion::settleAcceptance($current->app_id, $empno);
         });
     }
 
@@ -172,8 +189,9 @@ class ApplicantDocumentReview
                     'status' => 'open',
                     'application_id' => $applicationId ?? $active->application_id,
                 ]);
+                DocumentCompletion::attach($active);
             } else {
-                ApplicantDocumentRequest::create([
+                $created = ApplicantDocumentRequest::create([
                     'app_id' => $current->app_id,
                     'application_id' => $applicationId,
                     'doc_type' => $current->doc_type,
@@ -182,7 +200,12 @@ class ApplicantDocumentReview
                     'requested_by' => $empno,
                     'requested_at' => now(),
                 ]);
+                DocumentCompletion::attach($created);
             }
+
+            // A rejection spends one of the run's shared attempts, and ends the
+            // run there and then if that was the last one (M3).
+            DocumentCompletion::countRejection($current->app_id, $empno);
         });
     }
 
@@ -210,7 +233,7 @@ class ApplicantDocumentReview
                 throw ValidationException::withMessages(['doc_type' => 'This document has already been requested.']);
             }
 
-            ApplicantDocumentRequest::create([
+            $created = ApplicantDocumentRequest::create([
                 'app_id' => $appId,
                 'application_id' => $applicationId,
                 'doc_type' => $type,
@@ -220,6 +243,10 @@ class ApplicantDocumentReview
                 'requested_by' => $empno,
                 'requested_at' => now(),
             ]);
+
+            // Joins the run in progress, if there is one. Asking for one more
+            // document never moves the run's deadline (M3).
+            DocumentCompletion::attach($created);
         });
     }
 

@@ -19,6 +19,13 @@ class Kernel extends ConsoleKernel
         $schedule->command('recruitment:sync-job-ads')
             ->dailyAt('05:30')
             ->withoutOverlapping();
+
+        // Closes document-completion runs whose deadline passed with documents
+        // still outstanding (HireFlow 2.5 · M3). Attempt exhaustion is not
+        // handled here — that is decided the moment HR records the rejection.
+        $schedule->command('recruitment:expire-document-processes')
+            ->dailyAt('01:15')
+            ->withoutOverlapping();
     }
 
     /**

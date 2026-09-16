@@ -71,6 +71,62 @@ return [
         ],
     ],
 
+    /*
+    | Document completion (HireFlow 2.5, Milestone 3).
+    |
+    | One run at collecting an applicant's outstanding documents. Every request
+    | in the run shares one deadline and one attempt counter — there is no
+    | per-document deadline and no per-document attempt count.
+    |
+    | These are the defaults HR is offered. What HR actually chooses is stored
+    | on the run itself, so changing a default here never moves a deadline an
+    | applicant has already been given.
+    */
+    'completion' => [
+
+        /* Calendar days: weekends count, Philippine public holidays do not. */
+        'deadline_days' => 7,
+        'deadline_days_max' => 60,
+
+        /* Rejections allowed across the whole run. */
+        'max_attempts' => 3,
+        'max_attempts_max' => 20,
+
+        /*
+        | Which rows of tngc_hrd2.tbl_holiday stop the clock. '#all' is the
+        | nationwide scope; the branch scopes (TAC, ZAM, PGD …) are local
+        | holidays, and an applicant is not attached to a branch at this stage.
+        | The existing holiday calendar is reused as-is — HR maintains it in
+        | Events › Holiday, and nothing here duplicates it.
+        */
+        'holiday_scope' => '#all',
+
+        'statuses' => [
+            'active'               => 'In progress',
+            'complete'             => 'Complete',
+            'non_responsive'       => 'Non-Responsive',
+            'requirements_not_met' => 'Document Requirements Not Met',
+            'withdrawn'            => 'Withdrawn',
+        ],
+
+        /* The outcomes that retain the candidate rather than progressing them. */
+        'pool_statuses' => ['non_responsive', 'requirements_not_met', 'withdrawn'],
+
+        /*
+        | What the outcome is written as in tblapp_applications.status, which
+        | both systems read. Kept apart from the display labels above, and
+        | identical to the same map in zen-applicants/config/documents.php:
+        | whichever app closes a run, the application ends up saying the same
+        | thing. Values are stored, so changing one orphans existing rows.
+        */
+        'application_status' => [
+            'complete'             => 'Documents Complete',
+            'non_responsive'       => 'Non-Responsive',
+            'requirements_not_met' => 'Document Requirements Not Met',
+            'withdrawn'            => 'Withdrawn',
+        ],
+    ],
+
     /* Disk defined in config/filesystems.php, shared with zen-applicants. */
     'disk' => 'applicant_documents',
     'path' => 'applicant/documents',

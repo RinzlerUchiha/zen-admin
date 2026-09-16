@@ -20,6 +20,23 @@
     .adoc-rejected { background: #FAECE7; color: #712B13; }
     .adoc-complete { background: #E1F5EE; color: #085041; }
     .adoc-incomplete { background: #FFF4E0; color: #7A4B00; }
+    .adoc-terminal { background: #FAECE7; color: #712B13; }
+    .adoc-pool { background: #EFEAF7; color: #4A2E7A; }
+
+    /* The run: one deadline and one attempt allowance for every document
+       requested, shown apart from the per-document table so the two counts are
+       never read as belonging to a single row. */
+    .adoc-process {
+        border: 1px solid #dee2e6; border-left: 3px solid #1B4FB0; border-radius: 8px;
+        padding: 12px 16px; margin-bottom: 14px; background: #fff;
+    }
+    .adoc-process.is-terminal { border-left-color: #712B13; }
+    .adoc-process-head {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .adoc-process-facts { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 8px; }
+    .adoc-process-facts div { font-size: 12px; color: #6c757d; }
+    .adoc-process-facts b { display: block; font-size: 13.5px; color: #212529; }
 
     #applicant-documents-table thead th {
         font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
@@ -75,6 +92,88 @@
             {{ $summary['complete'] ? 'Complete' : 'Incomplete' }}
         </span>
     </div>
+
+    {{-- The document-completion run (HireFlow 2.5 · M3). One deadline and one
+         attempt allowance for the whole set of requests. Adding a request does
+         not move the deadline — only the button here does. --}}
+    @php $process = $summary['process']; @endphp
+
+    @if ($process && $process->is_active)
+        <div class="adoc-process">
+            <div class="adoc-process-head">
+                <div>
+                    <b>Document completion in progress</b>
+                    <div class="adoc-sub">
+                        Started {{ $process->started_at->format('M j, Y') }} by {{ $process->started_by }}
+                        @if ($process->application_id && isset($documentApplications[$process->application_id]))
+                            · {{ $documentApplications[$process->application_id] }}
+                        @endif
+                    </div>
+                </div>
+                @if ($canReview)
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-process">
+                        Change deadline or attempts
+                    </button>
+                @endif
+            </div>
+            <div class="adoc-process-facts">
+                <div>
+                    <b>{{ $process->deadline_at->format('M j, Y') }}</b>
+                    Deadline · {{ $process->deadline_days }} days, holidays excluded
+                </div>
+                <div>
+                    <b>{{ $process->attempts_used }} of {{ $process->max_attempts }}</b>
+                    Attempts used across all documents
+                </div>
+                <div>
+                    <b>{{ $process->deadline_at->isPast() ? 'Overdue' : $process->deadline_at->diffInDays(now()) . ' days left' }}</b>
+                    {{ $process->deadline_at->isPast() ? 'Closes as Non-Responsive on the next sweep' : 'Time remaining' }}
+                </div>
+            </div>
+        </div>
+    @elseif ($process)
+        <div class="adoc-process is-terminal">
+            <div class="adoc-process-head">
+                <div>
+                    <b>{{ $process->status_label }}</b>
+                    <div class="adoc-sub">
+                        {{ $process->outcome_at?->format('M j, Y') }}
+                        @if ($process->closed_note) · {{ $process->closed_note }} @endif
+                    </div>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    @if ($process->in_candidate_pool)
+                        <span class="adoc-badge adoc-pool">Candidate Pool</span>
+                    @endif
+                    @if ($canReview)
+                        <form method="POST" action="{{ route('applicant.documents.completion.start', $applicant->app_id) }}">
+                            @csrf
+                            <button class="btn btn-sm btn-outline-secondary">Start a new process</button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+            <div class="adoc-process-facts">
+                <div><b>{{ $process->attempts_used }} of {{ $process->max_attempts }}</b> Attempts used</div>
+                <div><b>{{ $process->deadline_at->format('M j, Y') }}</b> Deadline that applied</div>
+            </div>
+        </div>
+    @elseif ($canReview)
+        <div class="adoc-process">
+            <div class="adoc-process-head">
+                <div>
+                    <b>No document completion process running</b>
+                    <div class="adoc-sub">
+                        Start one to give the applicant a single deadline and a shared attempt limit for
+                        everything you request.
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-process">
+                    Start document completion
+                </button>
+            </div>
+        </div>
+    @endif
 
     <div class="table-responsive">
         <table class="table table-sm" id="applicant-documents-table">
@@ -211,6 +310,76 @@
                 ->values(),
         ]);
     @endphp
+
+    {{-- Starting the run, or changing what it allows. Both write the same two
+         numbers; which route they go to is the only difference, because a
+         deadline that already exists is only ever moved deliberately. --}}
+    <div class="modal fade" id="modal-process" tabindex="-1" aria-labelledby="modalProcessTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="POST" class="modal-content"
+                  action="{{ $process && $process->is_active
+                      ? route('applicant.documents.completion.update', ['id' => $applicant->app_id, 'process' => $process->id])
+                      : route('applicant.documents.completion.start', $applicant->app_id) }}">
+                @csrf
+                <div class="modal-header">
+                    <h1 class="modal-title fs-6" id="modalProcessTitle">
+                        {{ $process && $process->is_active ? 'Change deadline or attempts' : 'Start document completion' }}
+                    </h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="adoc-sub">
+                        One deadline and one attempt limit cover every document you request. Adding another
+                        request later does not move the deadline.
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="processDeadlineDays">Days to complete</label>
+                        <input type="number" class="form-control form-control-sm" name="deadline_days"
+                               id="processDeadlineDays" min="1"
+                               max="{{ config('applicant_documents.completion.deadline_days_max') }}"
+                               value="{{ $process?->deadline_days ?? config('applicant_documents.completion.deadline_days') }}">
+                        <div class="form-text">
+                            Calendar days from today. Weekends count; Philippine public holidays do not.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="processMaxAttempts">Attempts allowed</label>
+                        <input type="number" class="form-control form-control-sm" name="max_attempts"
+                               id="processMaxAttempts" min="1"
+                               max="{{ config('applicant_documents.completion.max_attempts_max') }}"
+                               value="{{ $process?->max_attempts ?? config('applicant_documents.completion.max_attempts') }}">
+                        <div class="form-text">
+                            Shared across every document. Each rejection uses one; accepting uses none.
+                            Running out ends the process as <b>Document Requirements Not Met</b>.
+                        </div>
+                    </div>
+
+                    @unless ($process && $process->is_active)
+                        @if ($documentApplications->isNotEmpty())
+                            <div class="mb-1">
+                                <label class="form-label" for="processApplication">For which application <span class="text-muted">(optional)</span></label>
+                                <select class="form-select form-select-sm" name="application_id" id="processApplication">
+                                    <option value="">Not tied to one application</option>
+                                    @foreach ($documentApplications as $applicationId => $label)
+                                        <option value="{{ $applicationId }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">The outcome is recorded against the application you pick.</div>
+                            </div>
+                        @endif
+                    @endunless
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        {{ $process && $process->is_active ? 'Save' : 'Start' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div class="modal fade" id="docRejectModal" tabindex="-1" aria-labelledby="docRejectTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
