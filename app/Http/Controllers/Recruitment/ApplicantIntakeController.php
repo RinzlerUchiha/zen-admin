@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
+use App\Services\Recruitment\ApplicantDocumentReview;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class ApplicantIntakeController extends Controller
 {
@@ -99,10 +101,25 @@ class ApplicantIntakeController extends Controller
                 ->get()
         );
 
-        $grouped = $applications->groupBy('app_id')->map(function ($apps) {
+        // Document completeness per applicant, for HR allowed to see documents.
+        // Two queries for the whole list, not per row.
+        $documentSummaries = Gate::allows('applicant-documents.view')
+            ? ApplicantDocumentReview::summaries($applications->pluck('app_id'))
+            : null;
+
+        $grouped = $applications->groupBy('app_id')->map(function ($apps) use ($documentSummaries) {
             $first = $apps->first();
+            $docs = $documentSummaries[$first->app_id] ?? null;
 
             return [
+                'documents' => $docs ? [
+                    'accepted' => $docs['required_accepted'],
+                    'required' => $docs['required_total'],
+                    'complete' => $docs['complete'],
+                    'pending' => $docs['pending'],
+                    'rejected' => $docs['rejected'],
+                    'open_requests' => $docs['open_requests'],
+                ] : null,
                 'app_id' => $first->app_id,
                 'applicant_name' => $first->applicant_name,
                 'app_email' => $first->app_email,

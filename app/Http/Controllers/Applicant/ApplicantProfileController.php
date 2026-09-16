@@ -9,7 +9,9 @@ use App\Models\Applicant\InterviewDeets;
 use App\Models\Employee;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Recruitment\ApplicantDocumentReview;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class ApplicantProfileController extends Controller
 {
@@ -412,6 +414,28 @@ class ApplicantProfileController extends Controller
                 ->where('jrec_status', 'Primary')
                 ->whereNotNull('jrec_department')->where('jrec_department', '!=', '')
                 ->distinct()->orderBy('jrec_department')->pluck('jrec_department');
+        }
+
+        if ($tab == 'documents') {
+            Gate::authorize('applicant-documents.view');
+
+            $params['documentSummary'] = ApplicantDocumentReview::summary((int) $id);
+
+            // Optional context for a request: the applications this applicant
+            // has made, named by posting. Documents belong to the applicant, so
+            // HR may also act before any application exists.
+            $applications = DB::connection('applicant')->table('tblapp_applications')
+                ->where('app_id', $id)
+                ->orderByDesc('applied_at')
+                ->get(['id', 'job_posting_id', 'applied_at']);
+
+            $titles = DB::table('tbl_job_posting')
+                ->whereIn('id', $applications->pluck('job_posting_id')->filter())
+                ->pluck('posting_title', 'id');
+
+            $params['documentApplications'] = $applications->mapWithKeys(fn ($a) => [
+                $a->id => ($titles[$a->job_posting_id] ?? 'Application #' . $a->id),
+            ]);
         }
 
         if (view()->exists("pages.applicant.{$tab}")) {

@@ -122,6 +122,15 @@
             <div class="offcanvas-body p-0">
                 <ul class="nav flex-column p-3">
 
+                    @can('applicant-documents.view')
+                        <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
+                            <span>Application</span>
+                        </h6>
+                        <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'documents']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'documents' ? 'active' : '' }}">Documents</a></li>
+
+                        <hr class="my-3">
+                    @endcan
+
                 <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
                         <span>Interview Results</span>
                     </h6>

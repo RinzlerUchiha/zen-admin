@@ -351,6 +351,9 @@
                     <th>Contact</th>
                     <th># Applications</th>
                     <th>Status</th>
+                    @can('applicant-documents.view')
+                        <th>Documents</th>
+                    @endcan
                 </tr>
             </thead>
         </table>
@@ -414,6 +417,7 @@
 
     $(function() {
         const urlPrefix = document.querySelector('meta[name="url-prefix"]')?.getAttribute('content') || '';
+        const baseUrlForDocs = document.querySelector('meta[name="base-url"]').content;
 
         // Surface load failures in the page instead of a browser alert.
         // Scoped by the fact that this view renders one table.
@@ -476,6 +480,30 @@
                             : '—';
                     }
                 }
+                @can('applicant-documents.view')
+                ,{
+                    // Required documents HR has accepted, and anything waiting.
+                    data: 'documents',
+                    orderable: false,
+                    searchable: false,
+                    render: function (docs, type, row) {
+                        if (!docs) return '—';
+
+                        const cls = docs.complete ? 'ai-chip-approved'
+                            : (docs.rejected ? 'ai-chip-rejected' : 'ai-chip-pending');
+                        let html = '<a class="text-decoration-none" href="' + baseUrlForDocs + '/applicant/info/' +
+                            encodeURIComponent(row.app_id) + '/documents"><span class="ai-chip ' + cls + '">' +
+                            esc(docs.accepted + '/' + docs.required + ' accepted') + '</span></a>';
+
+                        const extra = [];
+                        if (docs.pending) extra.push(docs.pending + ' to check');
+                        if (docs.open_requests) extra.push(docs.open_requests + ' requested');
+                        if (extra.length) html += '<div style="font-size:11px;color:#8A93A3;margin-top:3px">' + esc(extra.join(' · ')) + '</div>';
+
+                        return html;
+                    }
+                }
+                @endcan
             ],
             processing: true,
             language: {

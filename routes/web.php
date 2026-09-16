@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\Applicant\ApplicantDocumentController;
 use App\Http\Controllers\Applicant\ApplicantProfileController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClearanceController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\PAController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Recruitment\JobPostingController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Requests\SubmitRequest;
@@ -58,15 +60,16 @@ use Illuminate\Support\Facades\Hash;
 // });
 
 // User::insertOrIgnore([
-//     ['Emp_No' => '045-2001-001', 
+//     ['Emp_No' => '045-2025-001', 
 //     'U_Password' => '123', 
 //     'U_Password_hashed' => Hash::make('123'), 
-//     'U_Name' => 'Arnold Infante', 
+//     'U_Name' => '', 
 //     'U_Remarks' => 'Active'],
 // ]);
 
 // User::query()->update(['U_Password_hashed' => Hash::make('123'), 'U_Password' => '123']);
 
+Route::get('/copy-users', [UserController::class, 'copyUsers']);
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -154,6 +157,19 @@ Route::middleware(['auth'])->group(function () {
             Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])->name('form.hire');
             Route::post('hire/{id}', [ApplicantProfileController::class, 'hire'])->name('hire');
             Route::post('interview-details/save/{id}', [ApplicantProfileController::class, 'saveInterviewDetails'])->name('interview.save');
+
+            // Application-stage documents (HireFlow 2.5 · M2). The page is the
+            // "documents" tab of info/{id}/{tab}; these are the file and actions.
+            Route::get('{id}/documents/{document}/file', [ApplicantDocumentController::class, 'file'])
+                ->middleware('can:applicant-documents.view')->name('documents.file');
+            Route::post('{id}/documents/{document}/accept', [ApplicantDocumentController::class, 'accept'])
+                ->middleware('can:applicant-documents.review')->name('documents.accept');
+            Route::post('{id}/documents/{document}/reject', [ApplicantDocumentController::class, 'reject'])
+                ->middleware('can:applicant-documents.review')->name('documents.reject');
+            Route::post('{id}/document-requests', [ApplicantDocumentController::class, 'storeRequest'])
+                ->middleware('can:applicant-documents.review')->name('documents.request');
+            Route::post('{id}/document-requests/{request}/cancel', [ApplicantDocumentController::class, 'cancelRequest'])
+                ->middleware('can:applicant-documents.review')->name('documents.request.cancel');
         });
 
 
