@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
+use App\Models\Applicant\ApplicantApplication;
 use App\Services\Recruitment\ApplicantDocumentReview;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -30,6 +31,9 @@ class ApplicantIntakeController extends Controller
                 'a.job_posting_id',
                 'a.status',
                 'a.applied_at',
+                'a.closed_at',
+                'a.closed_by',
+                'a.closed_note',
                 'p.app_fname',
                 'p.app_mname',
                 'p.app_lname',
@@ -133,6 +137,14 @@ class ApplicantIntakeController extends Controller
                     'mr_no' => $a->mr_no,
                     'status' => $a->status,
                     'applied_at' => $a->applied_at,
+                    // What the status means comes from config/applications.php
+                    // through the model, so Intake and the portal agree (M3).
+                    'is_closed' => (bool) (ApplicantApplication::statusDefinition($a->status)['closed'] ?? false),
+                    'in_candidate_pool' => (bool) (ApplicantApplication::statusDefinition($a->status)['candidate_pool'] ?? false),
+                    'closed_at' => $a->closed_at,
+                    'closed_by' => $a->closed_by,
+                    'closed_note' => $a->closed_note,
+                    'reapply_on' => ApplicantApplication::cooldownEndsFor($a->status, $a->closed_at)?->toDateString(),
                 ])->values(),
             ];
         })->values();

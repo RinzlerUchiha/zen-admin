@@ -72,6 +72,9 @@ class ApplicantDocumentController extends Controller
             'reason' => 'required|string',
             'note' => 'nullable|string|max:1000',
             'application_id' => 'nullable|integer',
+            // An application's document process, or "none". Only asked for when
+            // a new request has to be created; see DocumentCompletion::resolveChoice.
+            'process_id' => 'nullable|string|max:20',
         ], [
             'reason.required' => 'Please choose why the document cannot be accepted.',
         ]);
@@ -82,7 +85,8 @@ class ApplicantDocumentController extends Controller
             $validated['reason'],
             $validated['note'] ?? null,
             isset($validated['application_id']) ? (int) $validated['application_id'] : null,
-            $this->empno()
+            $this->empno(),
+            $validated['process_id'] ?? null
         );
 
         return back()->with('success', 'Marked for replacement. The applicant has been asked for a new file.');
@@ -94,6 +98,7 @@ class ApplicantDocumentController extends Controller
             'doc_type' => 'required|string',
             'note' => 'nullable|string|max:1000',
             'application_id' => 'nullable|integer',
+            'process_id' => 'nullable|string|max:20',
         ]);
 
         ApplicantDocumentReview::requestMissing(
@@ -101,7 +106,8 @@ class ApplicantDocumentController extends Controller
             $validated['doc_type'],
             $validated['note'] ?? null,
             isset($validated['application_id']) ? (int) $validated['application_id'] : null,
-            $this->empno()
+            $this->empno(),
+            $validated['process_id'] ?? null
         );
 
         return back()->with('success', 'Document requested from the applicant.');
@@ -122,46 +128,41 @@ class ApplicantDocumentController extends Controller
      * Document completion process (HireFlow 2.5 · M3)
      * ===================================================================== */
 
-    /** Starts the run: one deadline and one attempt allowance for the set. */
+    /**
+     * Starts the document process for ONE open application of this applicant,
+     * with its deadline. The application is required: a process always belongs
+     * to exactly one.
+     */
     public function startProcess(Request $request, $id)
     {
         $validated = $request->validate([
+            'application_id' => 'required|integer',
             'deadline_days' => 'nullable|integer|min:1|max:' . config('applicant_documents.completion.deadline_days_max'),
-            'max_attempts' => 'nullable|integer|min:1|max:' . config('applicant_documents.completion.max_attempts_max'),
-            'application_id' => 'nullable|integer',
+        ], [
+            'application_id.required' => 'Choose which application this document process is for.',
         ]);
 
         $process = DocumentCompletion::start(
             (int) $id,
-            isset($validated['application_id']) ? (int) $validated['application_id'] : null,
+            (int) $validated['application_id'],
             isset($validated['deadline_days']) ? (int) $validated['deadline_days'] : null,
-            isset($validated['max_attempts']) ? (int) $validated['max_attempts'] : null,
             $this->empno()
         );
 
-        return back()->with('success', 'Document completion started. The applicant has until '
+        return back()->with('success', 'Document process started. The deadline is '
             . $process->deadline_at->format('F j, Y') . '.');
     }
 
-    /** Changes the deadline. Deliberate, never a side effect of anything else. */
+    /** Changes the deadline — a deliberate HR act, counted again from today. */
     public function updateProcess(Request $request, $id, $process)
     {
         $validated = $request->validate([
-            'deadline_days' => 'nullable|integer|min:1|max:' . config('applicant_documents.completion.deadline_days_max'),
-            'max_attempts' => 'nullable|integer|min:1|max:' . config('applicant_documents.completion.max_attempts_max'),
+            'deadline_days' => 'required|integer|min:1|max:' . config('applicant_documents.completion.deadline_days_max'),
         ]);
 
-        $model = $this->process($id, $process);
+        DocumentCompletion::changeDeadline($this->process($id, $process), (int) $validated['deadline_days'], $this->empno());
 
-        if (!empty($validated['deadline_days'])) {
-            DocumentCompletion::changeDeadline($model, (int) $validated['deadline_days'], $this->empno());
-        }
-
-        if (!empty($validated['max_attempts'])) {
-            DocumentCompletion::changeMaxAttempts($model, (int) $validated['max_attempts'], $this->empno());
-        }
-
-        return back()->with('success', 'Document completion updated.');
+        return back()->with('success', 'Deadline updated.');
     }
 
     private function process($appId, $processId): ApplicantDocumentProcess

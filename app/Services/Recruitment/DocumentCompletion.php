@@ -2,35 +2,41 @@
 
 namespace App\Services\Recruitment;
 
+use App\Models\Applicant\ApplicantApplication;
 use App\Models\Applicant\ApplicantDocumentProcess;
 use App\Models\Applicant\ApplicantDocumentRequest;
-use App\Models\Applicant\ApplicantPersonal;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 /**
- * The document-completion process: one run at getting an applicant's
- * outstanding documents in.
+ * The document process: ONE application's document gate.
  *
- * Milestone 2 asks for documents one at a time, each with its own request. This
- * puts one clock and one allowance around the whole set:
+ * The applicant owns one reusable set of documents, and HR's requests for them
+ * belong to the applicant too. A process is what a single application needs
+ * from that set before it can move on: the requests HR attaches to it, and one
+ * deadline for all of them.
  *
- *   - ONE deadline for the run. Adding another request does not move it; only
- *     HR deciding to change it does.
- *   - ONE attempt counter for the run. A rejection costs an attempt whichever
- *     document it was for; an acceptance costs nothing.
+ *   - One active process per application (also enforced by the database). An
+ *     applicant with several applications can have several, one each.
+ *   - A request belongs to at most one process, and HR chooses which. Nothing
+ *     attaches a request to an application's process by itself.
+ *   - There is no attempt counter. A rejection reopens the request and costs
+ *     nothing; it never moves the deadline.
+ *   - Adding a request never moves the deadline either. Only HR changing it
+ *     does.
  *
- * A run ends in exactly one of four ways, and the first one reached wins:
+ * A process ends in one of these ways, and the first reached is kept:
  *
- *   complete              every request accepted        → next screening stage
- *   requirements_not_met  attempts ran out              → they answered, but the
- *                                                         documents never passed
- *   non_responsive        deadline passed               → they did not answer
- *   withdrawn             the applicant pulled out      → at any time
+ *   complete        every attached request accepted → the application becomes
+ *                   "Documents Complete" and stays open
+ *   non_responsive  the deadline passed with requests unresolved → the
+ *                   application closes as "Non-Responsive"
+ *   withdrawn /     the application was closed by that decision
+ *   not_selected    (ApplicationDecision)
  *
- * Nothing reopens a finished run. Every write happens under the applicant-row
- * lock that ApplicantDocumentReview already takes, so a rejection and an upload
- * cannot interleave and spend the same attempt twice.
+ * Everything here runs under the applicant-row lock that the document review
+ * and the applicant's uploads also take.
  */
 class DocumentCompletion
 {
@@ -38,26 +44,30 @@ class DocumentCompletion
      * Reading
      * ===================================================================== */
 
-    public static function activeFor(int $appId): ?ApplicantDocumentProcess
+    public static function activeForApplication(int $applicationId): ?ApplicantDocumentProcess
     {
-        return ApplicantDocumentProcess::where('app_id', $appId)->active()->latest('id')->first();
+        return ApplicantDocumentProcess::where('application_id', $applicationId)->active()->first();
     }
 
-    /** The run to show HR: the active one, else the most recent outcome. */
-    public static function currentFor(int $appId): ?ApplicantDocumentProcess
+    /** Every active process the applicant has — at most one per application. */
+    public static function activeForApplicant(int $appId): Collection
     {
-        return ApplicantDocumentProcess::where('app_id', $appId)
-            ->orderByRaw("status = '" . ApplicantDocumentProcess::ACTIVE . "' DESC")
-            ->latest('id')
-            ->first();
+        return ApplicantDocumentProcess::with('application')
+            ->where('app_id', $appId)
+            ->active()
+            ->orderBy('deadline_at')
+            ->get();
     }
 
-    public static function defaults(): array
+    public static function defaultDeadlineDays(): int
     {
-        return [
-            'deadline_days' => (int) config('applicant_documents.completion.deadline_days', 7),
-            'max_attempts' => (int) config('applicant_documents.completion.max_attempts', 3),
-        ];
+        return (int) config('applicant_documents.completion.deadline_days', 7);
+    }
+
+    /** Is anything attached to this process still waiting on the applicant? */
+    public static function hasUnresolved(ApplicantDocumentProcess $process): bool
+    {
+        return ApplicantDocumentRequest::where('process_id', $process->id)->active()->exists();
     }
 
     /* =====================================================================
@@ -65,68 +75,91 @@ class DocumentCompletion
      * ===================================================================== */
 
     /**
-     * Starts the run and fixes its deadline. HR may override the period and the
-     * attempt limit; whatever is chosen is stored on the run, so a later change
-     * to the defaults cannot move a deadline already given.
+     * Starts the document process for one open application and fixes its
+     * deadline.
      */
-    public static function start(
-        int $appId,
-        ?int $applicationId,
-        ?int $deadlineDays,
-        ?int $maxAttempts,
-        string $empno
-    ): ApplicantDocumentProcess {
-        $defaults = self::defaults();
-        $days = $deadlineDays ?: $defaults['deadline_days'];
-        $attempts = $maxAttempts ?: $defaults['max_attempts'];
+    public static function start(int $appId, int $applicationId, ?int $deadlineDays, string $empno): ApplicantDocumentProcess
+    {
+        $days = $deadlineDays ?: self::defaultDeadlineDays();
+        self::assertDeadlineDays($days);
 
-        self::assertWithinLimits($days, $attempts);
+        return ApplicationDecision::inLock($appId, function () use ($appId, $applicationId, $days, $empno) {
+            $application = ApplicantApplication::where('id', $applicationId)->where('app_id', $appId)->first();
 
-        return self::inLock($appId, function () use ($appId, $applicationId, $days, $attempts, $empno) {
-            if (self::activeFor($appId)) {
+            if (!$application) {
                 throw ValidationException::withMessages([
-                    'process' => 'A document completion process is already running for this applicant.',
+                    'application_id' => 'That application does not belong to this applicant.',
                 ]);
             }
 
-            self::assertApplicationBelongs($applicationId, $appId);
+            if ($application->is_closed || $application->closed_at !== null) {
+                throw ValidationException::withMessages([
+                    'application_id' => 'That application has already been closed (' . $application->status . ').',
+                ]);
+            }
 
-            $process = ApplicantDocumentProcess::create([
-                'app_id' => $appId,
-                'application_id' => $applicationId,
-                'status' => ApplicantDocumentProcess::ACTIVE,
-                'deadline_days' => $days,
-                'deadline_at' => HolidayAwareDeadline::from(now(), $days),
-                'max_attempts' => $attempts,
-                'attempts_used' => 0,
-                'started_by' => $empno,
-                'started_at' => now(),
-            ]);
+            if (self::activeForApplication($application->id)) {
+                throw self::alreadyRunning();
+            }
 
-            // Requests HR already made and is still waiting on join the run, so
-            // the applicant is not asked to satisfy two different clocks.
+            $otherActive = ApplicantDocumentProcess::where('app_id', $appId)->active()->exists();
+
+            try {
+                $process = ApplicantDocumentProcess::create([
+                    'app_id' => $appId,
+                    'application_id' => $application->id,
+                    'status' => ApplicantDocumentProcess::ACTIVE,
+                    'deadline_days' => $days,
+                    'deadline_at' => HolidayAwareDeadline::from(now(), $days),
+                    'started_by' => $empno,
+                    'started_at' => now(),
+                ]);
+            } catch (QueryException $e) {
+                // The database's one-active-process-per-application guard: a
+                // concurrent start won. Same outcome as the check above.
+                if (($e->errorInfo[1] ?? null) === 1062) {
+                    throw self::alreadyRunning();
+                }
+                throw $e;
+            }
+
+            // Outstanding requests HR already made for THIS application join its
+            // process. A request made for no particular application joins only
+            // when this is the applicant's only running process — with more than
+            // one, which it belongs to is HR's choice, never assumed.
             ApplicantDocumentRequest::where('app_id', $appId)
                 ->whereNull('process_id')
                 ->active()
-                ->update(['process_id' => $process->id]);
+                ->where(function ($query) use ($application, $otherActive) {
+                    $query->where('application_id', $application->id);
+
+                    if (!$otherActive) {
+                        $query->orWhereNull('application_id');
+                    }
+                })
+                ->update(['process_id' => $process->id, 'application_id' => $application->id]);
 
             return $process;
         });
     }
 
     /**
-     * Changes the deadline. Always a deliberate act by HR — adding a request
-     * never does this, and neither does a rejection.
+     * Changes the deadline. Always a deliberate act by HR, counted again from
+     * today.
      */
     public static function changeDeadline(ApplicantDocumentProcess $process, int $days, string $empno): void
     {
-        self::assertWithinLimits($days, $process->max_attempts);
+        self::assertDeadlineDays($days);
 
-        self::inLock($process->app_id, function () use ($process, $days) {
-            $current = self::lockedOrFail($process);
+        ApplicationDecision::inLock($process->app_id, function () use ($process, $days) {
+            $current = ApplicantDocumentProcess::whereKey($process->id)->first();
 
-            // The clock restarts from today, not from the original start: HR is
-            // giving the applicant this many days from now.
+            if (!$current || !$current->is_active) {
+                throw ValidationException::withMessages([
+                    'process' => 'This document process has already ended.',
+                ]);
+            }
+
             $current->update([
                 'deadline_days' => $days,
                 'deadline_at' => HolidayAwareDeadline::from(now(), $days),
@@ -134,252 +167,146 @@ class DocumentCompletion
         });
     }
 
-    /** Changes how many rejections the run allows. */
-    public static function changeMaxAttempts(ApplicantDocumentProcess $process, int $attempts, string $empno): void
+    /**
+     * Which process a new request belongs to, from HR's choice.
+     *
+     *   no active process            → none; the choice is not needed
+     *   $choice === 'none'           → none; HR chose "No document deadline"
+     *   $choice is a process id      → that process, if it is this applicant's
+     *                                  and still running
+     *   no choice, one active        → that one
+     *   no choice, several active    → refused: HR must choose
+     *
+     * Must run inside the applicant's lock.
+     */
+    public static function resolveChoice(int $appId, ?string $choice): ?ApplicantDocumentProcess
     {
-        self::assertWithinLimits($process->deadline_days, $attempts);
+        $active = ApplicantDocumentProcess::where('app_id', $appId)->active()->get()->keyBy('id');
 
-        self::inLock($process->app_id, function () use ($process, $attempts, $empno) {
-            $current = self::lockedOrFail($process);
+        if ($choice === 'none') {
+            return null;
+        }
 
-            if ($attempts < $current->attempts_used) {
+        if ($choice !== null && $choice !== '') {
+            $process = ctype_digit($choice) ? $active->get((int) $choice) : null;
+
+            if (!$process) {
                 throw ValidationException::withMessages([
-                    'max_attempts' => 'The applicant has already used ' . $current->attempts_used
-                        . ' attempts. Set the limit to at least that.',
+                    'process_id' => 'That document deadline is not running for this applicant.',
                 ]);
             }
 
-            $current->update(['max_attempts' => $attempts]);
+            return $process;
+        }
 
-            // Lowering the limit to what has already been spent ends the run
-            // now, on the same rule as any other exhausted allowance.
-            if ($current->attempts_used >= $attempts && self::hasUnresolved($current)) {
-                self::close($current, ApplicantDocumentProcess::REQUIREMENTS_NOT_MET, $empno,
-                    'Attempt limit reached.');
-            }
-        });
+        if ($active->isEmpty()) {
+            return null;
+        }
+
+        if ($active->count() === 1) {
+            return $active->first();
+        }
+
+        throw ValidationException::withMessages([
+            'process_id' => 'This applicant has more than one application with a document deadline. Choose which one this request is for.',
+        ]);
     }
 
     /* =====================================================================
-     * Reacting to the Milestone 2 review decisions
+     * Reacting to Milestone 2 review decisions (inside the review's lock)
+     * ===================================================================== */
+
+    /**
+     * After requests have been accepted: any process they belonged to that now
+     * has nothing outstanding is complete, and its application moves on.
      *
-     * These run INSIDE ApplicantDocumentReview's lock, so they never take it
-     * again themselves.
-     * ===================================================================== */
-
-    /**
-     * A rejection costs one attempt, whichever document it was for. Running out
-     * ends the run immediately — HR does not wait for a nightly job to find out
-     * that the applicant has no attempts left.
+     * @param  array<int>  $processIds
      */
-    public static function countRejection(int $appId, string $empno): void
+    public static function settle(array $processIds): void
     {
-        $process = self::activeFor($appId);
-
-        if (!$process) {
-            return;
-        }
-
-        $process->increment('attempts_used');
-        $process->refresh();
-
-        if ($process->attempts_used >= $process->max_attempts && self::hasUnresolved($process)) {
-            self::close($process, ApplicantDocumentProcess::REQUIREMENTS_NOT_MET, $empno,
-                'Attempt limit reached with documents still outstanding.');
-        }
-    }
-
-    /**
-     * An acceptance costs nothing. It can finish the run: once nothing under it
-     * is still waiting, the applicant has done what was asked.
-     */
-    public static function settleAcceptance(int $appId, string $empno): void
-    {
-        $process = self::activeFor($appId);
-
-        if (!$process) {
-            return;
-        }
-
-        // A run that never carried a request is not "complete" — there was
-        // nothing to complete. It stays open for HR to ask for something.
-        $everAsked = ApplicantDocumentRequest::where('process_id', $process->id)->exists();
-
-        if ($everAsked && !self::hasUnresolved($process)) {
-            self::close($process, ApplicantDocumentProcess::COMPLETE, $empno, null);
-        }
-    }
-
-    /** Puts a newly created request under the active run, if there is one. */
-    public static function attach(ApplicantDocumentRequest $request): void
-    {
-        $process = self::activeFor($request->app_id);
-
-        if ($process && !$request->process_id) {
-            // Deliberately does NOT touch the deadline. Asking for one more
-            // document does not buy the applicant more time, and does not take
-            // any away either.
-            $request->update(['process_id' => $process->id]);
-        }
-    }
-
-    /* =====================================================================
-     * Ending a run
-     * ===================================================================== */
-
-    /**
-     * The applicant pulls out. Independent of the deadline and the attempts,
-     * and allowed at any point before the run has already ended.
-     */
-    public static function withdraw(int $appId, ?string $note = null): bool
-    {
-        return (bool) self::inLock($appId, function () use ($appId, $note) {
-            $process = self::activeFor($appId);
+        foreach (array_unique(array_filter($processIds)) as $processId) {
+            $process = ApplicantDocumentProcess::whereKey($processId)->active()->first();
 
             if (!$process) {
-                return false;
+                continue;
             }
 
-            self::close($process, ApplicantDocumentProcess::WITHDRAWN, null, $note);
+            // A process that was never asked for anything has nothing to complete.
+            $everAsked = ApplicantDocumentRequest::where('process_id', $process->id)->exists();
 
-            return true;
-        });
+            if (!$everAsked || self::hasUnresolved($process)) {
+                continue;
+            }
+
+            $process->update([
+                'status' => ApplicantDocumentProcess::COMPLETE,
+                'outcome_at' => now(),
+            ]);
+
+            $application = $process->application_id ? ApplicantApplication::find($process->application_id) : null;
+
+            if ($application && !$application->is_closed) {
+                $application->update(['status' => ApplicantApplication::DOCUMENTS_COMPLETE]);
+            }
+        }
     }
 
+    /* =====================================================================
+     * The deadline
+     * ===================================================================== */
+
     /**
-     * The deadline passed. Called by the nightly sweep, one applicant at a
-     * time. Re-reads under the lock, so a run that finished in the meantime is
-     * left exactly as it is.
+     * The deadline passed. Called by the nightly job for one process at a
+     * time; re-reads under the lock, so a process that ended or was extended in
+     * the meantime is left alone. Only its own application is closed.
      */
     public static function expire(ApplicantDocumentProcess $process): bool
     {
-        return (bool) self::inLock($process->app_id, function () use ($process) {
+        return (bool) ApplicationDecision::inLock($process->app_id, function () use ($process) {
             $current = ApplicantDocumentProcess::whereKey($process->id)->first();
 
-            // Already finished, or the deadline moved: not this job's business.
-            if (!$current || !$current->is_active || $current->deadline_at->isFuture()) {
+            if (!$current || !$current->is_active || $current->deadline_at->isFuture() || !self::hasUnresolved($current)) {
                 return false;
             }
 
-            if (!self::hasUnresolved($current)) {
-                return false;
-            }
+            $note = 'Document deadline passed with requests still outstanding.';
+            $application = $current->application_id ? ApplicantApplication::find($current->application_id) : null;
 
-            self::close($current, ApplicantDocumentProcess::NON_RESPONSIVE, null,
-                'Deadline passed with documents still outstanding.');
+            if ($application && !$application->is_closed && $application->closed_at === null) {
+                // Closes the application and ends this, its active process.
+                ApplicationDecision::close(
+                    $application,
+                    ApplicantApplication::NON_RESPONSIVE,
+                    ApplicantDocumentProcess::NON_RESPONSIVE,
+                    null,
+                    $note
+                );
+            } else {
+                ApplicationDecision::endProcess($current, ApplicantDocumentProcess::NON_RESPONSIVE, null, $note);
+            }
 
             return true;
         });
-    }
-
-    /**
-     * Writes the outcome. The one place a run becomes terminal.
-     */
-    private static function close(
-        ApplicantDocumentProcess $process,
-        string $status,
-        ?string $empno,
-        ?string $note
-    ): void {
-        $process->update([
-            'status' => $status,
-            'outcome_at' => now(),
-            'closed_by' => $empno,
-            'closed_note' => $note,
-        ]);
-
-        // Nothing is still being waited on once the run is over. Requests are
-        // cancelled rather than deleted — what was asked for is still on record.
-        ApplicantDocumentRequest::where('process_id', $process->id)
-            ->active()
-            ->update(['status' => 'cancelled', 'closed_by' => $empno, 'closed_at' => now()]);
-
-        self::mirrorToApplication($process, $status);
-    }
-
-    /**
-     * Shows the outcome where the applicant already looks: the status of the
-     * application it belongs to. A run started without an application has
-     * nowhere to mirror to, and does not need one.
-     */
-    private static function mirrorToApplication(ApplicantDocumentProcess $process, string $status): void
-    {
-        if (!$process->application_id) {
-            return;
-        }
-
-        DB::connection('applicant')->table('tblapp_applications')
-            ->where('id', $process->application_id)
-            ->update([
-                'status' => config('applicant_documents.completion.application_status.' . $status, $status),
-                'updated_at' => now(),
-            ]);
     }
 
     /* =====================================================================
      * Helpers
      * ===================================================================== */
 
-    /** Is the applicant still being waited on for anything in this run? */
-    public static function hasUnresolved(ApplicantDocumentProcess $process): bool
+    private static function alreadyRunning(): ValidationException
     {
-        return ApplicantDocumentRequest::where('process_id', $process->id)->active()->exists();
+        return ValidationException::withMessages([
+            'application_id' => 'A document process is already running for this application.',
+        ]);
     }
 
-    private static function assertWithinLimits(int $days, int $attempts): void
+    private static function assertDeadlineDays(int $days): void
     {
-        $maxDays = (int) config('applicant_documents.completion.deadline_days_max', 60);
-        $maxAttempts = (int) config('applicant_documents.completion.max_attempts_max', 20);
+        $max = (int) config('applicant_documents.completion.deadline_days_max', 60);
 
-        if ($days < 1 || $days > $maxDays) {
+        if ($days < 1 || $days > $max) {
             throw ValidationException::withMessages([
-                'deadline_days' => "Give the applicant between 1 and $maxDays days.",
-            ]);
-        }
-
-        if ($attempts < 1 || $attempts > $maxAttempts) {
-            throw ValidationException::withMessages([
-                'max_attempts' => "Allow between 1 and $maxAttempts attempts.",
-            ]);
-        }
-    }
-
-    private static function lockedOrFail(ApplicantDocumentProcess $process): ApplicantDocumentProcess
-    {
-        $current = ApplicantDocumentProcess::whereKey($process->id)->first();
-
-        if (!$current || !$current->is_active) {
-            throw ValidationException::withMessages([
-                'process' => 'This document completion process has already ended.',
-            ]);
-        }
-
-        return $current;
-    }
-
-    private static function inLock(int $appId, callable $callback)
-    {
-        return DB::connection('applicant')->transaction(function () use ($appId, $callback) {
-            ApplicantPersonal::whereKey($appId)->lockForUpdate()->first();
-
-            return $callback();
-        });
-    }
-
-    private static function assertApplicationBelongs(?int $applicationId, int $appId): void
-    {
-        if ($applicationId === null) {
-            return;
-        }
-
-        $belongs = DB::connection('applicant')->table('tblapp_applications')
-            ->where('id', $applicationId)
-            ->where('app_id', $appId)
-            ->exists();
-
-        if (!$belongs) {
-            throw ValidationException::withMessages([
-                'application_id' => 'That application does not belong to this applicant.',
+                'deadline_days' => "Give the applicant between 1 and $max days.",
             ]);
         }
     }

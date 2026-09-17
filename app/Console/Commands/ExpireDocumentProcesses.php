@@ -7,17 +7,15 @@ use App\Services\Recruitment\DocumentCompletion;
 use Illuminate\Console\Command;
 
 /**
- * Closes document-completion runs whose deadline has passed with documents
- * still outstanding, as Non-Responsive.
+ * Closes document processes whose deadline has passed with requests still
+ * outstanding. Each one's OWN application becomes Non-Responsive; the
+ * applicant's other applications are not touched.
  *
- * The deadline is the only thing this command acts on. Running out of attempts
- * is decided the moment HR records the rejection that spends the last one —
- * nobody waits until the next night to learn that.
- *
- * A run that has already ended is never touched: the outcome it reached first
- * is the one it keeps. Each candidate is re-read under the applicant lock
- * before anything is written, so a run finished between the sweep's query and
- * its write is left alone.
+ * The deadline is the only thing this command acts on. A process that has
+ * already ended is never touched, and each candidate is re-read under the
+ * applicant lock before anything is written, so a process finished or extended
+ * between the query and the write is left alone. An overdue process with
+ * nothing outstanding is not a failure to respond and is left for HR.
  *
  * WRITES BY DEFAULT. Use --dry-run to see what would close.
  */
@@ -26,16 +24,15 @@ class ExpireDocumentProcesses extends Command
     protected $signature = 'recruitment:expire-document-processes
                             {--dry-run : Report what would close without saving}';
 
-    protected $description = 'Close overdue applicant document-completion processes as Non-Responsive';
+    protected $description = 'Close overdue applicant document processes and mark their applications Non-Responsive';
 
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
-
         $overdue = ApplicantDocumentProcess::overdue()->orderBy('id')->get();
 
         if ($overdue->isEmpty()) {
-            $this->info('No overdue document completion processes.');
+            $this->info('No overdue document processes.');
 
             return self::SUCCESS;
         }
@@ -44,42 +41,34 @@ class ExpireDocumentProcesses extends Command
         $skipped = 0;
 
         foreach ($overdue as $process) {
-            // An overdue run with nothing outstanding is not a failure to
-            // respond. It is left active for HR to finish.
+            $label = sprintf(
+                'process %d · applicant %d · application %s · deadline %s',
+                $process->id,
+                $process->app_id,
+                $process->application_id ?? 'none',
+                $process->deadline_at->format('Y-m-d')
+            );
+
             if (!DocumentCompletion::hasUnresolved($process)) {
                 $skipped++;
-                $this->line(sprintf(
-                    '  skip  applicant %d · process %d · overdue but nothing outstanding',
-                    $process->app_id,
-                    $process->id
-                ));
+                $this->line("  skip          $label · nothing outstanding");
 
                 continue;
             }
 
             if ($dryRun) {
                 $closed++;
-                $this->line(sprintf(
-                    '  would close  applicant %d · process %d · deadline %s',
-                    $process->app_id,
-                    $process->id,
-                    $process->deadline_at->format('Y-m-d')
-                ));
+                $this->line("  would close   $label");
 
                 continue;
             }
 
             if (DocumentCompletion::expire($process)) {
                 $closed++;
-                $this->line(sprintf(
-                    '  Non-Responsive  applicant %d · process %d · deadline %s',
-                    $process->app_id,
-                    $process->id,
-                    $process->deadline_at->format('Y-m-d')
-                ));
+                $this->line("  Non-Responsive $label");
             } else {
-                // Finished or extended between the query and the write.
                 $skipped++;
+                $this->line("  skip          $label · changed before it could be closed");
             }
         }
 

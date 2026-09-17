@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Applicant;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantPersonal;
+use App\Models\Applicant\ApplicantApplication;
 use App\Models\Applicant\InterviewDeets;
 use App\Models\Employee;
 use App\Models\Setting;
@@ -421,21 +422,25 @@ class ApplicantProfileController extends Controller
 
             $params['documentSummary'] = ApplicantDocumentReview::summary((int) $id);
 
-            // Optional context for a request: the applications this applicant
-            // has made, named by posting. Documents belong to the applicant, so
-            // HR may also act before any application exists.
-            $applications = DB::connection('applicant')->table('tblapp_applications')
-                ->where('app_id', $id)
+            // The applicant's applications, named by posting. Documents belong to
+            // the applicant, so HR may act before any application exists; a
+            // document PROCESS belongs to one open application (M3).
+            $applications = ApplicantApplication::where('app_id', $id)
                 ->orderByDesc('applied_at')
-                ->get(['id', 'job_posting_id', 'applied_at']);
+                ->get();
 
             $titles = DB::table('tbl_job_posting')
                 ->whereIn('id', $applications->pluck('job_posting_id')->filter())
                 ->pluck('posting_title', 'id');
 
-            $params['documentApplications'] = $applications->mapWithKeys(fn ($a) => [
-                $a->id => ($titles[$a->job_posting_id] ?? 'Application #' . $a->id),
-            ]);
+            $applications->each(fn ($a) => $a->setAttribute(
+                'posting_title',
+                $titles[$a->job_posting_id] ?? 'Application #' . $a->id
+            ));
+
+            // id => title, as the request and reject dialogs have always used.
+            $params['documentApplications'] = $applications->mapWithKeys(fn ($a) => [$a->id => $a->posting_title]);
+            $params['applicantApplications'] = $applications;
         }
 
         if (view()->exists("pages.applicant.{$tab}")) {

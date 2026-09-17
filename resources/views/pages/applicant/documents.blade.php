@@ -20,23 +20,24 @@
     .adoc-rejected { background: #FAECE7; color: #712B13; }
     .adoc-complete { background: #E1F5EE; color: #085041; }
     .adoc-incomplete { background: #FFF4E0; color: #7A4B00; }
-    .adoc-terminal { background: #FAECE7; color: #712B13; }
-    .adoc-pool { background: #EFEAF7; color: #4A2E7A; }
-
-    /* The run: one deadline and one attempt allowance for every document
-       requested, shown apart from the per-document table so the two counts are
-       never read as belonging to a single row. */
+    /* Document deadlines: one per application, shown apart from the
+       per-document table because the documents are shared across the
+       applicant's applications and the deadlines are not. */
     .adoc-process {
         border: 1px solid #dee2e6; border-left: 3px solid #1B4FB0; border-radius: 8px;
         padding: 12px 16px; margin-bottom: 14px; background: #fff;
     }
-    .adoc-process.is-terminal { border-left-color: #712B13; }
     .adoc-process-head {
         display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
     }
-    .adoc-process-facts { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 8px; }
+    .adoc-process-row {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        border-top: 1px solid #f1f3f5; padding-top: 10px; margin-top: 10px;
+    }
+    .adoc-process-facts { display: flex; gap: 22px; flex-wrap: wrap; }
     .adoc-process-facts div { font-size: 12px; color: #6c757d; }
     .adoc-process-facts b { display: block; font-size: 13.5px; color: #212529; }
+    .adoc-overdue { color: #712B13 !important; }
 
     #applicant-documents-table thead th {
         font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
@@ -93,87 +94,76 @@
         </span>
     </div>
 
-    {{-- The document-completion run (HireFlow 2.5 · M3). One deadline and one
-         attempt allowance for the whole set of requests. Adding a request does
-         not move the deadline — only the button here does. --}}
-    @php $process = $summary['process']; @endphp
+    {{-- Document deadlines (HireFlow 2.5 · M3). A document process belongs to ONE
+         application; each open application can have its own. Adding a request
+         never moves a deadline — only "Change deadline" does. --}}
+    @php
+        $processes = $summary['processes'];
+        $runningFor = $processes->pluck('application_id')->filter()->all();
+        $startable = $applicantApplications->filter(
+            fn ($application) => !$application->is_closed && !in_array($application->id, $runningFor)
+        );
+        $titleOf = fn ($applicationId) => $documentApplications[$applicationId] ?? ('Application #' . $applicationId);
+    @endphp
 
-    @if ($process && $process->is_active)
-        <div class="adoc-process">
-            <div class="adoc-process-head">
-                <div>
-                    <b>Document completion in progress</b>
-                    <div class="adoc-sub">
+    <div class="adoc-process">
+        <div class="adoc-process-head">
+            <div>
+                <b>Document deadlines</b>
+                <div class="adoc-sub">
+                    One per application. The documents below are the applicant's own and count for every application.
+                </div>
+            </div>
+            @if ($canReview && $startable->isNotEmpty())
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-process-start">
+                    Start document process
+                </button>
+            @endif
+        </div>
+
+        @forelse ($processes as $process)
+            @php
+                $overdue = $process->deadline_at->isPast();
+                // Calendar days between the dates, counted exactly as the applicant
+                // portal counts them, so HR and the applicant see the same number.
+                $daysLeft = max(0, (int) now()->startOfDay()->diffInDays($process->deadline_at->copy()->startOfDay(), false));
+            @endphp
+            <div class="adoc-process-row" data-process="{{ $process->id }}">
+                <div class="adoc-process-facts">
+                    <div>
+                        <b>{{ $titleOf($process->application_id) }}</b>
                         Started {{ $process->started_at->format('M j, Y') }} by {{ $process->started_by }}
-                        @if ($process->application_id && isset($documentApplications[$process->application_id]))
-                            · {{ $documentApplications[$process->application_id] }}
-                        @endif
+                    </div>
+                    <div>
+                        <b class="{{ $overdue ? 'adoc-overdue' : '' }}">{{ $process->deadline_at->format('M j, Y') }}</b>
+                        {{ $process->deadline_days }} days, holidays excluded
+                    </div>
+                    <div>
+                        <b class="{{ $overdue ? 'adoc-overdue' : '' }}">
+                            {{ $overdue ? 'Overdue' : ($daysLeft === 0 ? 'Due today' : $daysLeft . ' ' . Str::plural('day', $daysLeft) . ' left') }}
+                        </b>
+                        {{ $overdue ? 'Closes as Non-Responsive on the next nightly run if requests are still open' : 'Time remaining' }}
                     </div>
                 </div>
                 @if ($canReview)
-                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modal-process">
-                        Change deadline or attempts
-                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-change-deadline"
+                            data-bs-toggle="modal" data-bs-target="#modal-process-deadline"
+                            data-action="{{ route('applicant.documents.completion.update', ['id' => $applicant->app_id, 'process' => $process->id]) }}"
+                            data-title="{{ $titleOf($process->application_id) }}"
+                            data-days="{{ $process->deadline_days }}">Change deadline</button>
                 @endif
             </div>
-            <div class="adoc-process-facts">
-                <div>
-                    <b>{{ $process->deadline_at->format('M j, Y') }}</b>
-                    Deadline · {{ $process->deadline_days }} days, holidays excluded
-                </div>
-                <div>
-                    <b>{{ $process->attempts_used }} of {{ $process->max_attempts }}</b>
-                    Attempts used across all documents
-                </div>
-                <div>
-                    <b>{{ $process->deadline_at->isPast() ? 'Overdue' : $process->deadline_at->diffInDays(now()) . ' days left' }}</b>
-                    {{ $process->deadline_at->isPast() ? 'Closes as Non-Responsive on the next sweep' : 'Time remaining' }}
-                </div>
+        @empty
+            <div class="adoc-sub mt-2">
+                No document deadline is running.
+                @if ($canReview && $startable->isEmpty())
+                    {{ $applicantApplications->isEmpty()
+                        ? 'The applicant has not applied to a position yet.'
+                        : 'None of the applicant\'s applications is open.' }}
+                @endif
             </div>
-        </div>
-    @elseif ($process)
-        <div class="adoc-process is-terminal">
-            <div class="adoc-process-head">
-                <div>
-                    <b>{{ $process->status_label }}</b>
-                    <div class="adoc-sub">
-                        {{ $process->outcome_at?->format('M j, Y') }}
-                        @if ($process->closed_note) · {{ $process->closed_note }} @endif
-                    </div>
-                </div>
-                <div class="d-flex gap-2 align-items-center">
-                    @if ($process->in_candidate_pool)
-                        <span class="adoc-badge adoc-pool">Candidate Pool</span>
-                    @endif
-                    @if ($canReview)
-                        <form method="POST" action="{{ route('applicant.documents.completion.start', $applicant->app_id) }}">
-                            @csrf
-                            <button class="btn btn-sm btn-outline-secondary">Start a new process</button>
-                        </form>
-                    @endif
-                </div>
-            </div>
-            <div class="adoc-process-facts">
-                <div><b>{{ $process->attempts_used }} of {{ $process->max_attempts }}</b> Attempts used</div>
-                <div><b>{{ $process->deadline_at->format('M j, Y') }}</b> Deadline that applied</div>
-            </div>
-        </div>
-    @elseif ($canReview)
-        <div class="adoc-process">
-            <div class="adoc-process-head">
-                <div>
-                    <b>No document completion process running</b>
-                    <div class="adoc-sub">
-                        Start one to give the applicant a single deadline and a shared attempt limit for
-                        everything you request.
-                    </div>
-                </div>
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-process">
-                    Start document completion
-                </button>
-            </div>
-        </div>
-    @endif
+        @endforelse
+    </div>
 
     <div class="table-responsive">
         <table class="table table-sm" id="applicant-documents-table">
@@ -256,6 +246,7 @@
                                                 data-action="{{ route('applicant.documents.reject', ['id' => $document->app_id, 'document' => $document->id]) }}"
                                                 data-version="{{ $document->version_token }}"
                                                 data-type="{{ $slot['type'] }}"
+                                                data-has-request="{{ $request ? 1 : 0 }}"
                                                 data-title="{{ $slot['label'] }}">Needs replacement</button>
                                     @endif
                                 @elseif ($request)
@@ -311,75 +302,77 @@
         ]);
     @endphp
 
-    {{-- Starting the run, or changing what it allows. Both write the same two
-         numbers; which route they go to is the only difference, because a
-         deadline that already exists is only ever moved deliberately. --}}
-    <div class="modal fade" id="modal-process" tabindex="-1" aria-labelledby="modalProcessTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <form method="POST" class="modal-content"
-                  action="{{ $process && $process->is_active
-                      ? route('applicant.documents.completion.update', ['id' => $applicant->app_id, 'process' => $process->id])
-                      : route('applicant.documents.completion.start', $applicant->app_id) }}">
-                @csrf
-                <div class="modal-header">
-                    <h1 class="modal-title fs-6" id="modalProcessTitle">
-                        {{ $process && $process->is_active ? 'Change deadline or attempts' : 'Start document completion' }}
-                    </h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="adoc-sub">
-                        One deadline and one attempt limit cover every document you request. Adding another
-                        request later does not move the deadline.
-                    </p>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="processDeadlineDays">Days to complete</label>
-                        <input type="number" class="form-control form-control-sm" name="deadline_days"
-                               id="processDeadlineDays" min="1"
-                               max="{{ config('applicant_documents.completion.deadline_days_max') }}"
-                               value="{{ $process?->deadline_days ?? config('applicant_documents.completion.deadline_days') }}">
-                        <div class="form-text">
-                            Calendar days from today. Weekends count; Philippine public holidays do not.
-                        </div>
+    {{-- Starting a document process: always for one chosen, open application. --}}
+    @if ($startable->isNotEmpty())
+        <div class="modal fade" id="modal-process-start" tabindex="-1" aria-labelledby="modalProcessStartTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <form method="POST" class="modal-content"
+                      action="{{ route('applicant.documents.completion.start', $applicant->app_id) }}">
+                    @csrf
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-6" id="modalProcessStartTitle">Start document process</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="processMaxAttempts">Attempts allowed</label>
-                        <input type="number" class="form-control form-control-sm" name="max_attempts"
-                               id="processMaxAttempts" min="1"
-                               max="{{ config('applicant_documents.completion.max_attempts_max') }}"
-                               value="{{ $process?->max_attempts ?? config('applicant_documents.completion.max_attempts') }}">
-                        <div class="form-text">
-                            Shared across every document. Each rejection uses one; accepting uses none.
-                            Running out ends the process as <b>Document Requirements Not Met</b>.
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="processApplication">Application</label>
+                            <select class="form-select form-select-sm" name="application_id" id="processApplication" required>
+                                @if ($startable->count() > 1)
+                                    <option value="" selected disabled>Choose an application…</option>
+                                @endif
+                                @foreach ($startable as $application)
+                                    <option value="{{ $application->id }}">{{ $application->posting_title }}</option>
+                                @endforeach
+                            </select>
+                            <div class="form-text">The deadline and its outcome belong to this application only.</div>
                         </div>
-                    </div>
 
-                    @unless ($process && $process->is_active)
-                        @if ($documentApplications->isNotEmpty())
-                            <div class="mb-1">
-                                <label class="form-label" for="processApplication">For which application <span class="text-muted">(optional)</span></label>
-                                <select class="form-select form-select-sm" name="application_id" id="processApplication">
-                                    <option value="">Not tied to one application</option>
-                                    @foreach ($documentApplications as $applicationId => $label)
-                                        <option value="{{ $applicationId }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                                <div class="form-text">The outcome is recorded against the application you pick.</div>
+                        <div class="mb-1">
+                            <label class="form-label" for="processDeadlineDays">Days to complete</label>
+                            <input type="number" class="form-control form-control-sm" name="deadline_days"
+                                   id="processDeadlineDays" min="1" required
+                                   max="{{ config('applicant_documents.completion.deadline_days_max') }}"
+                                   value="{{ config('applicant_documents.completion.deadline_days') }}">
+                            <div class="form-text">
+                                Calendar days from today. Weekends count; Philippine public holidays do not.
+                                Adding requests later does not move the deadline.
                             </div>
-                        @endif
-                    @endunless
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-sm btn-primary">
-                        {{ $process && $process->is_active ? 'Save' : 'Start' }}
-                    </button>
-                </div>
-            </form>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Start</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
+    @endif
+
+    {{-- Changing a running process's deadline: deliberate, counted from today. --}}
+    @if ($processes->isNotEmpty())
+        <div class="modal fade" id="modal-process-deadline" tabindex="-1" aria-labelledby="modalProcessDeadlineTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <form method="POST" class="modal-content" id="processDeadlineForm">
+                    @csrf
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-6" id="modalProcessDeadlineTitle">Change deadline</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label" for="processDeadlineChange">Days to complete, from today</label>
+                        <input type="number" class="form-control form-control-sm" name="deadline_days"
+                               id="processDeadlineChange" min="1" required
+                               max="{{ config('applicant_documents.completion.deadline_days_max') }}">
+                        <div class="form-text">Weekends count; Philippine public holidays do not.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 
     <div class="modal fade" id="docRejectModal" tabindex="-1" aria-labelledby="docRejectTitle" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -401,8 +394,24 @@
                         <label class="form-label" for="docRejectNote">Note to the applicant <span class="adoc-sub" id="docRejectNoteOpt">(optional)</span></label>
                         <textarea class="form-control form-control-sm" name="note" id="docRejectNote" rows="3" maxlength="1000"></textarea>
                     </div>
+                    @if ($processes->isNotEmpty())
+                        {{-- Which application's document process a NEW request counts towards.
+                             HR chooses; with several running there is no default. --}}
+                        <div class="mb-3 js-process-choice">
+                            <label class="form-label" for="docRejectProcess">Document deadline</label>
+                            <select class="form-select form-select-sm js-process-select" name="process_id" id="docRejectProcess" @if ($processes->count() > 1) required @endif>
+                                @if ($processes->count() > 1)
+                                    <option value="" selected disabled>Choose an application…</option>
+                                @endif
+                                @foreach ($processes as $process)
+                                    <option value="{{ $process->id }}">{{ $titleOf($process->application_id) }} — due {{ $process->deadline_at->format('M j, Y') }}</option>
+                                @endforeach
+                                <option value="none">No document deadline</option>
+                            </select>
+                        </div>
+                    @endif
                     @if ($documentApplications->isNotEmpty())
-                        <div>
+                        <div class="js-application-context">
                             <label class="form-label" for="docRejectApplication">For application <span class="adoc-sub">(optional)</span></label>
                             <select class="form-select form-select-sm" name="application_id" id="docRejectApplication">
                                 <option value="">Not specific to an application</option>
@@ -437,8 +446,24 @@
                         <label class="form-label" for="docRequestNote">Note to the applicant <span class="adoc-sub">(optional)</span></label>
                         <textarea class="form-control form-control-sm" name="note" id="docRequestNote" rows="3" maxlength="1000"></textarea>
                     </div>
+                    @if ($processes->isNotEmpty())
+                        {{-- Which application's document process a NEW request counts towards.
+                             HR chooses; with several running there is no default. --}}
+                        <div class="mb-3 js-process-choice">
+                            <label class="form-label" for="docRequestProcess">Document deadline</label>
+                            <select class="form-select form-select-sm js-process-select" name="process_id" id="docRequestProcess" @if ($processes->count() > 1) required @endif>
+                                @if ($processes->count() > 1)
+                                    <option value="" selected disabled>Choose an application…</option>
+                                @endif
+                                @foreach ($processes as $process)
+                                    <option value="{{ $process->id }}">{{ $titleOf($process->application_id) }} — due {{ $process->deadline_at->format('M j, Y') }}</option>
+                                @endforeach
+                                <option value="none">No document deadline</option>
+                            </select>
+                        </div>
+                    @endif
                     @if ($documentApplications->isNotEmpty())
-                        <div>
+                        <div class="js-application-context">
                             <label class="form-label" for="docRequestApplication">For application <span class="adoc-sub">(optional)</span></label>
                             <select class="form-select form-select-sm" name="application_id" id="docRequestApplication">
                                 <option value="">Not specific to an application</option>
@@ -505,6 +530,50 @@
             });
 
             $('#docRejectReason').on('change', syncReason);
+
+            // The process picker only matters when a NEW request is created. An
+            // existing request keeps the process it already belongs to. The
+            // optional application context only applies to a request that is
+            // not part of any document process.
+            function syncProcessChoice(form) {
+                const select = form.find('.js-process-select');
+                const choice = form.find('.js-process-choice');
+                const context = form.find('.js-application-context');
+
+                // The picker's OWN display, not :hidden — this runs as the dialog
+                // is being opened, when everything inside it still counts as
+                // hidden. Only the replacement dialog hides the picker itself.
+                if (!select.length || choice[0].style.display === 'none') {
+                    context.show();
+                    return;
+                }
+
+                const none = select.val() === 'none';
+                context.toggle(none);
+                if (!none) context.find('select').val('');
+            }
+
+            $('.js-process-select').on('change', function () {
+                syncProcessChoice($(this).closest('form'));
+            });
+
+            $('.js-reject').on('click', function () {
+                const form = $('#docRejectForm');
+                const keepsRequest = Number($(this).data('hasRequest')) === 1;
+                form.find('.js-process-choice').toggle(!keepsRequest);
+                form.find('.js-process-select').prop('disabled', keepsRequest);
+                syncProcessChoice(form);
+            });
+
+            $('.js-request').on('click', function () {
+                syncProcessChoice($('#docRequestModal form'));
+            });
+
+            $('.js-change-deadline').on('click', function () {
+                $('#processDeadlineForm').attr('action', $(this).data('action'));
+                $('#modalProcessDeadlineTitle').text('Change deadline — ' + $(this).data('title'));
+                $('#processDeadlineChange').val($(this).data('days'));
+            });
 
             $('.js-request').on('click', function () {
                 $('#docRequestType').val($(this).data('type'));

@@ -67,15 +67,15 @@ class ApplicantDocumentReview
             ->unique(fn ($d) => $d->app_id . '|' . $d->doc_type)
             ->keyBy(fn ($d) => $d->app_id . '|' . $d->doc_type);
 
-        // The completion run each applicant is in, if any (M3). The active one
-        // wins; otherwise the most recent outcome, which is what keeps a
-        // non-progressing candidate visible instead of losing them.
-        $processes = $appIds->isEmpty() ? collect() : ApplicantDocumentProcess::whereIn('app_id', $appIds)
-            ->orderByRaw("status = '" . ApplicantDocumentProcess::ACTIVE . "' DESC")
-            ->orderByDesc('id')
+        // The document processes currently running, one per application (M3).
+        // Candidate Pool is not part of this summary: it belongs to each
+        // application, not to the applicant.
+        $processes = $appIds->isEmpty() ? collect() : ApplicantDocumentProcess::with('application')
+            ->whereIn('app_id', $appIds)
+            ->active()
+            ->orderBy('deadline_at')
             ->get()
-            ->unique('app_id')
-            ->keyBy('app_id');
+            ->groupBy('app_id');
 
         $requests = $appIds->isEmpty() ? collect() : ApplicantDocumentRequest::whereIn('app_id', $appIds)
             ->whereIn('doc_type', $types)
@@ -88,7 +88,6 @@ class ApplicantDocumentReview
         $out = [];
 
         foreach ($appIds as $appId) {
-            $process = $processes->get($appId);
             $slots = collect($types)->map(function ($type) use ($appId, $documents, $requests, $required) {
                 $document = $documents->get($appId . '|' . $type);
 
@@ -114,8 +113,7 @@ class ApplicantDocumentReview
                 'pending' => $slots->where('state', 'pending')->count(),
                 'rejected' => $slots->where('state', 'rejected')->count(),
                 'open_requests' => $slots->filter(fn ($s) => $s['request'])->count(),
-                'process' => $process,
-                'in_candidate_pool' => (bool) $process?->in_candidate_pool,
+                'processes' => $processes->get($appId, collect())->values(),
             ];
         }
 
@@ -136,13 +134,17 @@ class ApplicantDocumentReview
             ]);
 
             // What HR asked for has arrived and is acceptable.
-            ApplicantDocumentRequest::where('app_id', $current->app_id)
+            $answered = ApplicantDocumentRequest::where('app_id', $current->app_id)
                 ->where('doc_type', $current->doc_type)
-                ->active()
-                ->update(['status' => 'closed', 'closed_by' => $empno, 'closed_at' => now()]);
+                ->active();
 
-            // Accepting costs no attempt, but it can finish the run (M3).
-            DocumentCompletion::settleAcceptance($current->app_id, $empno);
+            $processIds = (clone $answered)->whereNotNull('process_id')->pluck('process_id')->all();
+
+            $answered->update(['status' => 'closed', 'closed_by' => $empno, 'closed_at' => now()]);
+
+            // Accepting can finish the document process those requests belonged
+            // to. It never costs anything (M3).
+            DocumentCompletion::settle($processIds);
         });
     }
 
@@ -156,7 +158,8 @@ class ApplicantDocumentReview
         string $reason,
         ?string $note,
         ?int $applicationId,
-        string $empno
+        string $empno,
+        ?string $processChoice = null
     ): void {
         if (!array_key_exists($reason, self::reasonsFor($document->doc_type))) {
             throw ValidationException::withMessages(['reason' => 'That reason does not apply to this document.']);
@@ -166,7 +169,7 @@ class ApplicantDocumentReview
             throw ValidationException::withMessages(['note' => 'Please explain in the note — the applicant will see it.']);
         }
 
-        self::inLock($document->app_id, function () use ($document, $versionToken, $reason, $note, $applicationId, $empno) {
+        self::inLock($document->app_id, function () use ($document, $versionToken, $reason, $note, $applicationId, $empno, $processChoice) {
             $current = self::currentOrFail($document, $versionToken);
             self::assertApplicationBelongs($applicationId, $current->app_id);
 
@@ -184,39 +187,45 @@ class ApplicantDocumentReview
                 ->first();
 
             if ($active) {
+                // The request HR already made stays where it is, in whichever
+                // document process it belongs to. A rejection costs nothing and
+                // never moves that process's deadline (M3).
                 $active->update([
                     'kind' => 'replacement',
                     'status' => 'open',
-                    'application_id' => $applicationId ?? $active->application_id,
+                    'application_id' => $active->process_id ? $active->application_id : ($applicationId ?? $active->application_id),
                 ]);
-                DocumentCompletion::attach($active);
             } else {
-                $created = ApplicantDocumentRequest::create([
+                $process = DocumentCompletion::resolveChoice($current->app_id, $processChoice);
+
+                ApplicantDocumentRequest::create([
                     'app_id' => $current->app_id,
-                    'application_id' => $applicationId,
+                    'application_id' => $process ? $process->application_id : $applicationId,
+                    'process_id' => $process?->id,
                     'doc_type' => $current->doc_type,
                     'kind' => 'replacement',
                     'status' => 'open',
                     'requested_by' => $empno,
                     'requested_at' => now(),
                 ]);
-                DocumentCompletion::attach($created);
             }
-
-            // A rejection spends one of the run's shared attempts, and ends the
-            // run there and then if that was the last one (M3).
-            DocumentCompletion::countRejection($current->app_id, $empno);
         });
     }
 
     /** Asks for a document the applicant has not sent at all. */
-    public static function requestMissing(int $appId, string $type, ?string $note, ?int $applicationId, string $empno): void
-    {
+    public static function requestMissing(
+        int $appId,
+        string $type,
+        ?string $note,
+        ?int $applicationId,
+        string $empno,
+        ?string $processChoice = null
+    ): void {
         if (!in_array($type, self::types(), true)) {
             throw ValidationException::withMessages(['doc_type' => 'That document type is not requested at this stage.']);
         }
 
-        self::inLock($appId, function () use ($appId, $type, $note, $applicationId, $empno) {
+        self::inLock($appId, function () use ($appId, $type, $note, $applicationId, $empno, $processChoice) {
             self::assertApplicationBelongs($applicationId, $appId);
 
             $onFile = ApplicantDocument::where('app_id', $appId)->where('doc_type', $type)->exists();
@@ -233,9 +242,14 @@ class ApplicantDocumentReview
                 throw ValidationException::withMessages(['doc_type' => 'This document has already been requested.']);
             }
 
-            $created = ApplicantDocumentRequest::create([
+            // Which application's document process this is for, when HR chose
+            // one. Asking for one more document never moves its deadline (M3).
+            $process = DocumentCompletion::resolveChoice($appId, $processChoice);
+
+            ApplicantDocumentRequest::create([
                 'app_id' => $appId,
-                'application_id' => $applicationId,
+                'application_id' => $process ? $process->application_id : $applicationId,
+                'process_id' => $process?->id,
                 'doc_type' => $type,
                 'kind' => 'missing',
                 'note' => $note,
@@ -243,10 +257,6 @@ class ApplicantDocumentReview
                 'requested_by' => $empno,
                 'requested_at' => now(),
             ]);
-
-            // Joins the run in progress, if there is one. Asking for one more
-            // document never moves the run's deadline (M3).
-            DocumentCompletion::attach($created);
         });
     }
 

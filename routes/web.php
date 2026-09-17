@@ -319,6 +319,15 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'index'])->name('index');
         Route::get('/data', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'data'])->name('data');
+
+        // Decisions on ONE application (HireFlow 2.5 · M3). Each closes only the
+        // application in the URL.
+        Route::post('/applications/{application}/withdraw', [\App\Http\Controllers\Applicant\ApplicantApplicationController::class, 'withdraw'])
+            ->whereNumber('application')
+            ->middleware('can:applicant-applications.decide')->name('withdraw');
+        Route::post('/applications/{application}/not-selected', [\App\Http\Controllers\Applicant\ApplicantApplicationController::class, 'notSelected'])
+            ->whereNumber('application')
+            ->middleware('can:applicant-applications.decide')->name('not-selected');
     });
 
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);

@@ -74,23 +74,24 @@ return [
     /*
     | Document completion (HireFlow 2.5, Milestone 3).
     |
-    | One run at collecting an applicant's outstanding documents. Every request
-    | in the run shares one deadline and one attempt counter — there is no
-    | per-document deadline and no per-document attempt count.
+    | A document process is one APPLICATION's document gate: a deadline for the
+    | requests HR attaches to it, and an outcome. The documents and requests
+    | themselves stay with the applicant and are reusable across applications.
     |
-    | These are the defaults HR is offered. What HR actually chooses is stored
-    | on the run itself, so changing a default here never moves a deadline an
-    | applicant has already been given.
+    | There is no attempt counter. A rejection reopens the request and costs
+    | nothing; the process is driven by its requirements and its deadline.
+    |
+    | The default below is what HR is offered. What HR chooses is stored on the
+    | process, so changing it here never moves a deadline already given.
+    |
+    | What an application's STATUS means (closed, Candidate Pool, cooldown) is
+    | defined once, in config/applications.php — not here.
     */
     'completion' => [
 
         /* Calendar days: weekends count, Philippine public holidays do not. */
         'deadline_days' => 7,
         'deadline_days_max' => 60,
-
-        /* Rejections allowed across the whole run. */
-        'max_attempts' => 3,
-        'max_attempts_max' => 20,
 
         /*
         | Which rows of tngc_hrd2.tbl_holiday stop the clock. '#all' is the
@@ -101,29 +102,21 @@ return [
         */
         'holiday_scope' => '#all',
 
-        'statuses' => [
-            'active'               => 'In progress',
-            'complete'             => 'Complete',
-            'non_responsive'       => 'Non-Responsive',
-            'requirements_not_met' => 'Document Requirements Not Met',
-            'withdrawn'            => 'Withdrawn',
-        ],
-
-        /* The outcomes that retain the candidate rather than progressing them. */
-        'pool_statuses' => ['non_responsive', 'requirements_not_met', 'withdrawn'],
-
         /*
-        | What the outcome is written as in tblapp_applications.status, which
-        | both systems read. Kept apart from the display labels above, and
-        | identical to the same map in zen-applicants/config/documents.php:
-        | whichever app closes a run, the application ends up saying the same
-        | thing. Values are stored, so changing one orphans existing rows.
+        | tblapp_document_processes.status. Stored values.
+        |
+        |   active          waiting on the requests attached to it
+        |   complete        every attached request was accepted
+        |   non_responsive  the deadline passed with requests unresolved
+        |   withdrawn       its application was withdrawn
+        |   not_selected    its application was marked Not Selected
         */
-        'application_status' => [
-            'complete'             => 'Documents Complete',
-            'non_responsive'       => 'Non-Responsive',
-            'requirements_not_met' => 'Document Requirements Not Met',
-            'withdrawn'            => 'Withdrawn',
+        'statuses' => [
+            'active'         => 'In progress',
+            'complete'       => 'Complete',
+            'non_responsive' => 'Non-Responsive',
+            'withdrawn'      => 'Withdrawn',
+            'not_selected'   => 'Not Selected',
         ],
     ],
 

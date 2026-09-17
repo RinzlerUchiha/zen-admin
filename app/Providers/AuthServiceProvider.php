@@ -40,5 +40,14 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('applicant-documents.review', fn (User $user) => $user->userAccess('eappprofile', 'view')
             && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire')));
+
+        /*
+        | Deciding on one application (HireFlow 2.5 · M3): withdrawing it on the
+        | applicant's behalf, or marking it Not Selected. Again no new
+        | permission — the same eappprofile rights as reviewing documents, since
+        | both are HR's recruitment decisions about this applicant.
+        */
+        Gate::define('applicant-applications.decide', fn (User $user) => $user->userAccess('eappprofile', 'view')
+            && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire')));
     }
 }

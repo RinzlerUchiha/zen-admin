@@ -57,10 +57,49 @@
         color: #5B6474;
     }
 
-    /* The only status tblapp_applications currently stores. */
+    /* Application statuses (config/applications.php). The three ways an
+       application ends are coloured apart: the applicant's own decision, a
+       missed document deadline, and HR's decision. */
     .ai-chip-applied {
         background: #E8F0FE;
         color: #1B4FB0;
+    }
+
+    .ai-chip-docs-complete {
+        background: #E1F5EE;
+        color: #085041;
+    }
+
+    .ai-chip-withdrawn {
+        background: #F1F2F5;
+        color: #4A5160;
+    }
+
+    .ai-chip-nonresponsive {
+        background: #FFF4E0;
+        color: #7A4B00;
+    }
+
+    .ai-chip-notselected {
+        background: #FAECE7;
+        color: #712B13;
+    }
+
+    .ai-chip-pool {
+        background: #EFEAF7;
+        color: #4A2E7A;
+    }
+
+    .ai-closure {
+        font-size: 11px;
+        color: #8A93A3;
+        margin-top: 3px;
+        max-width: 42ch;
+    }
+
+    .ai-actions .btn {
+        font-size: 11.5px;
+        padding: 1px 8px;
     }
 
     /* Any status not in the map renders neutral rather than borrowing
@@ -337,7 +376,14 @@
         <h5>Applicant Intake</h5>
     </div>
 
-    <div id="ai-alert"></div>
+    <div id="ai-alert">
+        @if (session('success'))
+            <div class="alert alert-success py-2">{{ session('success') }}</div>
+        @endif
+        @if ($errors->any())
+            <div class="alert alert-danger py-2">{{ $errors->first() }}</div>
+        @endif
+    </div>
 
     <div class="ai-table-card">
         <table id="applicant-intake-table" class="table table-sm table-bordered table-hover table-striped"
@@ -360,12 +406,106 @@
     </div>
 </div>
 
+@can('applicant-applications.decide')
+    {{-- HR's decisions on ONE application. Each closes only the application named
+         here; the applicant's other applications, profile and documents carry on. --}}
+    <div class="modal fade" id="aiDecideModal" tabindex="-1" aria-labelledby="aiDecideTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="POST" class="modal-content" id="aiDecideForm">
+                @csrf
+                <div class="modal-header">
+                    <h1 class="modal-title fs-6" id="aiDecideTitle">Decide</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="font-size:13px">
+                    <p class="mb-2 fw-semibold" id="aiDecideWho"></p>
+
+                    <p class="text-muted mb-3" id="aiDecideWithdrawHelp">
+                        Use this when the applicant has asked to withdraw this application. It closes this
+                        application only, with no waiting period — they can apply to this posting again while it
+                        is open. It is recorded as withdrawn by you on their behalf.
+                    </p>
+                    <p class="text-muted mb-3" id="aiDecideNotSelectedHelp" hidden>
+                        HR's decision not to proceed with this application. It closes this application only and
+                        starts a <b>{{ (int) (config('applications.cooldowns')['Not Selected']['months'] ?? 0) }}-month waiting period before they can apply to this same posting again</b>.
+                        Their other applications, and other postings, are not affected.
+                    </p>
+
+                    <label class="form-label" for="aiDecideNote">Note <span class="text-muted">(optional, kept with the application)</span></label>
+                    <textarea class="form-control form-control-sm" name="note" id="aiDecideNote" rows="3" maxlength="1000"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-secondary" id="aiDecideSubmit">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+@endcan
+
 <script>
-    // Statuses tblapp_applications actually stores today. Anything else
+    // Every application status (config/applications.php). Anything else
     // renders neutral instead of borrowing another status's colour.
     const STATUS_CLASS = {
-        'Applied': 'ai-chip-applied'
+        'Applied': 'ai-chip-applied',
+        'Documents Complete': 'ai-chip-docs-complete',
+        'Withdrawn': 'ai-chip-withdrawn',
+        'Non-Responsive': 'ai-chip-nonresponsive',
+        'Not Selected': 'ai-chip-notselected'
     };
+
+    // HR may withdraw an application for the applicant, or mark it Not
+    // Selected (eappprofile view + directedit or hire). Enforced again on the
+    // routes; this only decides whether to show the buttons.
+    const CAN_DECIDE = @json(Gate::allows('applicant-applications.decide'));
+    const DECIDE_URL = {
+        withdraw: @json(route('recruitment.applicant-intake.withdraw', ['application' => '__ID__'])),
+        notSelected: @json(route('recruitment.applicant-intake.not-selected', ['application' => '__ID__']))
+    };
+
+    function shortDate(value) {
+        return value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) : '';
+    }
+
+    // What happened to a closed application, in HR's terms.
+    function closureLine(app) {
+        if (!app.is_closed) return '';
+
+        let what;
+        if (app.status === 'Withdrawn') {
+            what = app.closed_by ? 'Withdrawn by HR (' + app.closed_by + ') for the applicant' : 'Withdrawn by the applicant';
+        } else if (app.status === 'Non-Responsive') {
+            what = 'Document deadline passed with requests outstanding';
+        } else if (app.status === 'Not Selected') {
+            what = 'Not Selected by ' + (app.closed_by || 'HR');
+        } else {
+            what = 'Closed';
+        }
+
+        let html = '<div class="ai-closure">' + esc(what + ' · ' + shortDate(app.closed_at)) + '</div>';
+        if (app.reapply_on) {
+            html += '<div class="ai-closure">' + esc('May apply to this posting again from ' + shortDate(app.reapply_on)) + '</div>';
+        }
+        // A person's note is shown. The deadline job's own note only repeats the
+        // line above, so it is left out.
+        const systemNote = app.status === 'Non-Responsive' && !app.closed_by;
+        if (app.closed_note && !systemNote) {
+            html += '<div class="ai-closure">\u201C' + esc(app.closed_note) + '\u201D</div>';
+        }
+        return html;
+    }
+
+    function decisionButtons(app) {
+        if (!CAN_DECIDE || app.is_closed) return '';
+
+        const data = ' data-id="' + esc(app.id) + '" data-title="' + esc(app.posting_title) +
+            '" data-mr="' + esc(app.mr_no) + '" data-name="' + esc(app.applicant_name) + '"';
+
+        return '<span class="ai-actions d-inline-flex gap-1 me-2">' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary js-decide" data-action="withdraw"' + data + '>Withdraw</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger js-decide" data-action="notSelected"' + data + '>Not Selected</button>' +
+            '</span>';
+    }
 
     // Single place that turns a status string into a chip, used by both the
     // parent row summary and the expanded child table.
@@ -387,11 +527,16 @@
 
         let rows = applicant.applications.map(app => `
             <tr>
-                <td>${new Date(app.applied_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' })}</td>
+                <td>${shortDate(app.applied_at)}</td>
                 <td>${esc(app.posting_title)}</td>
                 <td>${esc(app.mr_no)}</td>
-                <td>${statusChip(app.status)}</td>
-                <td class="text-end">
+                <td>
+                    ${statusChip(app.status)}
+                    ${app.in_candidate_pool ? '<span class="ai-chip ai-chip-pool" title="Retained for this application">Candidate Pool</span>' : ''}
+                    ${closureLine(app)}
+                </td>
+                <td class="text-end text-nowrap">
+                    ${decisionButtons(Object.assign({ applicant_name: applicant.applicant_name }, app))}
                     <a href="${baseUrl}/applicant/info/${app.app_id}" class="ai-view-link">View</a>
                 </td>
             </tr>
@@ -534,6 +679,27 @@
                 '<div class="alert alert-danger">Could not load applications. ' +
                 'Please refresh the page — if it keeps happening, your session may have expired.</div>'
             );
+        });
+
+        // One dialog for both decisions, filled from the button pressed, so the
+        // application being decided is always named in it.
+        $('#applicant-intake-table').on('click', '.js-decide', function () {
+            const btn = $(this);
+            const action = btn.data('action');
+            const notSelected = action === 'notSelected';
+
+            $('#aiDecideForm').attr('action', DECIDE_URL[action].replace('__ID__', encodeURIComponent(btn.data('id'))));
+            $('#aiDecideTitle').text((notSelected ? 'Mark Not Selected — ' : 'Withdraw application — ') + btn.data('title'));
+            $('#aiDecideWho').text(btn.data('name') + ' · ' + btn.data('title') + ' · ' + btn.data('mr'));
+            $('#aiDecideWithdrawHelp').prop('hidden', notSelected);
+            $('#aiDecideNotSelectedHelp').prop('hidden', !notSelected);
+            $('#aiDecideSubmit')
+                .text(notSelected ? 'Mark Not Selected' : 'Withdraw application')
+                .toggleClass('btn-danger', notSelected)
+                .toggleClass('btn-secondary', !notSelected);
+            $('#aiDecideNote').val('');
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('aiDecideModal')).show();
         });
 
         $('#applicant-intake-table tbody').on('click', 'td.dt-control', function() {
