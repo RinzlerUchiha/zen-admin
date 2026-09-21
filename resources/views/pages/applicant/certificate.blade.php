@@ -8,8 +8,8 @@
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #6c757d;
-        border-bottom: 1px solid #dee2e6;
+        color: var(--zn-ink-3);
+        border-bottom: 1px solid var(--zn-line);
         white-space: nowrap;
     }
 
@@ -29,7 +29,7 @@
     .cert-empty-state {
         padding: 2.5rem 1rem;
         text-align: center;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
     .cert-empty-state i {
         font-size: 2rem;
@@ -41,7 +41,7 @@
     /* ── Card wrapper ── */
     #certificate-list-card .card-header {
         background: transparent;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--zn-line);
         padding: 0.75rem 1rem;
         display: flex;
         align-items: center;
@@ -55,11 +55,11 @@
 
     /* ── Mobile card view ── */
     .cert-card-mobile {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 14px 16px;
         margin-bottom: 10px;
-        background: #fff;
+        background: var(--zn-surface);
     }
     .cert-card-mobile-header {
         margin-bottom: 10px;
@@ -70,7 +70,7 @@
     }
     .cert-card-mobile-body {
         font-size: 13px;
-        border-top: 1px solid #dee2e6;
+        border-top: 1px solid var(--zn-line);
         padding-top: 10px;
         display: flex;
         flex-direction: column;
@@ -80,7 +80,7 @@
         font-size: 14px;
         vertical-align: -2px;
         margin-right: 6px;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
 </style>
 @endpush

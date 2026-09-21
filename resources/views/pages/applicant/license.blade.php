@@ -11,9 +11,9 @@
         font-weight: 500;
         white-space: nowrap;
     }
-    .lic-badge-valid   { background: #E1F5EE; color: #085041; }
-    .lic-badge-expired { background: #FAECE7; color: #712B13; }
-    .lic-badge-unknown { background: #F1EFE8; color: #444441; }
+    .lic-badge-valid   { background: var(--zn-ok-soft); color: var(--zn-ok); }
+    .lic-badge-expired { background: var(--zn-warn-soft); color: var(--zn-warn); }
+    .lic-badge-unknown { background: var(--zn-surface-2); color: var(--zn-ink-2); }
 
     /* ── Table header (matches family) ── */
     #license-list-table thead th {
@@ -21,8 +21,8 @@
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #6c757d;
-        border-bottom: 1px solid #dee2e6;
+        color: var(--zn-ink-3);
+        border-bottom: 1px solid var(--zn-line);
         white-space: nowrap;
     }
 
@@ -42,7 +42,7 @@
     .lic-empty-state {
         padding: 2.5rem 1rem;
         text-align: center;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
     .lic-empty-state i {
         font-size: 2rem;
@@ -54,7 +54,7 @@
     /* ── Card wrapper ── */
     #license-list-card .card-header {
         background: transparent;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--zn-line);
         padding: 0.75rem 1rem;
         display: flex;
         align-items: center;
@@ -68,11 +68,11 @@
 
     /* ── Mobile card view ── */
     .lic-card-mobile {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 14px 16px;
         margin-bottom: 10px;
-        background: #fff;
+        background: var(--zn-surface);
     }
     .lic-card-mobile-header {
         display: flex;
@@ -86,7 +86,7 @@
     }
     .lic-card-mobile-body {
         font-size: 13px;
-        border-top: 1px solid #dee2e6;
+        border-top: 1px solid var(--zn-line);
         padding-top: 10px;
         display: flex;
         flex-direction: column;
@@ -96,7 +96,7 @@
         font-size: 14px;
         vertical-align: -2px;
         margin-right: 6px;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
 </style>
 @endpush

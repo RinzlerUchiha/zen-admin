@@ -6,11 +6,14 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantPersonal;
 use App\Models\Applicant\ApplicantApplication;
+use App\Models\Applicant\ApplicantAssessmentAttempt;
 use App\Models\Applicant\InterviewDeets;
 use App\Models\Employee;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\Recruitment\ApplicantDocumentReview;
+use App\Services\Recruitment\AssessmentAccessCodes;
+use App\Services\Recruitment\AssessmentResults;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -113,6 +116,12 @@ class ApplicantProfileController extends Controller
             // 'position_list' => Setting::positionList(),
             // 'employment_status' => Setting::emplStatusList()
         ];
+
+        // Where each assessment stands, for the menu and the result tab's header.
+        if ($applicant) {
+            $params['assessmentResults'] = AssessmentResults::summaries((int) $applicant->app_id);
+            $params['assessmentSummary'] = $params['assessmentResults']->firstWhere('tab', $tab);
+        }
 
         if ($tab == 'personal') {
             $params['provinceList'] = DB::table('tbl_province')->get();
@@ -366,6 +375,11 @@ class ApplicantProfileController extends Controller
                     ->groupBy('difficulty')
                     ->map(fn($grp) => $grp->where('isCorrect', true)->count())
             ];
+        }
+
+        if ($tab == 'assessment-access') {
+            $params['assessmentAttempts'] = ApplicantAssessmentAttempt::where('app_id', $id)->get()->keyBy('assessment');
+            $params['assessmentAccess'] = AssessmentAccessCodes::latest((int) $id);
         }
 
         if ($tab == 'interview-details') {

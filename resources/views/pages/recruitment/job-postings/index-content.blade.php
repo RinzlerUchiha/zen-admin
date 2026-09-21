@@ -8,17 +8,17 @@
 
     .jp-page-head h5 {
         font-weight: 800;
-        color: #1F2430;
+        color: var(--zn-ink);
         letter-spacing: -.2px;
         margin: 0;
     }
 
     /* ===== Eligible positions — capsule layout ===== */
     .jp-eligible-card {
-        border: 1px solid #E7E9EE;
-        border-radius: 14px;
-        background: #fff;
-        box-shadow: 0 1px 3px rgba(31, 36, 48, .04);
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface);
+        box-shadow: 0 1px 3px rgba(32, 26, 22,.04);
         padding: 18px 20px;
         margin-bottom: 22px;
         max-height: 420px;
@@ -38,9 +38,9 @@
     }
 
     .jp-mr-group {
-        border: 1px solid #E7E9EE;
-        border-radius: 12px;
-        background: #FAFBFC;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface-2);
         padding: 12px 14px;
     }
 
@@ -49,12 +49,12 @@
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
-        color: #8A93A3;
+        color: var(--zn-ink-3);
         margin-bottom: 8px;
     }
 
     .jp-mr-label .mr-no {
-        color: #1B4FB0;
+        color: var(--zn-accent-dark);
         font-weight: 800;
         letter-spacing: 0;
         text-transform: none;
@@ -73,17 +73,17 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        border: 1px solid #E7E9EE;
+        border: 1px solid var(--zn-line);
         border-radius: 999px;
-        background: #FAFBFC;
+        background: var(--zn-surface-2);
         padding: 4px 4px 4px 12px;
         width: 100%;
         transition: border-color .15s ease, box-shadow .15s ease;
     }
 
     .jp-capsule:hover {
-        border-color: #C7D8F7;
-        box-shadow: 0 1px 6px rgba(31, 36, 48, .06);
+        border-color: var(--zn-line-2);
+        box-shadow: 0 1px 6px rgba(32, 26, 22,.06);
     }
 
     .jp-capsule-text {
@@ -92,7 +92,7 @@
         flex: 1;
         min-width: 0;
         font-size: 11.5px;
-        color: #1F2430;
+        color: var(--zn-ink);
     }
 
     .jp-capsule-title {
@@ -110,7 +110,7 @@
     }
 
     .jp-capsule-meta .sep {
-        color: #C7CBD3;
+        color: var(--zn-line-2);
         margin: 0 4px;
     }
 
@@ -121,27 +121,27 @@
     }
 
     .jp-capsule-meta .jp-type-additional {
-        color: #1B4FB0;
+        color: var(--zn-accent-dark);
     }
 
     .jp-capsule-meta .jp-type-replacement {
-        color: #6A4FE0;
+        color: var(--zn-accent-dark);
     }
 
     .jp-capsule-meta .headcount {
-        color: #8A93A3;
+        color: var(--zn-ink-3);
     }
 
     .jp-btn-create-mini {
         border: none;
         border-radius: 999px;
-        background: linear-gradient(135deg, #2F6FE4, #1B4FB0);
-        color: #fff;
+        background: linear-gradient(135deg, var(--zn-accent), var(--zn-accent-dark));
+        color: var(--zn-on-accent);
         font-weight: 700;
         font-size: 10.5px;
         padding: 5px 12px;
         white-space: nowrap;
-        box-shadow: 0 2px 6px rgba(27, 79, 176, .22);
+        box-shadow: 0 2px 6px rgba(93, 37, 2,.22);
         transition: filter .15s ease, transform .15s ease;
     }
 
@@ -153,10 +153,10 @@
     .jp-empty-state {
         text-align: center;
         padding: 40px 20px;
-        color: #B0B6C0;
-        background: #fff;
-        border: 1px dashed #E7E9EE;
-        border-radius: 14px;
+        color: var(--zn-ink-3);
+        background: var(--zn-surface);
+        border: 1px dashed var(--zn-line);
+        border-radius: var(--zn-radius-lg);
     }
 
     .jp-empty-state i {
@@ -186,18 +186,18 @@
     }
 
     .jp-status-draft {
-        background: #F1F2F5;
-        color: #5B6474;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
     }
 
     .jp-status-published {
-        background: #E7F6EC;
-        color: #1E9E4C;
+        background: var(--zn-ok-soft);
+        color: var(--zn-ok);
     }
 
     .jp-status-closed {
-        background: #EAEBEF;
-        color: #2B303B;
+        background: var(--zn-lock-soft);
+        color: var(--zn-ink);
     }
 
     /* ===== Section divider ===== */
@@ -208,22 +208,22 @@
         margin: 8px 0 14px;
         font-weight: 700;
         font-size: 13px;
-        color: #1F2430;
+        color: var(--zn-ink);
     }
 
     .jp-section-divider .dot {
         width: 9px;
         height: 9px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #2F6FE4, #1B4FB0);
-        box-shadow: 0 0 0 3px #E8F0FE;
+        background: linear-gradient(135deg, var(--zn-accent), var(--zn-accent-dark));
+        box-shadow: 0 0 0 3px var(--zn-accent-soft);
     }
 
     .jp-section-divider::after {
         content: '';
         flex: 1;
         height: 1px;
-        background: #F1F2F5;
+        background: var(--zn-surface-2);
     }
 
     .jp-eligible-card::-webkit-scrollbar {
@@ -235,21 +235,21 @@
     }
 
     .jp-eligible-card::-webkit-scrollbar-thumb {
-        background: #E1E4EA;
-        border-radius: 8px;
+        background: var(--zn-line);
+        border-radius: var(--zn-radius-lg);
     }
 
     .jp-eligible-card::-webkit-scrollbar-thumb:hover {
-        background: #C7CBD3;
+        background: var(--zn-line-2);
     }
 
     /* ===== Existing postings table ===== */
     .jp-table-card {
-        border: 1px solid #E7E9EE;
-        border-radius: 12px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(31, 36, 48, .04);
-        background: #fff;
+        box-shadow: 0 2px 8px rgba(32, 26, 22,.04);
+        background: var(--zn-surface);
     }
 
     table.jp-list-table {
@@ -264,19 +264,19 @@
         font-weight: 700;
         letter-spacing: .03em;
         text-transform: uppercase;
-        color: #8A93A3;
+        color: var(--zn-ink-3);
         padding: 12px 16px;
-        background: #F5F6F9;
-        border-bottom: 1px solid #E7E9EE;
+        background: var(--zn-bg);
+        border-bottom: 1px solid var(--zn-line);
         text-align: left;
         white-space: nowrap;
     }
 
     table.jp-list-table tbody td {
         padding: 12px 16px;
-        border-bottom: 1px solid #F1F2F5;
+        border-bottom: 1px solid var(--zn-surface-2);
         vertical-align: middle;
-        color: #1F2430;
+        color: var(--zn-ink);
     }
 
     table.jp-list-table tbody tr:last-child td {
@@ -289,25 +289,25 @@
     }
 
     table.jp-list-table tbody tr.jp-row-link:hover {
-        background: #FAFBFF;
+        background: var(--zn-accent-soft);
     }
 
     .jp-row-chevron {
-        color: #C7CBD3;
+        color: var(--zn-line-2);
         font-size: 11px;
         transition: color .15s ease, transform .15s ease;
     }
 
     table.jp-list-table tbody tr.jp-row-link:hover .jp-row-chevron {
-        color: #1B4FB0;
+        color: var(--zn-accent-dark);
         transform: translateX(3px);
     }
 
     /* ===== Create Posting modal polish ===== */
     #modal-create-posting .modal-content {
-        border-radius: 16px;
+        border-radius: var(--zn-radius-lg);
         border: none;
-        box-shadow: 0 12px 32px rgba(31, 36, 48, .16);
+        box-shadow: 0 12px 32px rgba(32, 26, 22,.16);
         overflow: hidden;
     }
 
@@ -319,7 +319,7 @@
     #modal-create-posting .modal-title {
         font-size: 18px;
         font-weight: 800;
-        color: #1F2430;
+        color: var(--zn-ink);
         letter-spacing: -.2px;
     }
 
@@ -328,8 +328,8 @@
     }
 
     #modal-create-posting .modal-footer {
-        border-top: 1px solid #F1F2F5;
-        background: #FAFBFC;
+        border-top: 1px solid var(--zn-surface-2);
+        background: var(--zn-surface-2);
         padding: 14px 26px;
     }
 
@@ -338,21 +338,21 @@
         font-weight: 700;
         letter-spacing: .05em;
         text-transform: uppercase;
-        color: #8A93A3;
+        color: var(--zn-ink-3);
     }
 
     #modal-create-posting .form-control {
-        border-radius: 9px;
-        border: 1px solid #E7E9EE;
+        border-radius: var(--zn-radius-lg);
+        border: 1px solid var(--zn-line);
     }
 
     #modal-create-posting .form-control:focus {
-        border-color: #9FB8ED;
-        box-shadow: 0 0 0 3px #E8F0FE;
+        border-color: var(--zn-accent);
+        box-shadow: 0 0 0 3px var(--zn-accent-soft);
     }
 
     #alert-box .alert {
-        border-radius: 10px;
+        border-radius: var(--zn-radius-lg);
         border: none;
         font-size: 13px;
     }
@@ -361,7 +361,7 @@
     .jp-panel-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(31, 36, 48, .35);
+        background: rgba(32, 26, 22,.35);
         z-index: 1050;
         opacity: 0;
         pointer-events: none;
@@ -380,8 +380,8 @@
         height: 100%;
         width: 420px;
         max-width: 92vw;
-        background: #fff;
-        box-shadow: -12px 0 32px rgba(31, 36, 48, .16);
+        background: var(--zn-surface);
+        box-shadow: -12px 0 32px rgba(32, 26, 22,.16);
         z-index: 1051;
         transform: translateX(100%);
         transition: transform .25s ease, width .2s ease;
@@ -415,20 +415,20 @@
         align-items: flex-start;
         gap: 12px;
         padding: 22px 24px 16px;
-        border-bottom: 1px solid #F1F2F5;
+        border-bottom: 1px solid var(--zn-surface-2);
     }
 
     .jp-panel-head h6 {
         font-weight: 800;
         font-size: 16px;
-        color: #1F2430;
+        color: var(--zn-ink);
         margin: 0 0 8px;
     }
 
     .jp-panel-close {
         border: none;
-        background: #F1F2F5;
-        color: #5B6474;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
         width: 30px;
         height: 30px;
         border-radius: 50%;
@@ -440,8 +440,8 @@
     }
 
     .jp-panel-close:hover {
-        background: #E8F0FE;
-        color: #1B4FB0;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
     }
 
     .jp-panel-body {
@@ -472,18 +472,18 @@
         font-weight: 700;
         letter-spacing: .05em;
         text-transform: uppercase;
-        color: #8A93A3;
+        color: var(--zn-ink-3);
         margin-bottom: 5px;
     }
 
     .jp-panel-label i {
         font-size: 11px;
-        color: #C7CBD3;
+        color: var(--zn-line-2);
     }
 
     .jp-panel-value {
         font-size: 13.5px;
-        color: #1F2430;
+        color: var(--zn-ink);
     }
 
     .jp-panel-value.mono {
@@ -491,9 +491,9 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 12px;
         line-height: 1.6;
-        background: #F5F6F9;
-        border: 1px solid #E7E9EE;
-        border-radius: 10px;
+        background: var(--zn-bg);
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 14px 16px;
         max-height: 260px;
         overflow-y: auto;
@@ -508,8 +508,8 @@
     }
 
     .jp-panel-value.mono::-webkit-scrollbar-thumb {
-        background: #D7DBE3;
-        border-radius: 6px;
+        background: var(--zn-line-2);
+        border-radius: var(--zn-radius);
     }
 
     .jp-panel-desc-textarea {
@@ -517,10 +517,10 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 12px;
         line-height: 1.6;
-        color: #1F2430;
-        background: #F5F6F9;
-        border: 1px solid #E7E9EE;
-        border-radius: 10px;
+        color: var(--zn-ink);
+        background: var(--zn-bg);
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 14px 16px;
         resize: vertical;
         transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
@@ -528,9 +528,9 @@
 
     .jp-panel-desc-textarea:focus {
         outline: none;
-        background: #fff;
-        border-color: #9FB8ED;
-        box-shadow: 0 0 0 3px #E8F0FE;
+        background: var(--zn-surface);
+        border-color: var(--zn-accent);
+        box-shadow: 0 0 0 3px var(--zn-accent-soft);
     }
 
     .jp-panel-desc-textarea::-webkit-scrollbar {
@@ -542,21 +542,21 @@
     }
 
     .jp-panel-desc-textarea::-webkit-scrollbar-thumb {
-        background: #D7DBE3;
-        border-radius: 6px;
+        background: var(--zn-line-2);
+        border-radius: var(--zn-radius);
     }
 
     .jp-desc-hint {
         font-size: 11px;
-        color: #B0B6C0;
+        color: var(--zn-ink-3);
         margin-top: 6px;
     }
 
     .jp-gen-btn {
         margin-left: auto;
-        border: 1px solid #C7D8F7;
-        background: #EAF1FE;
-        color: #14458F;
+        border: 1px solid var(--zn-line-2);
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
         border-radius: 20px;
         font-size: 10px;
         font-weight: 700;
@@ -566,7 +566,7 @@
         transition: background .15s ease;
     }
 
-    .jp-gen-btn:hover { background: #D8E6FD; }
+    .jp-gen-btn:hover { background: var(--zn-line-2); }
 
     .jp-gen-btn:disabled { opacity: .6; }
 
@@ -579,33 +579,33 @@
         font-size: 9px;
         font-weight: 700;
         letter-spacing: .04em;
-        background: #F1F2F5;
-        color: #8A93A3;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-3);
         border-radius: 20px;
         padding: 2px 8px;
     }
 
     .jp-field-tag-live {
-        background: #E7F6EC;
-        color: #1E9E4C;
+        background: var(--zn-ok-soft);
+        color: var(--zn-ok);
     }
 
     .jp-sync-state {
         font-size: 11px;
         line-height: 1.5;
-        border-radius: 8px;
+        border-radius: var(--zn-radius-lg);
         padding: 7px 11px;
         margin-bottom: 7px;
     }
 
     .jp-sync-auto {
-        background: #EAF1FE;
-        color: #14458F;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
     }
 
     .jp-sync-custom {
-        background: #F5F6F9;
-        color: #5B6474;
+        background: var(--zn-bg);
+        color: var(--zn-ink-2);
     }
 
     .jp-sync-state i { margin-right: 5px; }
@@ -614,10 +614,10 @@
         margin-top: 8px;
         font-size: 11.5px;
         line-height: 1.5;
-        color: #9A5B12;
-        background: #FFF6E6;
-        border: 1px solid #FFE2B0;
-        border-radius: 9px;
+        color: var(--zn-caution);
+        background: var(--zn-caution-soft);
+        border: 1px solid var(--zn-line-2);
+        border-radius: var(--zn-radius-lg);
         padding: 9px 12px;
     }
 
@@ -627,18 +627,18 @@
 
     .jp-panel-footer {
         padding: 16px 24px;
-        border-top: 1px solid #F1F2F5;
-        background: #FAFBFC;
+        border-top: 1px solid var(--zn-surface-2);
+        background: var(--zn-surface-2);
         display: flex;
         gap: 10px;
-        box-shadow: 0 -4px 12px rgba(31, 36, 48, .05);
+        box-shadow: 0 -4px 12px rgba(32, 26, 22,.05);
         flex-shrink: 0;
     }
 
     .jp-panel-btn {
         flex: 1;
         border: none;
-        border-radius: 9px;
+        border-radius: var(--zn-radius-lg);
         font-weight: 700;
         font-size: 13px;
         padding: 12px 18px;
@@ -659,28 +659,28 @@
     }
 
     .jp-row-link:focus-visible {
-        outline: 2px solid #1B6BE0;
+        outline: 2px solid var(--zn-accent);
         outline-offset: -2px;
     }
 
     .jp-panel-btn-publish {
-        background: linear-gradient(135deg, #34C471, #1E9E4C);
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(30, 158, 76, .25);
+        background: linear-gradient(135deg, var(--zn-ok), var(--zn-ok));
+        color: var(--zn-on-accent);
+        box-shadow: 0 2px 8px rgba(30, 123, 69,.25);
     }
 
     /* "Close Posting" — ends the posting. NOT the same as the X that
     dismisses the panel (.jp-panel-close). Kept visually distinct. */
  .jp-panel-btn-close {
-     background: linear-gradient(135deg, #E0693F, #C7472B);
-     color: #fff;
-     box-shadow: 0 2px 8px rgba(199, 71, 43, .25);
+     background: linear-gradient(135deg, var(--zn-warn), var(--zn-warn));
+     color: var(--zn-on-accent);
+     box-shadow: 0 2px 8px rgba(198, 40, 40,.25);
  }
 
  .jp-panel-btn-save {
-     background: #fff;
-     color: #1B4FB0;
-     border: 1px solid #C3D3F2;
+     background: var(--zn-surface);
+     color: var(--zn-accent-dark);
+     border: 1px solid var(--zn-line-2);
      box-shadow: none;
  }
 
@@ -699,7 +699,7 @@
 
     .jp-panel-loading {
         text-align: center;
-        color: #B0B6C0;
+        color: var(--zn-ink-3);
         padding: 40px 20px;
     }
 </style>

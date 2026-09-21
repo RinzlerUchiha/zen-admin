@@ -1,6 +1,9 @@
 @extends('layouts.layout')
 
 @section('content')
+    {{-- HireFlow page: the shared HireFlow look, scoped to this wrapper. --}}
+    @include('partials.hireflow-theme')
+    <div class="hf-theme">
 
     {{-- <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css">
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
@@ -26,6 +29,11 @@
             }
         }
 
+        /* Result tables scroll sideways on a phone instead of breaking the page. */
+        @media (max-width: 767.98px) {
+            .applicant-profile-content table { display: block; max-width: 100%; overflow-x: auto; }
+        }
+
         #sidebar h6 {
             font-size: .9rem;
         }
@@ -41,7 +49,7 @@
         }
 
         #sidebar li:hover {
-            background-color: #d1d1d1;
+            background-color: var(--zn-line-2);
         }
 
         /* Adjusting scrollbar thickness */
@@ -52,8 +60,8 @@
 
         /* Customize the scrollbar thumb (draggable part) */
         #sidebar::-webkit-scrollbar-thumb {
-            background: #8b8a8a;  /* Color of the thumb */
-            border-radius: 10px;  /* Rounded corners for thumb */
+            background: var(--zn-ink-3);  /* Color of the thumb */
+            border-radius: var(--zn-radius-lg);  /* Rounded corners for thumb */
         }
     </style>
 
@@ -165,21 +173,29 @@
 
                     <hr class="my-3">
 
+                    {{-- Assessments (HireFlow 2.5): read-only results, each marked with
+                         where it stands. The same view for HR and approvers. --}}
                     <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
-                        <span>Personality Test</span>
+                        <span>Assessments</span>
+                        @if (isset($assessmentResults))
+                            <span class="badge rounded-pill text-bg-light border fw-normal">{{ $assessmentResults->where('hasResult', true)->count() }}/{{ $assessmentResults->count() }}</span>
+                        @endif
                     </h6>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'enneagram']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'enneagram' ? 'active' : '' }}">Enneagram</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'tapt']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'tapt' ? 'active' : '' }}">TAPT</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'disc']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'disc' ? 'active' : '' }}">DISC</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'miq']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'miq' ? 'active' : '' }}">Multiple Intelligent Quotient</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'color']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'color' ? 'active' : '' }}">What color are you?</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'vak']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'vak' ? 'active' : '' }}">VAK</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'why-i-work']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'why-i-work' ? 'active' : '' }}">Why I Work</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'career-anchors']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'career-anchors' ? 'active' : '' }}">Career Anchors</a></li>
-                    <hr class="my-1 mx-3">
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'abstract-reasoning']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'abstract-reasoning' ? 'active' : '' }}">Basic Abstract Reasoning</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'basic-math']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'basic-math' ? 'active' : '' }}">Basic Math</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'maya']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'maya' ? 'active' : '' }}">Maya</a></li>
+                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'assessment-access']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'assessment-access' ? 'active' : '' }}">Access &amp; Status</a></li>
+                    @foreach (collect($assessmentResults ?? [])->groupBy('kind') as $kind => $group)
+                        <li class="nav-item px-3 pt-2 small text-body-secondary">{{ $kind === 'aptitude' ? 'Aptitude tests' : 'Questionnaires' }}</li>
+                        @foreach ($group as $item)
+                            <li class="nav-item">
+                                <a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => $item->tab]) }}"
+                                   class="nav-link d-flex align-items-center gap-2 {{ ($sub_link ?? '') == $item->tab ? 'active' : '' }}">
+                                    <i class="bi {{ match ($item->status) { 'submitted' => 'bi-check-circle-fill text-success', 'timed_out' => 'bi-hourglass-bottom text-secondary', 'interrupted' => 'bi-pause-circle text-warning', 'active' => 'bi-play-circle text-info', default => 'bi-circle text-body-tertiary' } }}"
+                                       title="{{ $item->badge[0] ?? '' }}" aria-hidden="true"></i>
+                                    <span class="flex-grow-1">{{ $item->label }}</span>
+                                    <span class="visually-hidden">— {{ $item->badge[0] ?? '' }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    @endforeach
                 </ul>
             </div>
         </div>
@@ -208,7 +224,9 @@
                     </div>
                     @endif
                 </div>
-                @yield('profile_content')
+                <div class="applicant-profile-content">
+                    @yield('profile_content')
+                </div>
             </div>
         </div>
     </div>
@@ -233,4 +251,5 @@
         </div>
     </div>
 
+    </div>{{-- /.hf-theme --}}
 @stop

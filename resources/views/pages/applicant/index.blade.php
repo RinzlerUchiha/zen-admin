@@ -1,6 +1,9 @@
 @extends('layouts.layout')
 
 @section('content')
+    {{-- HireFlow page: the shared HireFlow look, scoped to this wrapper. --}}
+    @include('partials.hireflow-theme')
+    <div class="hf-theme">
 
 <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css">
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
@@ -86,4 +89,5 @@
     </div>
 </div>
 
+    </div>{{-- /.hf-theme --}}
 @stop

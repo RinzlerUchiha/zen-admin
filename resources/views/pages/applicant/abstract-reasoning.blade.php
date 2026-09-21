@@ -1,10 +1,12 @@
 @extends('pages.applicant.profile')
 
 @section('profile_content')
+    @include('pages.applicant.partials.assessment-summary')
+
+    @if ($assessmentSummary?->hasResult)
 
 <style>
     #form-abstract-reasoning {
-        font-family: 'Courier New', Courier, monospace;
         user-select: none;
         font-size: 20px;
     }
@@ -19,7 +21,6 @@
 </style>
 
 <div class="w-100 h-100">
-    <div class="mb-3">Score: {{ $abstractReasoningResult ?? '' }}</div>
     <div id="form-abstract-reasoning" class="ms-md-5 mb-5" oncontextmenu="return false;">
         <div class="text-muted small mb-3">
             BASIC ABSTRACT REASONING (10 Questions; 10mins exam)
@@ -38,4 +39,5 @@
         @endforeach
     </div>
 </div>
+    @endif
 @stop

@@ -1,0 +1,249 @@
+/* ==========================================================================
+   HireFlow theme — the shared visual language of HireFlow across ZenHub,
+   zen-admin and the Applicants portal.
+
+   GENERATED — do not edit by hand. The tokens below are copied from the
+   Applicants design system (zen-applicants/public/main.css, section 1), the
+   reference for HireFlow; the palette is ZenHub's own, sampled from its Coffi
+   logo. Two copies exist because the systems deploy separately:
+     zen-admin/public/hireflow-theme.css
+     zen/manpower/assets/hireflow-theme.css
+
+   Loaded only on HireFlow pages. The tokens are namespaced (--zn-*); the
+   Bootstrap bridge applies only inside .hf-theme, so other modules of
+   zen-admin and ZenHub are untouched.
+   ========================================================================== */
+
+/* ---------- 1. Tokens (from the Applicants design system) ---------------- */
+
+:root {
+  --zn-bg:         #ece9e6;
+  --zn-surface:    #ffffff;
+  --zn-surface-2:  #f5f2ef;
+  --zn-ink:        #201a16;
+  --zn-ink-2:      #4e443e;
+  --zn-ink-3:      #8a7e76;
+  --zn-line:       #e5e0db;
+  --zn-line-2:     #cfc7c0;
+  --zn-divider:    #f0edea;
+
+  --zn-accent:      #7b4a34;
+  --zn-accent-dark: #5d2502;
+  --zn-accent-soft: #f8f3ef;
+  --zn-on-accent:   #ffffff;
+
+  --zn-ok:      #1e7b45;
+  --zn-ok-soft: #e8f3ec;
+  --zn-warn:      #c62828;
+  --zn-warn-soft: #fdf0f0;
+  --zn-lock:      #8a7e76;
+  --zn-lock-soft: #f0edea;
+  --zn-caution:   #9a6200;
+  --zn-caution-soft: #fbf3e4;
+
+  --zn-brand: #5d2502;
+
+  --zn-shadow:     0 1px 2px rgba(32, 26, 22, .05);
+  --zn-shadow-pop: 0 8px 24px rgba(32, 26, 22, .10);
+
+  --zn-radius:    6px;
+  --zn-radius-lg: 8px;
+
+  --zn-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+[data-bs-theme="dark"] {
+  --zn-bg:         #14100e;
+  --zn-surface:    #1d1815;
+  --zn-surface-2:  #251f1b;
+  --zn-ink:        #efe7e1;
+  --zn-ink-2:      #b5a79e;
+  --zn-ink-3:      #877a72;
+  --zn-line:       #332b26;
+  --zn-line-2:     #453a33;
+  --zn-divider:    #2a231f;
+
+  --zn-accent:      #c9a08a;
+  --zn-accent-dark: #e0bca6;
+  --zn-accent-soft: #2a211c;
+  --zn-on-accent:   #14100e;
+
+  --zn-ok:      #6fbf8f;
+  --zn-ok-soft: #1b2a21;
+  --zn-warn:      #e4796f;
+  --zn-warn-soft: #2e1b19;
+  --zn-lock:      #877a72;
+  --zn-lock-soft: #251f1b;
+  --zn-caution:   #d9a441;
+  --zn-caution-soft: #2c2415;
+
+  --zn-brand: #c9a08a;
+
+  --zn-shadow:     0 2px 8px rgba(0, 0, 0, .4);
+  --zn-shadow-pop: 0 12px 28px rgba(0, 0, 0, .6);
+}
+
+/* ---------- 2. Bootstrap bridge, scoped to HireFlow ----------------------
+   The same rebinding the Applicants portal uses: Bootstrap's own variables
+   point at the tokens, so existing markup takes the palette without being
+   rewritten. */
+
+.hf-theme {
+  --bs-primary: #7b4a34;
+  --bs-primary-rgb: 123, 74, 52;
+  --bs-info-rgb: 123, 74, 52;
+  --bs-success-rgb: 30, 123, 69;
+  --bs-danger-rgb: 198, 40, 40;
+  --bs-warning-rgb: 154, 98, 0;
+  --bs-secondary-rgb: 138, 126, 118;
+  --bs-link-color: var(--zn-accent);
+  --bs-link-color-rgb: 123, 74, 52;
+  --bs-link-hover-color: var(--zn-accent-dark);
+  --bs-link-hover-color-rgb: 93, 37, 2;
+  --bs-body-color: var(--zn-ink);
+  --bs-emphasis-color: var(--zn-ink);
+  --bs-secondary-color: var(--zn-ink-2);
+  --bs-tertiary-color: var(--zn-ink-3);
+  --bs-border-color: var(--zn-line);
+  --bs-border-color-translucent: rgba(32, 26, 22, .12);
+  --bs-focus-ring-color: rgba(123, 74, 52, .25);
+  --bs-primary-bg-subtle: var(--zn-accent-soft);
+  --bs-primary-text-emphasis: var(--zn-accent-dark);
+  --bs-primary-border-subtle: var(--zn-line-2);
+  --bs-success-bg-subtle: var(--zn-ok-soft);
+  --bs-success-text-emphasis: var(--zn-ok);
+  --bs-success-border-subtle: var(--zn-line);
+  --bs-danger-bg-subtle: var(--zn-warn-soft);
+  --bs-danger-text-emphasis: var(--zn-warn);
+  --bs-danger-border-subtle: var(--zn-line);
+  --bs-warning-bg-subtle: var(--zn-caution-soft);
+  --bs-warning-text-emphasis: var(--zn-caution);
+  --bs-warning-border-subtle: var(--zn-line);
+  --bs-info-bg-subtle: var(--zn-accent-soft);
+  --bs-info-text-emphasis: var(--zn-accent-dark);
+  --bs-info-border-subtle: var(--zn-line);
+  --bs-light-bg-subtle: var(--zn-surface-2);
+  --bs-light-text-emphasis: var(--zn-ink-2);
+  --bs-light-border-subtle: var(--zn-line);
+  --bs-secondary-bg: var(--zn-surface-2);
+  --bs-tertiary-bg: var(--zn-surface-2);
+  --bs-font-sans-serif: var(--zn-font);
+  color: var(--zn-ink);
+  font-family: var(--zn-font);
+}
+
+.hf-theme .btn-primary {
+  --bs-btn-bg: var(--zn-accent);
+  --bs-btn-border-color: var(--zn-accent);
+  --bs-btn-hover-bg: var(--zn-accent-dark);
+  --bs-btn-hover-border-color: var(--zn-accent-dark);
+  --bs-btn-active-bg: var(--zn-accent-dark);
+  --bs-btn-active-border-color: var(--zn-accent-dark);
+  --bs-btn-color: var(--zn-on-accent);
+  --bs-btn-hover-color: var(--zn-on-accent);
+  --bs-btn-active-color: var(--zn-on-accent);
+  --bs-btn-disabled-bg: var(--zn-accent);
+  --bs-btn-disabled-border-color: var(--zn-accent);
+  --bs-btn-focus-shadow-rgb: 123, 74, 52;
+}
+
+.hf-theme .btn-outline-primary,
+.hf-theme .btn-outline-secondary {
+  --bs-btn-color: var(--zn-accent);
+  --bs-btn-border-color: var(--zn-line-2);
+  --bs-btn-hover-bg: var(--zn-accent-soft);
+  --bs-btn-hover-border-color: var(--zn-accent);
+  --bs-btn-hover-color: var(--zn-accent);
+  --bs-btn-active-bg: var(--zn-accent-soft);
+  --bs-btn-active-border-color: var(--zn-accent);
+  --bs-btn-active-color: var(--zn-accent);
+  --bs-btn-focus-shadow-rgb: 123, 74, 52;
+}
+
+.hf-theme .btn-secondary {
+  --bs-btn-bg: var(--zn-surface-2);
+  --bs-btn-border-color: var(--zn-line-2);
+  --bs-btn-color: var(--zn-ink-2);
+  --bs-btn-hover-bg: var(--zn-lock-soft);
+  --bs-btn-hover-border-color: var(--zn-line-2);
+  --bs-btn-hover-color: var(--zn-ink);
+  --bs-btn-active-bg: var(--zn-lock-soft);
+  --bs-btn-active-color: var(--zn-ink);
+}
+
+.hf-theme .btn-success {
+  --bs-btn-bg: var(--zn-ok);
+  --bs-btn-border-color: var(--zn-ok);
+  --bs-btn-hover-bg: var(--zn-ok);
+  --bs-btn-hover-border-color: var(--zn-ok);
+}
+
+.hf-theme .btn-danger {
+  --bs-btn-bg: var(--zn-warn);
+  --bs-btn-border-color: var(--zn-warn);
+  --bs-btn-hover-bg: var(--zn-warn);
+  --bs-btn-hover-border-color: var(--zn-warn);
+}
+
+.hf-theme .btn-outline-danger {
+  --bs-btn-color: var(--zn-warn);
+  --bs-btn-border-color: var(--zn-line-2);
+  --bs-btn-hover-bg: var(--zn-warn-soft);
+  --bs-btn-hover-border-color: var(--zn-warn);
+  --bs-btn-hover-color: var(--zn-warn);
+}
+
+.hf-theme .form-control:focus,
+.hf-theme .form-select:focus,
+.hf-theme .form-check-input:focus {
+  border-color: var(--zn-accent);
+  box-shadow: 0 0 0 .18rem rgba(123, 74, 52, .18);
+}
+.hf-theme .form-check-input:checked { background-color: var(--zn-accent); border-color: var(--zn-accent); }
+.hf-theme :focus-visible { outline-color: var(--zn-accent); }
+
+.hf-theme .table {
+  --bs-table-color: var(--zn-ink-2);
+  --bs-table-border-color: var(--zn-line);
+  --bs-table-striped-bg: var(--zn-surface-2);
+  --bs-table-hover-bg: var(--zn-surface-2);
+}
+.hf-theme .table > thead { --bs-table-color: var(--zn-ink-3); }
+
+.hf-theme .nav-pills { --bs-nav-pills-link-active-bg: var(--zn-accent-soft); --bs-nav-pills-link-active-color: var(--zn-accent); }
+.hf-theme .nav-tabs { --bs-nav-tabs-link-active-color: var(--zn-accent); --bs-nav-tabs-border-color: var(--zn-line); }
+.hf-theme .nav-link { --bs-nav-link-hover-color: var(--zn-accent-dark); }
+
+.hf-theme .pagination {
+  --bs-pagination-color: var(--zn-accent);
+  --bs-pagination-hover-color: var(--zn-accent-dark);
+  --bs-pagination-focus-color: var(--zn-accent-dark);
+  --bs-pagination-active-bg: var(--zn-accent);
+  --bs-pagination-active-border-color: var(--zn-accent);
+  --bs-pagination-focus-box-shadow: 0 0 0 .18rem rgba(123, 74, 52, .18);
+}
+
+.hf-theme .dropdown-menu { --bs-dropdown-link-active-bg: var(--zn-accent); --bs-dropdown-link-hover-bg: var(--zn-surface-2); }
+.hf-theme .list-group { --bs-list-group-active-bg: var(--zn-accent); --bs-list-group-active-border-color: var(--zn-accent); }
+.hf-theme .progress { --bs-progress-bar-bg: var(--zn-accent); --bs-progress-bg: var(--zn-line); }
+.hf-theme .modal { --bs-modal-border-radius: var(--zn-radius-lg); --bs-modal-border-color: var(--zn-line); }
+.hf-theme .card { --bs-card-border-color: var(--zn-line); --bs-card-border-radius: var(--zn-radius-lg); }
+
+/* ---------- 3. Status chip -----------------------------------------------
+   Staff-side HireFlow keeps its filled chips with a coloured dot (they scan
+   well in dense tables); the colours are the shared status tones. The
+   applicant portal shows the same tones as outlined pills. */
+
+.hf-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 11px; font-weight: 700; letter-spacing: .2px; white-space: nowrap;
+  background: var(--zn-lock-soft); color: var(--zn-ink-2);
+}
+.hf-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.hf-chip-accent  { background: var(--zn-accent-soft);  color: var(--zn-accent); }
+.hf-chip-ok      { background: var(--zn-ok-soft);      color: var(--zn-ok); }
+.hf-chip-warn    { background: var(--zn-warn-soft);    color: var(--zn-warn); }
+.hf-chip-caution { background: var(--zn-caution-soft); color: var(--zn-caution); }
+.hf-chip-lock    { background: var(--zn-lock-soft);    color: var(--zn-ink-2); }
+.hf-chip-pool    { background: var(--zn-accent-soft);  color: var(--zn-accent-dark); }

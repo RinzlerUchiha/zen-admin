@@ -1,10 +1,12 @@
 @extends('pages.applicant.profile')
 
 @section('profile_content')
+    @include('pages.applicant.partials.assessment-summary')
+
+    @if ($assessmentSummary?->hasResult)
 
     <style>
         #form-maya {
-            font-family: 'Courier New', Courier, monospace;
             user-select: none;
             font-size: 15px;
         }
@@ -164,4 +166,5 @@
             </div>
         @endforeach
     </div>
+    @endif
 @stop

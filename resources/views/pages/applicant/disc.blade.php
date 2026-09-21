@@ -1,10 +1,12 @@
 @extends('pages.applicant.profile')
 
 @section('profile_content')
+    @include('pages.applicant.partials.assessment-summary')
+
+    @if ($assessmentSummary?->hasResult)
 
     <style>
         #form-disc {
-            font-family: 'Courier New', Courier, monospace;
             user-select: none;
             font-size: 12px;
         }
@@ -41,4 +43,5 @@
             </table>
     </div>
 
+    @endif
 @stop

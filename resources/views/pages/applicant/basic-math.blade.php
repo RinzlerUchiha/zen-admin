@@ -1,17 +1,18 @@
 @extends('pages.applicant.profile')
 
 @section('profile_content')
+    @include('pages.applicant.partials.assessment-summary')
+
+    @if ($assessmentSummary?->hasResult)
 
 <style>
     #form-basic-math {
-        font-family: 'Courier New', Courier, monospace;
         user-select: none;
         font-size: 15px;
     }
 </style>
 
 <div class="w-100 h-100">
-    <div class="mb-3">Score: {{ $basicMathResult ?? '' }}</div>
     <div id="form-basic-math" class="ms-md-5 mb-5" oncontextmenu="return false;">
         <div class="text-muted small mb-3">BASIC MATH (12 Questions: 12mins exam)</div>
         @foreach ($answerList ?? [] as $i => $item)
@@ -24,4 +25,5 @@
         @endforeach
     </div>
 </div>
+    @endif
 @stop

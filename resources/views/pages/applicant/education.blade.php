@@ -11,10 +11,10 @@
         font-weight: 500;
         white-space: nowrap;
     }
-    .educ-badge-graduated { background: #E1F5EE; color: #085041; }
-    .educ-badge-ongoing   { background: #E6F1FB; color: #0C447C; }
-    .educ-badge-dropped   { background: #FAECE7; color: #712B13; }
-    .educ-badge-default   { background: #F1EFE8; color: #444441; }
+    .educ-badge-graduated { background: var(--zn-ok-soft); color: var(--zn-ok); }
+    .educ-badge-ongoing   { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
+    .educ-badge-dropped   { background: var(--zn-warn-soft); color: var(--zn-warn); }
+    .educ-badge-default   { background: var(--zn-surface-2); color: var(--zn-ink-2); }
 
     /* ── Table header ── */
     #education-list-table thead th {
@@ -22,8 +22,8 @@
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #6c757d;
-        border-bottom: 1px solid #dee2e6;
+        color: var(--zn-ink-3);
+        border-bottom: 1px solid var(--zn-line);
         white-space: nowrap;
     }
 
@@ -43,7 +43,7 @@
     .educ-empty-state {
         padding: 2.5rem 1rem;
         text-align: center;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
     .educ-empty-state i {
         font-size: 2rem;
@@ -55,7 +55,7 @@
     /* ── Card wrapper ── */
     #education-list-card .card-header {
         background: transparent;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--zn-line);
         padding: 0.75rem 1rem;
         display: flex;
         align-items: center;
@@ -69,11 +69,11 @@
 
     /* ── Mobile card view ── */
     .educ-card-mobile {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 14px 16px;
         margin-bottom: 10px;
-        background: #fff;
+        background: var(--zn-surface);
     }
     .educ-card-mobile-header {
         display: flex;
@@ -87,7 +87,7 @@
     }
     .educ-card-mobile-body {
         font-size: 13px;
-        border-top: 1px solid #dee2e6;
+        border-top: 1px solid var(--zn-line);
         padding-top: 10px;
         display: flex;
         flex-direction: column;
@@ -97,7 +97,7 @@
         font-size: 14px;
         vertical-align: -2px;
         margin-right: 6px;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
 </style>
 @endpush

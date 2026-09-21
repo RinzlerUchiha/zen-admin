@@ -6,7 +6,7 @@
 
     .adoc-summary {
         display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-        border: 1px solid #dee2e6; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; background: #fff;
+        border: 1px solid var(--zn-line); border-radius: var(--zn-radius-lg); padding: 12px 16px; margin-bottom: 14px; background: var(--zn-surface);
     }
     .adoc-summary b { font-size: 14px; }
 
@@ -14,38 +14,38 @@
         display: inline-block; padding: 2px 10px; border-radius: 999px;
         font-size: 11.5px; font-weight: 600; white-space: nowrap;
     }
-    .adoc-missing  { background: #F1EFE8; color: #444441; }
-    .adoc-pending  { background: #E8F0FE; color: #1B4FB0; }
-    .adoc-accepted { background: #E1F5EE; color: #085041; }
-    .adoc-rejected { background: #FAECE7; color: #712B13; }
-    .adoc-complete { background: #E1F5EE; color: #085041; }
-    .adoc-incomplete { background: #FFF4E0; color: #7A4B00; }
+    .adoc-missing  { background: var(--zn-surface-2); color: var(--zn-ink-2); }
+    .adoc-pending  { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
+    .adoc-accepted { background: var(--zn-ok-soft); color: var(--zn-ok); }
+    .adoc-rejected { background: var(--zn-warn-soft); color: var(--zn-warn); }
+    .adoc-complete { background: var(--zn-ok-soft); color: var(--zn-ok); }
+    .adoc-incomplete { background: var(--zn-caution-soft); color: var(--zn-caution); }
     /* Document deadlines: one per application, shown apart from the
        per-document table because the documents are shared across the
        applicant's applications and the deadlines are not. */
     .adoc-process {
-        border: 1px solid #dee2e6; border-left: 3px solid #1B4FB0; border-radius: 8px;
-        padding: 12px 16px; margin-bottom: 14px; background: #fff;
+        border: 1px solid var(--zn-line); border-left: 3px solid var(--zn-accent-dark); border-radius: var(--zn-radius-lg);
+        padding: 12px 16px; margin-bottom: 14px; background: var(--zn-surface);
     }
     .adoc-process-head {
         display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
     }
     .adoc-process-row {
         display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-        border-top: 1px solid #f1f3f5; padding-top: 10px; margin-top: 10px;
+        border-top: 1px solid var(--zn-surface-2); padding-top: 10px; margin-top: 10px;
     }
     .adoc-process-facts { display: flex; gap: 22px; flex-wrap: wrap; }
-    .adoc-process-facts div { font-size: 12px; color: #6c757d; }
-    .adoc-process-facts b { display: block; font-size: 13.5px; color: #212529; }
-    .adoc-overdue { color: #712B13 !important; }
+    .adoc-process-facts div { font-size: 12px; color: var(--zn-ink-3); }
+    .adoc-process-facts b { display: block; font-size: 13.5px; color: var(--zn-ink); }
+    .adoc-overdue { color: var(--zn-warn) !important; }
 
     #applicant-documents-table thead th {
         font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
-        color: #6c757d; border-bottom: 1px solid #dee2e6; white-space: nowrap;
+        color: var(--zn-ink-3); border-bottom: 1px solid var(--zn-line); white-space: nowrap;
     }
     #applicant-documents-table td { vertical-align: top; padding-top: 12px; padding-bottom: 12px; }
-    .adoc-sub { color: #6c757d; font-size: 12px; }
-    .adoc-note { font-size: 12px; margin-top: 4px; color: #5b3a2c; }
+    .adoc-sub { color: var(--zn-ink-3); font-size: 12px; }
+    .adoc-note { font-size: 12px; margin-top: 4px; color: var(--zn-accent-dark); }
     .adoc-preview { width: 100%; height: 70vh; border: 0; }
     .adoc-preview-img { max-width: 100%; max-height: 70vh; display: block; margin: 0 auto; }
 </style>

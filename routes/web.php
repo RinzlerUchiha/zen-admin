@@ -157,6 +157,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])->name('form.hire');
             Route::post('hire/{id}', [ApplicantProfileController::class, 'hire'])->name('hire');
             Route::post('interview-details/save/{id}', [ApplicantProfileController::class, 'saveInterviewDetails'])->name('interview.save');
+            // The one-time code that opens the applicant's assessments.
+            Route::post('info/{id}/assessment-access', [\App\Http\Controllers\Applicant\ApplicantAssessmentAccessController::class, 'issue'])
+                ->whereNumber('id')
+                ->middleware('can:applicant-assessments.issue-access')->name('assessment-access.issue');
 
             // Application-stage documents (HireFlow 2.5 · M2). The page is the
             // "documents" tab of info/{id}/{tab}; these are the file and actions.

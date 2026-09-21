@@ -1,10 +1,12 @@
 @extends('pages.applicant.profile')
 
 @section('profile_content')
+    @include('pages.applicant.partials.assessment-summary')
+
+    @if ($assessmentSummary?->hasResult)
 
     <style>
         #form-tapt {
-            font-family: 'Courier New', Courier, monospace;
             user-select: none;
             font-size: 12px;
         }
@@ -45,4 +47,5 @@
         <small class="text-muted mb-3">This exam was adopted from Paul D. Tiger & Barbara Barron-Tieger’s book on Do What You Are. Copyright 1992</small>
     </div>
 
+    @endif
 @stop

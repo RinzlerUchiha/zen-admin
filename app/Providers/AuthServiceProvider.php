@@ -49,5 +49,12 @@ class AuthServiceProvider extends ServiceProvider
         */
         Gate::define('applicant-applications.decide', fn (User $user) => $user->userAccess('eappprofile', 'view')
             && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire')));
+
+        /*
+        | Issuing an applicant's assessment access code (HireFlow 2.5): the same
+        | rights as HR's other actions on an applicant.
+        */
+        Gate::define('applicant-assessments.issue-access', fn (User $user) => $user->userAccess('eappprofile', 'view')
+            && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire')));
     }
 }

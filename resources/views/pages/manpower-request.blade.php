@@ -1,6 +1,9 @@
 @extends('layouts.layout')
 
 @section('content')
+    {{-- HireFlow page: the shared HireFlow look, scoped to this wrapper. --}}
+    @include('partials.hireflow-theme')
+    <div class="hf-theme">
     <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css">
     <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.min.js"></script>
@@ -20,23 +23,23 @@
                                    (layout, sidebar, other pages) is untouched.
                                    ============================================================ */
         #mpr-app {
-            --mpr-page-bg: #f7f7f5;
-            --mpr-bg-raised: #ffffff;
-            --mpr-bg-input: #f4f4f2;
-            --mpr-border: #ececea;
-            --mpr-border-strong: #dcdbd6;
-            --mpr-text: #18181b;
-            --mpr-text-muted: #6b6b66;
-            --mpr-accent: #0c7bd1;
-            --mpr-accent-soft: #e6f1fb;
-            --mpr-green: #1a7f37;
-            --mpr-green-soft: #e6f6ea;
-            --mpr-amber: #b5800b;
-            --mpr-purple: #534ab7;
-            --mpr-red: #dc2626;
-            --mpr-red-soft: #fdecec;
-            --mpr-radius: 12px;
-            --mpr-radius-sm: 6px;
+            --mpr-page-bg: var(--zn-surface-2);
+            --mpr-bg-raised: var(--zn-surface);
+            --mpr-bg-input: var(--zn-surface-2);
+            --mpr-border: var(--zn-line);
+            --mpr-border-strong: var(--zn-line-2);
+            --mpr-text: var(--zn-ink);
+            --mpr-text-muted: var(--zn-ink-2);
+            --mpr-accent: var(--zn-accent);
+            --mpr-accent-soft: var(--zn-accent-soft);
+            --mpr-green: var(--zn-ok);
+            --mpr-green-soft: var(--zn-ok-soft);
+            --mpr-amber: var(--zn-caution);
+            --mpr-purple: var(--zn-accent-dark);
+            --mpr-red: var(--zn-warn);
+            --mpr-red-soft: var(--zn-warn-soft);
+            --mpr-radius: var(--zn-radius-lg);
+            --mpr-radius-sm: var(--zn-radius);
             color: var(--mpr-text);
             font-size: 14px;
         }
@@ -122,15 +125,15 @@
         #mpr-app .btn-mpr-solid {
             background: var(--mpr-text);
             border: 1px solid var(--mpr-text);
-            color: #ffffff;
+            color: var(--zn-on-accent);
             border-radius: var(--mpr-radius-sm);
             padding: 7px 14px;
             font-weight: 600;
         }
 
         #mpr-app .btn-mpr-solid:hover {
-            background: #000000;
-            border-color: #000000;
+            background: var(--zn-accent-dark);
+            border-color: var(--zn-accent-dark);
         }
 
         /* ---------- Tab strip ---------- */
@@ -176,7 +179,7 @@
         }
 
         #mpr-app .mpr-tab[data-stat="draft"] .mpr-tab-dot {
-            background: #888780;
+            background: var(--zn-ink-3);
         }
 
         #mpr-app .mpr-tab[data-stat="pending"] .mpr-tab-dot {
@@ -196,7 +199,7 @@
         }
 
         #mpr-app .mpr-tab[data-stat="cancelled"] .mpr-tab-dot {
-            background: #888780;
+            background: var(--zn-ink-3);
         }
 
         #mpr-app .mpr-tab[data-stat="declined"] .mpr-tab-dot {
@@ -374,28 +377,28 @@
 
         /* Cycle these per row, e.g. avatar class = 'av' + (employee_id % 5) */
         #mpr-app .mpr-avatar.av0 {
-            background: #E6F1FB;
-            color: #0C447C;
+            background: var(--zn-accent-soft);
+            color: var(--zn-accent-dark);
         }
 
         #mpr-app .mpr-avatar.av1 {
-            background: #FAEEDA;
-            color: #633806;
+            background: var(--zn-caution-soft);
+            color: var(--zn-caution);
         }
 
         #mpr-app .mpr-avatar.av2 {
-            background: #EAF3DE;
-            color: #27500A;
+            background: var(--zn-ok-soft);
+            color: var(--zn-ok);
         }
 
         #mpr-app .mpr-avatar.av3 {
-            background: #EEEDFE;
-            color: #3C3489;
+            background: var(--zn-accent-soft);
+            color: var(--zn-accent-dark);
         }
 
         #mpr-app .mpr-avatar.av4 {
-            background: #FAECE7;
-            color: #993C1D;
+            background: var(--zn-warn-soft);
+            color: var(--zn-caution);
         }
 
         #mpr-app .mpr-requestor-name {
@@ -528,7 +531,7 @@
 
         #mpr-app .mpr-pager-btn.active {
             background: var(--mpr-text);
-            color: #fff;
+            color: var(--zn-on-accent);
             border-color: var(--mpr-text);
         }
 
@@ -721,8 +724,8 @@
         }
 
         #mpr-app .modal-footer .btn-primary:hover {
-            background: #000;
-            border-color: #000;
+            background: var(--zn-accent-dark);
+            border-color: var(--zn-accent-dark);
         }
 
         #mpr-app .modal-footer .btn-secondary {
@@ -780,13 +783,13 @@
         }
 
         #mpr-app .mpr-applicant-chip:hover {
-            background: #d8ebfa;
+            background: var(--zn-line-2);
         }
 
         #mpr-app .mpr-applicant-chip.active {
             border-color: var(--mpr-text);
             background: var(--mpr-text);
-            color: #fff;
+            color: var(--zn-on-accent);
         }
 
         #mpr-app .mpr-applicant-chip-name {
@@ -837,7 +840,7 @@
         #mpr-app .mpr-iv-toggle.active {
             background: var(--mpr-accent);
             border-color: var(--mpr-accent);
-            color: #fff;
+            color: var(--zn-on-accent);
         }
 
         #mpr-app .mpr-iv-toggle:hover:not(.active) {
@@ -960,7 +963,7 @@
         }
 
         #mpr-app .mpr-iv-open-btn:hover {
-            background: #d8ebfa;
+            background: var(--zn-line-2);
             color: var(--mpr-accent);
             text-decoration: none;
         }
@@ -4243,4 +4246,5 @@
             $('#modal-decline-mpr').modal('show');
         }
     </script>
+    </div>{{-- /.hf-theme --}}
 @stop

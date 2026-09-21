@@ -8,7 +8,7 @@
 
     .ai-page-head h5 {
         font-weight: 800;
-        color: #1F2430;
+        color: var(--zn-ink);
         letter-spacing: -.2px;
         margin: 0;
     }
@@ -38,61 +38,61 @@
     }
 
     .ai-chip-pending {
-        background: #E8F0FE;
-        color: #1B4FB0;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
     }
 
     .ai-chip-approved {
-        background: #E7F6EC;
-        color: #1E9E4C;
+        background: var(--zn-ok-soft);
+        color: var(--zn-ok);
     }
 
     .ai-chip-rejected {
-        background: #FCEBEB;
-        color: #791F1F;
+        background: var(--zn-warn-soft);
+        color: var(--zn-warn);
     }
 
     .ai-chip-draft {
-        background: #F1F2F5;
-        color: #5B6474;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
     }
 
     /* Application statuses (config/applications.php). The three ways an
        application ends are coloured apart: the applicant's own decision, a
        missed document deadline, and HR's decision. */
     .ai-chip-applied {
-        background: #E8F0FE;
-        color: #1B4FB0;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
     }
 
     .ai-chip-docs-complete {
-        background: #E1F5EE;
-        color: #085041;
+        background: var(--zn-ok-soft);
+        color: var(--zn-ok);
     }
 
     .ai-chip-withdrawn {
-        background: #F1F2F5;
-        color: #4A5160;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
     }
 
     .ai-chip-nonresponsive {
-        background: #FFF4E0;
-        color: #7A4B00;
+        background: var(--zn-caution-soft);
+        color: var(--zn-caution);
     }
 
     .ai-chip-notselected {
-        background: #FAECE7;
-        color: #712B13;
+        background: var(--zn-warn-soft);
+        color: var(--zn-warn);
     }
 
     .ai-chip-pool {
-        background: #EFEAF7;
-        color: #4A2E7A;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
     }
 
     .ai-closure {
         font-size: 11px;
-        color: #8A93A3;
+        color: var(--zn-ink-3);
         margin-top: 3px;
         max-width: 42ch;
     }
@@ -105,8 +105,8 @@
     /* Any status not in the map renders neutral rather than borrowing
        another status's colour. */
     .ai-chip-unknown {
-        background: #F1F2F5;
-        color: #5B6474;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
     }
 
     .ai-chip-stack {
@@ -133,27 +133,27 @@
         width: 24px;
         height: 24px;
         border-radius: 50%;
-        background: #F1F2F5;
-        color: #5B6474;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
         font-size: 10px;
         transition: transform .2s ease, background .15s ease, color .15s ease;
     }
 
     tr.shown .ai-chev {
-        background: #E8F0FE;
-        color: #1B4FB0;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
         transform: rotate(90deg);
     }
 
     /* ===== Inline states ===== */
     #ai-alert .alert {
-        border-radius: 10px;
+        border-radius: var(--zn-radius-lg);
         border: none;
         font-size: 13px;
     }
 
     .ai-empty {
-        color: #98A0AE;
+        color: var(--zn-ink-3);
         padding: 26px 10px;
         text-align: center;
     }
@@ -162,16 +162,16 @@
         display: block;
         font-size: 24px;
         margin-bottom: 8px;
-        color: #C7CBD3;
+        color: var(--zn-line-2);
     }
 
     /* ===== Table card wrap ===== */
     .ai-table-card {
-        border: 1px solid #E7E9EE;
-        border-radius: 12px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(31, 36, 48, .04);
-        background: #fff;
+        box-shadow: 0 2px 8px rgba(32, 26, 22,.04);
+        background: var(--zn-surface);
         padding: 4px 4px 0;
     }
 
@@ -185,20 +185,20 @@
         font-weight: 700;
         letter-spacing: .03em;
         text-transform: uppercase;
-        color: #8A93A3;
+        color: var(--zn-ink-3);
         padding: 12px 14px !important;
-        background: #F5F6F9;
-        border-bottom: 1px solid #E7E9EE !important;
+        background: var(--zn-bg);
+        border-bottom: 1px solid var(--zn-line) !important;
         border-top: none !important;
         white-space: nowrap;
     }
 
     #applicant-intake-table tbody td {
         padding: 12px 14px !important;
-        border-bottom: 1px solid #F1F2F5 !important;
+        border-bottom: 1px solid var(--zn-surface-2) !important;
         border-top: none !important;
         vertical-align: middle;
-        color: #1F2430;
+        color: var(--zn-ink);
     }
 
     #applicant-intake-table.table-bordered,
@@ -212,7 +212,7 @@
     }
 
     #applicant-intake-table tbody tr:hover {
-        background: #FAFBFF !important;
+        background: var(--zn-accent-soft) !important;
     }
 
     /* ===== dt-control (expand toggle) ===== */
@@ -230,8 +230,8 @@
         width: 26px;
         height: 26px;
         border-radius: 50%;
-        background: #F1F2F5;
-        color: #5B6474;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
         font-size: 10px;
         transition: background .15s ease, color .15s ease, transform .2s ease;
     }
@@ -244,27 +244,27 @@
     }
 
     tr:hover td.dt-control::before {
-        background: #E8F0FE;
-        color: #1B4FB0;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
     }
 
     tr.shown td.dt-control::before {
-        background: #E8F0FE;
-        color: #1B4FB0;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
         transform: rotate(90deg);
     }
 
     /* ===== Child (expanded) row ===== */
     td.child {
-        background: #FAFBFC !important;
+        background: var(--zn-surface-2) !important;
         padding: 4px 14px 14px !important;
     }
 
     .applicant-intake-child-card {
-        border: 1px solid #E7E9EE;
-        border-radius: 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         overflow: hidden;
-        background: #fff;
+        background: var(--zn-surface);
     }
 
     table.applicant-intake-child-table {
@@ -278,18 +278,18 @@
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
-        color: #8A93A3;
+        color: var(--zn-ink-3);
         padding: 8px 12px;
-        background: #F5F6F9;
-        border-bottom: 1px solid #E7E9EE;
+        background: var(--zn-bg);
+        border-bottom: 1px solid var(--zn-line);
         text-align: left;
     }
 
     .applicant-intake-child-table td {
         padding: 9px 12px;
-        border-bottom: 1px solid #F1F2F5;
+        border-bottom: 1px solid var(--zn-surface-2);
         font-size: 12.5px;
-        color: #1F2430;
+        color: var(--zn-ink);
     }
 
     .applicant-intake-child-table tbody tr:last-child td {
@@ -300,20 +300,20 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 1px solid #E7E9EE;
-        border-radius: 8px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 5px 12px;
         font-size: 11.5px;
         font-weight: 700;
-        color: #5B6474;
+        color: var(--zn-ink-2);
         text-decoration: none;
         transition: background .15s ease, color .15s ease, border-color .15s ease;
     }
 
     .ai-view-link:hover {
-        background: #E8F0FE;
-        color: #1B4FB0;
-        border-color: #C7D8F7;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
+        border-color: var(--zn-line-2);
     }
 
     /* ===== DataTables control bar polish ===== */
@@ -323,13 +323,13 @@
     #applicant-intake-table_wrapper .dataTables_paginate {
         padding: 10px 14px;
         font-size: 12.5px;
-        color: #5B6474;
+        color: var(--zn-ink-2);
     }
 
     #applicant-intake-table_wrapper .dataTables_length select,
     #applicant-intake-table_wrapper .dataTables_filter input {
-        border: 1px solid #E7E9EE;
-        border-radius: 8px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 5px 10px;
         font-size: 12.5px;
     }
@@ -345,29 +345,29 @@
     #applicant-intake-table_wrapper .dataTables_filter input:focus,
     #applicant-intake-table_wrapper .dataTables_length select:focus {
         outline: none;
-        border-color: #9FB8ED;
-        box-shadow: 0 0 0 3px #E8F0FE;
+        border-color: var(--zn-accent);
+        box-shadow: 0 0 0 3px var(--zn-accent-soft);
     }
 
     #applicant-intake-table_wrapper .dataTables_paginate .paginate_button {
-        border-radius: 7px !important;
+        border-radius: var(--zn-radius) !important;
         border: 1px solid transparent !important;
         padding: 5px 11px !important;
         margin-left: 3px !important;
         background: transparent !important;
-        color: #5B6474 !important;
+        color: var(--zn-ink-2) !important;
     }
 
     #applicant-intake-table_wrapper .dataTables_paginate .paginate_button.current {
-        background: linear-gradient(135deg, #2F6FE4, #1B4FB0) !important;
+        background: linear-gradient(135deg, var(--zn-accent), var(--zn-accent-dark)) !important;
         border-color: transparent !important;
-        color: #fff !important;
+        color: var(--zn-on-accent) !important;
     }
 
     #applicant-intake-table_wrapper .dataTables_paginate .paginate_button:hover:not(.current) {
-        background: #F1F2F5 !important;
-        border-color: #E7E9EE !important;
-        color: #1F2430 !important;
+        background: var(--zn-surface-2) !important;
+        border-color: var(--zn-line) !important;
+        color: var(--zn-ink) !important;
     }
 </style>
 
@@ -643,7 +643,7 @@
                         const extra = [];
                         if (docs.pending) extra.push(docs.pending + ' to check');
                         if (docs.open_requests) extra.push(docs.open_requests + ' requested');
-                        if (extra.length) html += '<div style="font-size:11px;color:#8A93A3;margin-top:3px">' + esc(extra.join(' · ')) + '</div>';
+                        if (extra.length) html += '<div style="font-size:11px;color:var(--zn-ink-3);margin-top:3px">' + esc(extra.join(' · ')) + '</div>';
 
                         return html;
                     }

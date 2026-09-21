@@ -18,7 +18,7 @@
     .ql-toolbar {
         border-top-left-radius: 4px;
         border-top-right-radius: 4px;
-        background: #f8f9fa;
+        background: var(--zn-surface-2);
     }
 
     .ql-editor {
@@ -29,12 +29,12 @@
 
     .quill-wrapper .ql-toolbar,
     .quill-wrapper .ql-container {
-        border-color: #dee2e6;
+        border-color: var(--zn-line);
     }
 
     .quill-wrapper .ql-toolbar:focus-within,
     .quill-wrapper .ql-container:focus-within {
-        border-color: #86b7fe;
+        border-color: var(--zn-accent);
     }
 
     /* Match Bootstrap form-control-sm sizing for Choices.js */

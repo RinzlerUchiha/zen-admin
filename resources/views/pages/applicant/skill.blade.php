@@ -11,11 +11,11 @@
         font-weight: 500;
         white-space: nowrap;
     }
-    .skill-badge-technical  { background: #E6F1FB; color: #0C447C; }
-    .skill-badge-soft       { background: #E1F5EE; color: #085041; }
-    .skill-badge-language   { background: #EEEDFE; color: #3C3489; }
-    .skill-badge-others     { background: #F1EFE8; color: #444441; }
-    .skill-badge-default    { background: #F1EFE8; color: #444441; }
+    .skill-badge-technical  { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
+    .skill-badge-soft       { background: var(--zn-ok-soft); color: var(--zn-ok); }
+    .skill-badge-language   { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
+    .skill-badge-others     { background: var(--zn-surface-2); color: var(--zn-ink-2); }
+    .skill-badge-default    { background: var(--zn-surface-2); color: var(--zn-ink-2); }
 
     /* ── Table header ── */
     #skills-list-table thead th {
@@ -23,8 +23,8 @@
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: #6c757d;
-        border-bottom: 1px solid #dee2e6;
+        color: var(--zn-ink-3);
+        border-bottom: 1px solid var(--zn-line);
         white-space: nowrap;
     }
 
@@ -37,7 +37,7 @@
     .skill-empty-state {
         padding: 2.5rem 1rem;
         text-align: center;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
     .skill-empty-state i {
         font-size: 2rem;
@@ -49,7 +49,7 @@
     /* ── Card header ── */
     #skills-list-card .card-header {
         background: transparent;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--zn-line);
         padding: 0.75rem 1rem;
         display: flex;
         align-items: center;
@@ -63,11 +63,11 @@
 
     /* ── Mobile card view ── */
     .skill-card-mobile {
-        border: 1px solid #dee2e6;
-        border-radius: 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 14px 16px;
         margin-bottom: 10px;
-        background: #fff;
+        background: var(--zn-surface);
     }
     .skill-card-mobile-header {
         display: flex;

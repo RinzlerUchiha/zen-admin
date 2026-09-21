@@ -1,6 +1,9 @@
 @extends('layouts.layout')
 
 @section('content')
+    {{-- HireFlow page: the shared HireFlow look, scoped to this wrapper. --}}
+    @include('partials.hireflow-theme')
+    <div class="hf-theme">
 <style>
     :root {
         --my-top-space: calc(var(--main-top-margin) + .25rem);
@@ -13,7 +16,7 @@
         flex-wrap: nowrap;
         position: sticky;
         top: var(--my-top-space);
-        border-right: 1px solid #E7E9EE;
+        border-right: 1px solid var(--zn-line);
         overflow: auto;
         padding: 10px 8px 20px;
         gap: 2px;
@@ -25,8 +28,8 @@
     }
 
     #page-tabs::-webkit-scrollbar-thumb {
-        background: #C9CDD6;
-        border-radius: 10px;
+        background: var(--zn-line-2);
+        border-radius: var(--zn-radius-lg);
     }
 
     .rc-group {
@@ -34,7 +37,7 @@
         font-weight: 700;
         letter-spacing: .06em;
         text-transform: uppercase;
-        color: #9AA1AE;
+        color: var(--zn-ink-3);
         padding: 6px 10px 8px;
     }
 
@@ -50,7 +53,7 @@
         top: 0;
         bottom: 0;
         width: 2px;
-        background: #EDEFF3;
+        background: var(--zn-line);
     }
 
     .rc-item:first-of-type::before {
@@ -67,17 +70,17 @@
         align-items: center;
         gap: 10px;
         padding: 8px 10px;
-        border-radius: 10px;
+        border-radius: var(--zn-radius-lg);
         font-size: 12.5px;
         font-weight: 600;
-        color: #3C4353;
+        color: var(--zn-ink-2);
         text-decoration: none;
         transition: background .15s ease, color .15s ease;
     }
 
     .rc-link:hover {
-        background: #F1F3F7;
-        color: #1F2430;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink);
     }
 
     .rc-step {
@@ -87,9 +90,9 @@
         width: 18px;
         height: 18px;
         border-radius: 50%;
-        background: #fff;
-        border: 2px solid #DDE1E8;
-        color: #9AA1AE;
+        background: var(--zn-surface);
+        border: 2px solid var(--zn-line-2);
+        color: var(--zn-ink-3);
         font-size: 9px;
         font-weight: 700;
         display: inline-flex;
@@ -101,9 +104,9 @@
         flex-shrink: 0;
         width: 30px;
         height: 30px;
-        border-radius: 9px;
-        background: #F1F3F7;
-        color: #5B6474;
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-2);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -121,8 +124,8 @@
     }
 
     .rc-link.active {
-        background: #EAF1FE;
-        color: #14458F;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
     }
 
     .rc-link.active::after {
@@ -133,33 +136,33 @@
         bottom: 8px;
         width: 3px;
         border-radius: 0 3px 3px 0;
-        background: var(--bs-primary, #1B6BE0);
+        background: var(--bs-primary, var(--zn-accent));
     }
 
     .rc-link.active .rc-ico {
-        background: var(--bs-primary, #1B6BE0);
-        color: #fff;
+        background: var(--bs-primary, var(--zn-accent));
+        color: var(--zn-on-accent);
     }
 
     .rc-link.active .rc-step {
-        border-color: var(--bs-primary, #1B6BE0);
-        color: var(--bs-primary, #1B6BE0);
+        border-color: var(--bs-primary, var(--zn-accent));
+        color: var(--bs-primary, var(--zn-accent));
     }
 
     .rc-link.rc-disabled {
-        color: #A8AEBA;
+        color: var(--zn-ink-3);
         cursor: default;
         pointer-events: none;
     }
 
     .rc-link.rc-disabled .rc-ico {
-        background: #F6F7F9;
-        color: #C3C8D2;
+        background: var(--zn-surface-2);
+        color: var(--zn-line-2);
     }
 
     .rc-link.rc-disabled .rc-step {
-        border-color: #EDEFF3;
-        color: #C3C8D2;
+        border-color: var(--zn-line);
+        color: var(--zn-line-2);
     }
 
     .rc-soon {
@@ -167,8 +170,8 @@
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
-        color: #9AA1AE;
-        background: #F1F3F7;
+        color: var(--zn-ink-3);
+        background: var(--zn-surface-2);
         border-radius: 20px;
         padding: 2px 7px;
     }
@@ -179,7 +182,7 @@
             max-height: none;
             position: static;
             border-right: none;
-            border-bottom: 1px solid #E7E9EE;
+            border-bottom: 1px solid var(--zn-line);
         }
     }
 </style>
@@ -323,4 +326,5 @@
         </div>
     </div>
 </div>
+    </div>{{-- /.hf-theme --}}
 @stop

@@ -9,13 +9,13 @@
 
     /* ── Section cards with left border ───────────────────────── */
     .info-section {
-        border-left: 3px solid #0d6efd;
+        border-left: 3px solid var(--zn-accent);
         padding-left: 1rem;
         margin-bottom: 1.75rem;
     }
 
     .info-section > h6 {
-        color: #0d6efd;
+        color: var(--zn-accent);
         font-weight: 600;
         font-size: 14px;
         text-transform: uppercase;
@@ -28,7 +28,7 @@
 
     /* ── Field label / value ───────────────────────────────────── */
     .field-label {
-        color: #6c757d;
+        color: var(--zn-ink-3);
         font-size: 14px;
         text-transform: uppercase;
         letter-spacing: .04em;
@@ -46,30 +46,30 @@
         padding: 0 3px;
         border: none;
         background: transparent;
-        color: #adb5bd;
+        color: var(--zn-line-2);
         cursor: pointer;
         font-size: 11px;
         vertical-align: middle;
         transition: color .15s;
     }
 
-    .btn-copy:hover { color: #0d6efd; }
+    .btn-copy:hover { color: var(--zn-accent); }
 
     /* ── Mask toggle ────────────────────────────────────────────── */
     .btn-mask-toggle {
         padding: 0 4px;
         border: none;
         background: transparent;
-        color: #6c757d;
+        color: var(--zn-ink-3);
         cursor: pointer;
         font-size: 10px;
         vertical-align: middle;
         transition: color .15s;
     }
 
-    .btn-mask-toggle:hover { color: #0d6efd; }
+    .btn-mask-toggle:hover { color: var(--zn-accent); }
 
-    .masked { letter-spacing: 1px; color: #adb5bd; }
+    .masked { letter-spacing: 1px; color: var(--zn-line-2); }
 
     /* ── Status badge ───────────────────────────────────────────── */
     .status-badge {
@@ -84,20 +84,20 @@
 
     /* ── Accordion tweaks ───────────────────────────────────────── */
     .info-accordion {
-        --bs-accordion-bg: #e9ecf3;
+        --bs-accordion-bg: var(--zn-line);
     }
 
     .info-accordion .accordion-button {
         font-size: 14px;
         font-weight: 600;
-        color: #495057;
+        color: var(--zn-ink-2);
         background: transparent;
         box-shadow: none;
         padding: 6px 0;
     }
 
     .info-accordion .accordion-button:not(.collapsed) {
-        color: #0d6efd;
+        color: var(--zn-accent);
         background: transparent;
     }
 
@@ -109,7 +109,7 @@
 
     .info-accordion .accordion-item {
         border: none;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--zn-line);
     }
 
     .info-accordion .accordion-body {
@@ -178,10 +178,10 @@
                 @php
                     $status = strtolower($applicant?->app_status ?? '');
                     $badgeCss = match($status) {
-                        'active'   => 'background:#d1fae5; color:#065f46;',
-                        'hired'    => 'background:#dbeafe; color:#1e40af;',
-                        'inactive' => 'background:#f3f4f6; color:#6b7280;',
-                        default    => 'background:#fef9c3; color:#92400e;',
+                        'active'   => 'background:var(--zn-ok-soft); color:var(--zn-ok);',
+                        'hired'    => 'background:var(--zn-accent-soft); color:var(--zn-accent-dark);',
+                        'inactive' => 'background:var(--zn-surface-2); color:var(--zn-ink-3);',
+                        default    => 'background:var(--zn-caution-soft); color:var(--zn-caution);',
                     };
                 @endphp
                 <span class="status-badge" style="{{ $badgeCss }}">

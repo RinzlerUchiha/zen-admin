@@ -6,14 +6,14 @@
        Card shell
     ══════════════════════════════════════ */
     #employment-list-card {
-        border: 1px solid #e9ecef;
-        border-radius: 14px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         overflow: hidden;
         box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
     }
     #employment-list-card .card-header {
-        background: linear-gradient(180deg, #fafbfc 0%, #f5f6f8 100%);
-        border-bottom: 1px solid #e9ecef;
+        background: linear-gradient(180deg, var(--zn-surface-2) 0%, var(--zn-surface-2) 100%);
+        border-bottom: 1px solid var(--zn-line);
         padding: 1rem 1.25rem;
         display: flex;
         align-items: center;
@@ -26,20 +26,20 @@
         margin: 0;
         display: flex;
         align-items: center;
-        color: #1c1f24;
+        color: var(--zn-ink);
     }
     #employment-list-card .card-header .card-title i {
         font-size: 18px;
         margin-right: 0.6rem;
-        color: #6c757d;
+        color: var(--zn-ink-3);
     }
     #employment-list-card .card-header .badge {
         font-size: 11.5px;
         font-weight: 500;
         padding: 4px 10px;
         border-radius: 999px;
-        background: #eef1f4;
-        color: #495057;
+        background: var(--zn-line);
+        color: var(--zn-ink-2);
     }
 
     /* ══════════════════════════════════════
@@ -63,10 +63,10 @@
         border-radius: 50%;
         display: inline-block;
     }
-    .empl-badge-current { background: #E1F5EE; color: #085041; }
-    .empl-badge-current::before { background: #16a072; }
-    .empl-badge-past { background: #F1EFE8; color: #57544c; }
-    .empl-badge-past::before { background: #a8a397; }
+    .empl-badge-current { background: var(--zn-ok-soft); color: var(--zn-ok); }
+    .empl-badge-current::before { background: var(--zn-ok); }
+    .empl-badge-past { background: var(--zn-surface-2); color: var(--zn-ink-2); }
+    .empl-badge-past::before { background: var(--zn-ink-3); }
 
     /* ══════════════════════════════════════
        Desktop table
@@ -76,18 +76,18 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        color: #868e96;
-        border-bottom: 1px solid #e9ecef;
+        color: var(--zn-ink-3);
+        border-bottom: 1px solid var(--zn-line);
         white-space: nowrap;
         padding: 0.85rem 1rem;
-        background: #fcfcfd;
+        background: var(--zn-surface-2);
     }
     #employment-list-table tbody td {
         vertical-align: middle;
         padding: 0.9rem 1rem;
         font-size: 13.5px;
-        color: #343a40;
-        border-bottom: 1px solid #f1f3f5;
+        color: var(--zn-ink);
+        border-bottom: 1px solid var(--zn-surface-2);
     }
     #employment-list-table tbody tr:last-child td {
         border-bottom: none;
@@ -96,7 +96,7 @@
         transition: background-color 0.12s ease;
     }
     #employment-list-table tbody tr:hover {
-        background-color: #f8f9fb;
+        background-color: var(--zn-surface-2);
     }
     .empl-company-cell {
         display: flex;
@@ -107,9 +107,9 @@
         flex-shrink: 0;
         width: 32px;
         height: 32px;
-        border-radius: 8px;
-        background: #eef1f4;
-        color: #495057;
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-line);
+        color: var(--zn-ink-2);
         font-size: 12px;
         font-weight: 700;
         display: flex;
@@ -119,12 +119,12 @@
     }
     .empl-company-name {
         font-weight: 600;
-        color: #1c1f24;
+        color: var(--zn-ink);
         line-height: 1.35;
     }
     .empl-position-sub {
         font-size: 12px;
-        color: #868e96;
+        color: var(--zn-ink-3);
         margin-top: 1px;
     }
 
@@ -142,7 +142,7 @@
     .empl-empty-state {
         padding: 3rem 1rem;
         text-align: center;
-        color: #868e96;
+        color: var(--zn-ink-3);
     }
     .empl-empty-state i {
         font-size: 2.1rem;
@@ -159,11 +159,11 @@
        Mobile cards
     ══════════════════════════════════════ */
     .empl-card-mobile {
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
         padding: 16px;
         margin-bottom: 12px;
-        background: #fff;
+        background: var(--zn-surface);
         box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
     }
     .empl-card-mobile:last-child { margin-bottom: 0; }
@@ -177,19 +177,19 @@
     .empl-card-mobile-header .empl-name {
         font-weight: 600;
         font-size: 14.5px;
-        color: #1c1f24;
+        color: var(--zn-ink);
         line-height: 1.3;
     }
     .empl-card-mobile-position {
         font-size: 12.5px;
-        color: #868e96;
+        color: var(--zn-ink-3);
         margin-top: -6px;
         margin-bottom: 10px;
     }
     .empl-card-mobile-body {
         font-size: 13px;
-        color: #495057;
-        border-top: 1px dashed #e9ecef;
+        color: var(--zn-ink-2);
+        border-top: 1px dashed var(--zn-line);
         padding-top: 10px;
         display: flex;
         flex-direction: column;
@@ -199,7 +199,7 @@
         font-size: 14px;
         vertical-align: -2px;
         margin-right: 7px;
-        color: #adb5bd;
+        color: var(--zn-line-2);
         width: 14px;
         display: inline-block;
     }
