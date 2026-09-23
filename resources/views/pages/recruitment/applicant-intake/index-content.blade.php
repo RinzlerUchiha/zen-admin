@@ -24,7 +24,7 @@
         gap: 6px;
         border-radius: 20px;
         padding: 5px 14px;
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 700;
         letter-spacing: .2px;
     }
@@ -91,14 +91,14 @@
     }
 
     .ai-closure {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         color: var(--zn-ink-3);
         margin-top: 3px;
         max-width: 42ch;
     }
 
     .ai-actions .btn {
-        font-size: 11.5px;
+        font-size: var(--zn-fs-sm);
         padding: 1px 8px;
     }
 
@@ -135,7 +135,7 @@
         border-radius: 50%;
         background: var(--zn-surface-2);
         color: var(--zn-ink-2);
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         transition: transform .2s ease, background .15s ease, color .15s ease;
     }
 
@@ -149,7 +149,7 @@
     #ai-alert .alert {
         border-radius: var(--zn-radius-lg);
         border: none;
-        font-size: 13px;
+        font-size: var(--zn-fs);
     }
 
     .ai-empty {
@@ -165,6 +165,98 @@
         color: var(--zn-line-2);
     }
 
+    /* ===== Filters ===== */
+    .ai-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .ai-filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .ai-filter {
+        border: 1px solid var(--zn-line);
+        background: var(--zn-surface);
+        color: var(--zn-ink-2);
+        border-radius: 999px;
+        padding: 5px 13px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+    }
+
+    .ai-filter:hover {
+        border-color: var(--zn-accent);
+        color: var(--zn-accent);
+    }
+
+    .ai-filter.is-on {
+        background: var(--zn-accent);
+        border-color: var(--zn-accent);
+        color: var(--zn-on-accent);
+    }
+
+    #ai-posting-filter {
+        width: auto;
+        min-width: 190px;
+    }
+
+    /* ===== Closing an application ===== */
+    .ai-close-menu .dropdown-menu {
+        max-width: 320px;
+    }
+
+    .ai-close-menu .dropdown-item {
+        white-space: normal;
+        padding: 8px 14px;
+    }
+
+    .ai-close-menu .dropdown-item b {
+        display: block;
+        font-size: var(--zn-fs);
+    }
+
+    .ai-close-menu .dropdown-item small {
+        display: block;
+        color: var(--zn-ink-3);
+    }
+
+    /* ===== Access code requests ===== */
+    .ai-access-requests {
+        background: var(--zn-caution-soft);
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        font-size: var(--zn-fs-ui);
+    }
+
+    .ai-access-requests-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--zn-ink);
+    }
+
+    .ai-access-requests-head i {
+        color: var(--zn-caution);
+    }
+
+    .ai-access-requests ul {
+        margin: 6px 0 0;
+        padding-left: 26px;
+    }
+
+    .ai-access-requests li span {
+        color: var(--zn-ink-3);
+    }
+
     /* ===== Table card wrap ===== */
     .ai-table-card {
         border: 1px solid var(--zn-line);
@@ -177,11 +269,11 @@
 
     #applicant-intake-table {
         border-collapse: collapse !important;
-        font-size: 13px;
+        font-size: var(--zn-fs);
     }
 
     #applicant-intake-table thead th {
-        font-size: 10.5px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .03em;
         text-transform: uppercase;
@@ -232,7 +324,7 @@
         border-radius: 50%;
         background: var(--zn-surface-2);
         color: var(--zn-ink-2);
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         transition: background .15s ease, color .15s ease, transform .2s ease;
     }
 
@@ -274,7 +366,7 @@
     }
 
     .applicant-intake-child-table th {
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
@@ -288,7 +380,7 @@
     .applicant-intake-child-table td {
         padding: 9px 12px;
         border-bottom: 1px solid var(--zn-surface-2);
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-ink);
     }
 
@@ -303,7 +395,7 @@
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
         padding: 5px 12px;
-        font-size: 11.5px;
+        font-size: var(--zn-fs-sm);
         font-weight: 700;
         color: var(--zn-ink-2);
         text-decoration: none;
@@ -322,7 +414,7 @@
     #applicant-intake-table_wrapper .dataTables_info,
     #applicant-intake-table_wrapper .dataTables_paginate {
         padding: 10px 14px;
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-ink-2);
     }
 
@@ -331,7 +423,7 @@
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
         padding: 5px 10px;
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
     }
 
     /* A native select sizes to its widest option, and the browser draws its
@@ -385,6 +477,42 @@
         @endif
     </div>
 
+    @if (($accessRequests ?? collect())->isNotEmpty())
+        {{-- Applicants whose assessment access ended and who asked for a new
+             code. Issuing one from their Assessment access tab answers it. --}}
+        <div class="ai-access-requests" role="region" aria-label="Access code requests">
+            <div class="ai-access-requests-head">
+                <i class="bi bi-send-exclamation"></i>
+                <b>{{ $accessRequests->count() }} {{ Str::plural('applicant', $accessRequests->count()) }} asked for a new assessment access code</b>
+            </div>
+            <ul>
+                @foreach ($accessRequests as $req)
+                    <li>
+                        <a href="{{ route('applicant.show', ['id' => $req->app_id, 'tab' => 'assessment-access']) }}">
+                            {{ trim($req->app_lname . ', ' . $req->app_fname, ', ') }}</a>
+                        <span>· {{ config('applicant_assessments.request_reasons.' . $req->reason, $req->reason) }}
+                            @if ($req->assessment)
+                                ({{ config('applicant_assessments.list.' . $req->assessment . '.label', $req->assessment) }})
+                            @endif
+                            · {{ \Illuminate\Support\Carbon::parse($req->requested_at)->format('M j, g:i A') }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <div class="ai-filters" role="group" aria-label="Filter applications">
+        <div class="ai-filter-chips">
+            <button type="button" class="ai-filter is-on" data-filter="all">All applicants</button>
+            <button type="button" class="ai-filter" data-filter="open">With an open application</button>
+            <button type="button" class="ai-filter" data-filter="closed">Closed only</button>
+            <button type="button" class="ai-filter" data-filter="pool">In the Candidate Pool</button>
+        </div>
+        <select id="ai-posting-filter" class="form-select form-select-sm" aria-label="Filter by position">
+            <option value="">Every position</option>
+        </select>
+    </div>
+
     <div class="ai-table-card">
         <table id="applicant-intake-table" class="table table-sm table-bordered table-hover table-striped"
             style="width: 100%;">
@@ -400,6 +528,7 @@
                     @can('applicant-documents.view')
                         <th>Documents</th>
                     @endcan
+                    <th></th>
                 </tr>
             </thead>
         </table>
@@ -417,7 +546,7 @@
                     <h1 class="modal-title fs-6" id="aiDecideTitle">Decide</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" style="font-size:13px">
+                <div class="modal-body" style="font-size:var(--zn-fs)">
                     <p class="mb-2 fw-semibold" id="aiDecideWho"></p>
 
                     <p class="text-muted mb-3" id="aiDecideWithdrawHelp">
@@ -458,6 +587,7 @@
     // Selected (eappprofile view + directedit or hire). Enforced again on the
     // routes; this only decides whether to show the buttons.
     const CAN_DECIDE = @json(Gate::allows('applicant-applications.decide'));
+    const COOLDOWN_MONTHS = @json((int) (config('applications.cooldowns')['Not Selected']['months'] ?? 0));
     const DECIDE_URL = {
         withdraw: @json(route('recruitment.applicant-intake.withdraw', ['application' => '__ID__'])),
         notSelected: @json(route('recruitment.applicant-intake.not-selected', ['application' => '__ID__']))
@@ -495,16 +625,24 @@
         return html;
     }
 
+    // Closing ONE application. Both outcomes live behind one menu, each
+    // spelling out what it does, because the difference between them is the
+    // waiting period and not the wording "withdraw" vs "not selected".
     function decisionButtons(app) {
         if (!CAN_DECIDE || app.is_closed) return '';
 
         const data = ' data-id="' + esc(app.id) + '" data-title="' + esc(app.posting_title) +
             '" data-mr="' + esc(app.mr_no) + '" data-name="' + esc(app.applicant_name) + '"';
 
-        return '<span class="ai-actions d-inline-flex gap-1 me-2">' +
-            '<button type="button" class="btn btn-sm btn-outline-secondary js-decide" data-action="withdraw"' + data + '>Withdraw</button>' +
-            '<button type="button" class="btn btn-sm btn-outline-danger js-decide" data-action="notSelected"' + data + '>Not Selected</button>' +
-            '</span>';
+        return '<div class="dropdown ai-close-menu">' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">' +
+            'Close application</button>' +
+            '<ul class="dropdown-menu dropdown-menu-end">' +
+            '<li><button type="button" class="dropdown-item js-decide" data-action="withdraw"' + data + '>' +
+            '<b>Applicant withdrew</b><small>They asked to stop this application. No waiting period.</small></button></li>' +
+            '<li><button type="button" class="dropdown-item js-decide" data-action="notSelected"' + data + '>' +
+            '<b>Not Selected</b><small>Our decision. ' + COOLDOWN_MONTHS + '-month wait before they can apply to this posting again.</small></button></li>' +
+            '</ul></div>';
     }
 
     // Single place that turns a status string into a chip, used by both the
@@ -537,7 +675,6 @@
                 </td>
                 <td class="text-end text-nowrap">
                     ${decisionButtons(Object.assign({ applicant_name: applicant.applicant_name }, app))}
-                    <a href="${baseUrl}/applicant/info/${app.app_id}" class="ai-view-link">View</a>
                 </td>
             </tr>
         `).join('');
@@ -643,12 +780,22 @@
                         const extra = [];
                         if (docs.pending) extra.push(docs.pending + ' to check');
                         if (docs.open_requests) extra.push(docs.open_requests + ' requested');
-                        if (extra.length) html += '<div style="font-size:11px;color:var(--zn-ink-3);margin-top:3px">' + esc(extra.join(' · ')) + '</div>';
+                        if (extra.length) html += '<div style="font-size:var(--zn-fs-sm);color:var(--zn-ink-3);margin-top:3px">' + esc(extra.join(' · ')) + '</div>';
 
                         return html;
                     }
                 }
                 @endcan
+                ,{
+                    // The profile is the applicant's, not one application's —
+                    // so it belongs on the applicant's row.
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-end',
+                    render: (data, type, row) => '<a class="btn btn-sm btn-outline-primary" href="' + baseUrlForDocs +
+                        '/applicant/info/' + encodeURIComponent(row.app_id) + '">Open profile</a>'
+                }
             ],
             processing: true,
             language: {
@@ -671,6 +818,44 @@
                 [50, 100, -1],
                 [50, 100, 'All']
             ]
+        });
+
+        // Filtering happens on what each applicant's applications say, so it
+        // works the same whether or not their row is expanded.
+        let rowFilter = 'all';
+        let postingFilter = '';
+
+        $.fn.dataTable.ext.search.push(function (settings, data, index, row) {
+            if (settings.nTable.id !== 'applicant-intake-table') return true;
+            const applications = (row && row.applications) || [];
+            const matchesPosting = !postingFilter || applications.some(a => a.posting_title === postingFilter);
+            if (!matchesPosting) return false;
+            if (rowFilter === 'open') return applications.some(a => !a.is_closed);
+            if (rowFilter === 'closed') return applications.length > 0 && applications.every(a => a.is_closed);
+            if (rowFilter === 'pool') return applications.some(a => a.in_candidate_pool);
+            return true;
+        });
+
+        $('.ai-filter').on('click', function () {
+            $('.ai-filter').removeClass('is-on');
+            $(this).addClass('is-on');
+            rowFilter = $(this).data('filter');
+            table.draw();
+        });
+
+        $('#ai-posting-filter').on('change', function () {
+            postingFilter = this.value;
+            table.draw();
+        });
+
+        // The positions on offer come from the loaded applications.
+        table.on('xhr.dt', function (e, settings, json) {
+            const titles = [...new Set((json.data || []).flatMap(r => (r.applications || []).map(a => a.posting_title)))].sort();
+            const select = $('#ai-posting-filter');
+            const current = select.val();
+            select.find('option:not(:first)').remove();
+            titles.forEach(t => select.append($('<option>').attr('value', t).text(t)));
+            select.val(titles.includes(current) ? current : '');
         });
 
         $('#applicant-intake-table').on('error.dt', function (e, settings, techNote, message) {

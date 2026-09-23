@@ -10,6 +10,103 @@
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.min.js"></script> --}}
 
     <style>
+        /* The applicant at a glance, above the tabs. */
+        .ap-overview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            align-items: flex-start;
+            justify-content: space-between;
+            background: var(--zn-surface);
+            border: 1px solid var(--zn-line);
+            border-radius: var(--zn-radius-lg);
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+
+        .ap-overview-id {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            min-width: 240px;
+        }
+
+        .ap-overview-id img,
+        .ap-overview-initials {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: none;
+        }
+
+        .ap-overview-initials {
+            display: grid;
+            place-items: center;
+            background: var(--zn-accent-soft);
+            color: var(--zn-accent);
+            font-weight: 700;
+        }
+
+        .ap-overview-id b {
+            display: block;
+            font-size: var(--zn-fs-lg);
+        }
+
+        .ap-overview-id span {
+            display: block;
+            font-size: var(--zn-fs-sm);
+            color: var(--zn-ink-3);
+        }
+
+        .ap-overview-facts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 22px;
+        }
+
+        .ap-fact {
+            min-width: 150px;
+        }
+
+        .ap-fact-label {
+            display: block;
+            font-size: var(--zn-fs-xs);
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: var(--zn-ink-3);
+            margin-bottom: 3px;
+        }
+
+        .ap-fact-value {
+            display: block;
+            font-size: var(--zn-fs-sm);
+            color: var(--zn-ink);
+        }
+
+        .ap-fact-link {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: var(--zn-fs-sm);
+            font-weight: 600;
+        }
+
+        .ap-applications {
+            list-style: none;
+            padding: 0;
+            margin: 6px 0 0;
+            font-size: var(--zn-fs-sm);
+        }
+
+        .ap-applications li {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+
         :root {
             --my-top-space: calc(var(--main-top-margin) + .25rem);
         }
@@ -39,7 +136,7 @@
         }
 
         #sidebar li a {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             color: black;
         }
 
@@ -211,6 +308,8 @@
                         </ul>
                     </div>
                 @endif
+                @include('pages.applicant.partials.profile-overview')
+
                 <div class="d-flex mb-2">
                     <h5>Applicant Profile - {{ $applicant?->first_last_name }}</h5>
                     {{-- <button class="btn btn-outline-secondary btn-sm">Hire</button> --}}
@@ -218,7 +317,9 @@
                     <div class="btn-group dropstart ms-auto">
                         <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Set Status</button>
                         <ul class="dropdown-menu">
-                            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#hireModal">Hired</button></li>
+                            @can('applicant.hire')
+                                <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#hireModal">Hired</button></li>
+                            @endcan
                             <li><a class="dropdown-item" href="#">Inactive</a></li>
                         </ul>
                     </div>
@@ -232,6 +333,7 @@
     </div>
 
     <!-- Modal -->
+    @can('applicant.hire')
     <div class="modal fade" id="hireModal" tabindex="-1" aria-labelledby="hireModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -250,6 +352,7 @@
             </div>
         </div>
     </div>
+    @endcan
 
     </div>{{-- /.hf-theme --}}
 @stop

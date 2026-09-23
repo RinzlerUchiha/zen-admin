@@ -14,6 +14,17 @@
 | settings; grace_seconds mirrors its "attempts.grace_seconds".
 */
 return [
+
+    /*
+    | Why an applicant asked for a new code (tblapp_assessment_access_requests
+    | .reason, set by zen-applicants), in HR's words.
+    */
+    'request_reasons' => [
+        'expired'       => 'Access ended',
+        'paused'        => 'To resume a paused assessment',
+        'other_browser' => 'To continue in another browser',
+    ],
+
     'code_length' => 6,
     'code_minutes' => 30,
     'max_failures' => 5,

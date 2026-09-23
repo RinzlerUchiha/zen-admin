@@ -4,12 +4,12 @@
 
 <style>
     #interview-details {
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
     }
 
     /* Quill editor container */
     .ql-container {
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         font-family: inherit;
         border-bottom-left-radius: 4px;
         border-bottom-right-radius: 4px;
@@ -39,7 +39,7 @@
 
     /* Match Bootstrap form-control-sm sizing for Choices.js */
     #interview-details .choices {
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         margin-bottom: 0;
     }
 
@@ -47,7 +47,7 @@
         min-height: calc(1.5em + 0.5rem + 2px);
         padding: 0.25rem 0.5rem;
         border-radius: 0.2rem;
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
     }
 </style>
 
@@ -348,7 +348,11 @@ document.addEventListener('DOMContentLoaded', function () {
         {{-- ── Submit ────────────────────────────────────────────────── --}}
         <div class="row mt-3">
             <div class="col-lg-auto">
-                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                @can('applicant.interview-details.save')
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                @else
+                    <span class="small text-muted">View only — recording interview details needs HR rights on applicant profiles.</span>
+                @endcan
             </div>
         </div>
 

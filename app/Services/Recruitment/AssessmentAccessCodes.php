@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Hash;
  * in that browser session. Issuing a code retires any earlier code that has not
  * been used, so only the newest one works. The code itself is stored hashed and
  * shown to HR only once, when it is issued.
+ *
+ * Applicants whose access has ended can ask for a new code
+ * (tblapp_assessment_access_requests, written by zen-applicants). Issuing a
+ * code answers that request.
  */
 class AssessmentAccessCodes
 {
@@ -42,9 +46,36 @@ class AssessmentAccessCodes
                 'expires_at' => $expires,
                 'failed_attempts' => 0,
             ]);
+
+            // The applicant's request for a code, if they made one, is answered.
+            $db->table('tblapp_assessment_access_requests')
+                ->where('app_id', $appId)
+                ->whereNull('resolved_at')
+                ->update(['resolved_at' => now(), 'resolved_by' => $empno]);
         });
 
         return ['code' => $code, 'expires_at' => $expires];
+    }
+
+    /** The applicant's open request for a new code, if any. */
+    public static function openRequest(int $appId): ?object
+    {
+        return DB::connection('applicant')->table('tblapp_assessment_access_requests')
+            ->where('app_id', $appId)
+            ->whereNull('resolved_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    /** Every open request, oldest first, with the applicant's name. */
+    public static function openRequests(): \Illuminate\Support\Collection
+    {
+        return DB::connection('applicant')->table('tblapp_assessment_access_requests as r')
+            ->join('tblapp_persinfo as p', 'p.app_id', '=', 'r.app_id')
+            ->whereNull('r.resolved_at')
+            ->orderBy('r.requested_at')
+            ->get(['r.id', 'r.app_id', 'r.reason', 'r.assessment', 'r.requested_at', 'r.times_asked',
+                'p.app_fname', 'p.app_lname']);
     }
 
     /** The newest code, for showing whether it is waiting, used or expired. */

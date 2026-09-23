@@ -7,7 +7,7 @@
         display: inline-block;
         padding: 2px 10px;
         border-radius: 999px;
-        font-size: 15px;
+        font-size: var(--zn-fs-lg);
         font-weight: 500;
         white-space: nowrap;
     }
@@ -19,7 +19,7 @@
 
     /* ── Table header ── */
     #skills-list-table thead th {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -30,7 +30,7 @@
 
     #skills-list-table tbody td {
         vertical-align: middle;
-        font-size: 15px;
+        font-size: var(--zn-fs-lg);
     }
 
     /* ── Empty state ── */
@@ -56,7 +56,7 @@
         justify-content: space-between;
     }
     #skills-list-card .card-header .card-title {
-        font-size: 15px;
+        font-size: var(--zn-fs-lg);
         font-weight: 500;
         margin: 0;
     }
@@ -77,7 +77,7 @@
     }
     .skill-card-mobile-name {
         font-weight: 500;
-        font-size: 14px;
+        font-size: var(--zn-fs);
     }
 </style>
 @endpush

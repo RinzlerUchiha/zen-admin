@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Recruitment\HireflowManpowerRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class ManpowerController extends Controller
 {
@@ -35,7 +36,7 @@ class ManpowerController extends Controller
 
     private function buildListQuery(string $status, $user)
     {
-        $canViewAll = $user->userAccess('personnelreq', 'viewall');
+        $canViewAll = Gate::forUser($user)->allows('manpower-requests.view-all');
 
         $query = HireflowManpowerRequest::with('positions')->where('status', $status);
 

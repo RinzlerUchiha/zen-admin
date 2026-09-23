@@ -22,6 +22,7 @@ use App\Http\Controllers\PAController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\Recruitment\JobPostingController;
+use App\Http\Controllers\Recruitment\JobPostingPhotoController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
@@ -154,9 +155,12 @@ Route::middleware(['auth'])->group(function () {
         ->group(function () {
             Route::get('list', [ApplicantProfileController::class, 'index'])->name('index');
             Route::get('info/{id}/{tab?}', [ApplicantProfileController::class, 'show'])->name('show');
-            Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])->name('form.hire');
-            Route::post('hire/{id}', [ApplicantProfileController::class, 'hire'])->name('hire');
-            Route::post('interview-details/save/{id}', [ApplicantProfileController::class, 'saveInterviewDetails'])->name('interview.save');
+            Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])
+                ->middleware('can:applicant.hire')->name('form.hire');
+            Route::post('hire/{id}', [ApplicantProfileController::class, 'hire'])
+                ->middleware('can:applicant.hire')->name('hire');
+            Route::post('interview-details/save/{id}', [ApplicantProfileController::class, 'saveInterviewDetails'])
+                ->middleware('can:applicant.interview-details.save')->name('interview.save');
             // The one-time code that opens the applicant's assessments.
             Route::post('info/{id}/assessment-access', [\App\Http\Controllers\Applicant\ApplicantAssessmentAccessController::class, 'issue'])
                 ->whereNumber('id')
@@ -318,6 +322,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/', [JobPostingController::class, 'store'])->name('store');
         Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('status');
         Route::patch('/{jobPosting}/description', [JobPostingController::class, 'updateDescription'])->name('description');
+        // Photos shown beside the posting on the careers page (its Job Specification's).
+        Route::get('/{jobPosting}/photos', [JobPostingPhotoController::class, 'index'])->name('photos.index');
+        Route::post('/{jobPosting}/photos', [JobPostingPhotoController::class, 'store'])->name('photos.store');
+        Route::get('/{jobPosting}/photos/{name}', [JobPostingPhotoController::class, 'show'])->name('photos.show');
+        Route::delete('/{jobPosting}/photos/{name}', [JobPostingPhotoController::class, 'destroy'])->name('photos.destroy');
     });
 
     Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {

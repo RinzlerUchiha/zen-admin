@@ -56,5 +56,31 @@ class AuthServiceProvider extends ServiceProvider
         */
         Gate::define('applicant-assessments.issue-access', fn (User $user) => $user->userAccess('eappprofile', 'view')
             && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire')));
+
+        /*
+        | Seeing every manpower request in zen-admin's Manpower page. The
+        | legacy HRIS right (personnelreq "viewall") still grants it; so do
+        | HireFlow's own HR rights, since HR runs the hiring from here and
+        | Phase 1 gives Admin/HR all requests. Without either, the page keeps
+        | showing only what the employee's approver assignment covers.
+        */
+        Gate::define('manpower-requests.view-all', fn (User $user) => $user->userAccess('personnelreq', 'viewall')
+            || ($user->userAccess('eappprofile', 'view')
+                && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire'))));
+
+        /*
+        | Hiring an applicant (creating their employee record): the HRIS right
+        | that exists for exactly this, eappprofile "hire".
+        */
+        Gate::define('applicant.hire', fn (User $user) => $user->userAccess('eappprofile', 'view')
+            && $user->userAccess('eappprofile', 'hire'));
+
+        /*
+        | Recording interview details: the same rights as HR's other actions on
+        | an applicant (above). Anyone who can view the profile can still read
+        | them.
+        */
+        Gate::define('applicant.interview-details.save', fn (User $user) => $user->userAccess('eappprofile', 'view')
+            && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire')));
     }
 }

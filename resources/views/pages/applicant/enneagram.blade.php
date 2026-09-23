@@ -8,7 +8,7 @@
     <style>
         #form-enneagram {
             user-select: none;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
         }
 
         #enneagramTabContent ul li {

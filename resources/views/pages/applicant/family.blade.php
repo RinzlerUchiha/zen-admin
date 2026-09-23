@@ -7,7 +7,7 @@
         display: inline-block;
         padding: 2px 10px;
         border-radius: 999px;
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         font-weight: 500;
         white-space: nowrap;
     }
@@ -19,7 +19,7 @@
 
     /* ── Table header ── */
     #family-list-table thead th {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -68,7 +68,7 @@
         justify-content: space-between;
     }
     #family-list-card .card-header .card-title {
-        font-size: 15px;
+        font-size: var(--zn-fs-lg);
         font-weight: 500;
         margin: 0;
     }
@@ -89,15 +89,15 @@
     }
     .fam-card-mobile-header .fam-name {
         font-weight: 500;
-        font-size: 14px;
+        font-size: var(--zn-fs);
     }
     .fam-card-mobile-maiden {
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-line-2);
         margin-bottom: 8px;
     }
     .fam-card-mobile-body {
-        font-size: 13px;
+        font-size: var(--zn-fs);
         border-top: 1px solid var(--zn-line);
         padding-top: 10px;
         display: flex;
@@ -105,7 +105,7 @@
         gap: 6px;
     }
     .fam-card-mobile-body i {
-        font-size: 14px;
+        font-size: var(--zn-fs);
         vertical-align: -2px;
         margin-right: 6px;
         color: var(--zn-ink-3);
@@ -192,7 +192,7 @@
                         @if($list->fam_maidenname)
                             <br>
                             <small class="text-muted">
-                                <span style="font-size:10px; text-transform:uppercase; letter-spacing:0.04em;">Maiden name:</span>
+                                <span style="font-size:var(--zn-fs-xs); text-transform:uppercase; letter-spacing:0.04em;">Maiden name:</span>
                                 {{ $list->fam_maidenname }}
                             </small>
                         @endif

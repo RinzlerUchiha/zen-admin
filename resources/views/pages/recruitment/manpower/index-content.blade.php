@@ -1,6 +1,6 @@
 <style>
     /* ===== Layout ===== */
-    #manpower-list { font-size: 13px; }
+    #manpower-list { font-size: var(--zn-fs); }
 
     .mpr-page-head {
         display: flex;
@@ -36,7 +36,7 @@
         background: transparent;
         color: var(--zn-ink-2);
         font-weight: 700;
-        font-size: 13px;
+        font-size: var(--zn-fs);
         padding: 8px 16px;
         border-radius: var(--zn-radius-lg);
         cursor: pointer;
@@ -52,7 +52,7 @@
     }
 
     .mpr-tab-badge {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 700;
         background: var(--zn-line);
         color: var(--zn-ink-2);
@@ -74,7 +74,7 @@
         gap: 6px;
         border-radius: 20px;
         padding: 5px 14px;
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 700;
         letter-spacing: .2px;
     }
@@ -99,7 +99,7 @@
         white-space: nowrap;
         border-radius: var(--zn-radius);
         padding: 3px 10px;
-        font-size: 10.5px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
     }
 
@@ -141,7 +141,7 @@
         justify-content: center;
         background: var(--zn-surface-2);
         color: var(--zn-ink-2);
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         transition: background .15s ease, color .15s ease, transform .2s ease;
     }
 
@@ -154,13 +154,13 @@
     .mpr-mrno {
         font-weight: 800;
         color: var(--zn-ink);
-        font-size: 13.5px;
+        font-size: var(--zn-fs);
     }
 
-    .mpr-date { color: var(--zn-ink-3); font-size: 12px; }
+    .mpr-date { color: var(--zn-ink-3); font-size: var(--zn-fs-ui); }
 
     .mpr-requestor { font-weight: 600; color: var(--zn-ink); }
-    .mpr-dept { color: var(--zn-ink-2); font-size: 12.5px; }
+    .mpr-dept { color: var(--zn-ink-2); font-size: var(--zn-fs-ui); }
 
     .mpr-positions-count {
         font-weight: 700;
@@ -171,7 +171,7 @@
         display: block;
         font-weight: 500;
         color: var(--zn-ink-3);
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         text-transform: uppercase;
         letter-spacing: .04em;
     }
@@ -184,7 +184,7 @@
         border: 1px solid var(--zn-line);
         background: var(--zn-surface);
         color: var(--zn-ink);
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         font-weight: 600;
         border-radius: 999px;
         padding: 5px 13px;
@@ -193,7 +193,7 @@
     }
 
     .mpr-subject-btn i {
-        font-size: 9.5px;
+        font-size: var(--zn-fs-xs);
         color: var(--zn-line-2);
         transition: color .15s ease, transform .15s ease;
     }
@@ -216,7 +216,7 @@
     }
 
     .mpr-detail-hint {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         color: var(--zn-ink-3);
         padding: 8px 4px 0;
     }
@@ -244,7 +244,7 @@
     table.mpr-detail-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
 
     table.mpr-detail-table thead th {
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
@@ -262,7 +262,7 @@
     table.mpr-detail-table tbody td {
         padding: 8px 12px;
         border-bottom: 1px solid var(--zn-lock-soft);
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-ink);
     }
 
@@ -340,7 +340,7 @@
     }
 
     .mpv-header-item .mpv-label {
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .05em;
         text-transform: uppercase;
@@ -349,7 +349,7 @@
     }
 
     .mpv-header-item .mpv-value {
-        font-size: 14px;
+        font-size: var(--zn-fs);
         font-weight: 700;
         color: var(--zn-ink);
     }
@@ -360,7 +360,7 @@
         gap: 8px;
         margin: 18px 0 10px;
         font-weight: 700;
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-ink);
     }
 
@@ -392,11 +392,11 @@
         table-layout: fixed;
         border-collapse: collapse;
         margin-bottom: 0;
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
     }
 
     .mpv-table-wrap thead th {
-        font-size: 10.5px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .03em;
         text-transform: uppercase;
@@ -423,14 +423,14 @@
     .mpv-table-wrap tbody tr:hover { background: var(--zn-accent-soft); }
     .mpv-table-wrap tbody tr:last-child td { border-bottom: none; }
 
-    .mpv-empty-row { padding: 18px; text-align: center; color: var(--zn-ink-3); font-size: 12px; }
+    .mpv-empty-row { padding: 18px; text-align: center; color: var(--zn-ink-3); font-size: var(--zn-fs-ui); }
 
     .mpv-hireflow-note {
         display: flex;
         align-items: center;
         gap: 8px;
         margin-top: 18px;
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-ink-3);
     }
 
@@ -445,7 +445,7 @@
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
         padding: 7px 12px;
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         width: 220px;
     }
 

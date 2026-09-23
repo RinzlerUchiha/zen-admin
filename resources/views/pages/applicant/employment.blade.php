@@ -21,7 +21,7 @@
         gap: 0.75rem;
     }
     #employment-list-card .card-header .card-title {
-        font-size: 15px;
+        font-size: var(--zn-fs-lg);
         font-weight: 600;
         margin: 0;
         display: flex;
@@ -34,7 +34,7 @@
         color: var(--zn-ink-3);
     }
     #employment-list-card .card-header .badge {
-        font-size: 11.5px;
+        font-size: var(--zn-fs-sm);
         font-weight: 500;
         padding: 4px 10px;
         border-radius: 999px;
@@ -51,7 +51,7 @@
         gap: 4px;
         padding: 3px 11px;
         border-radius: 999px;
-        font-size: 11.5px;
+        font-size: var(--zn-fs-sm);
         font-weight: 600;
         white-space: nowrap;
         letter-spacing: 0.01em;
@@ -72,7 +72,7 @@
        Desktop table
     ══════════════════════════════════════ */
     #employment-list-table thead th {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -85,7 +85,7 @@
     #employment-list-table tbody td {
         vertical-align: middle;
         padding: 0.9rem 1rem;
-        font-size: 13.5px;
+        font-size: var(--zn-fs);
         color: var(--zn-ink);
         border-bottom: 1px solid var(--zn-surface-2);
     }
@@ -110,7 +110,7 @@
         border-radius: var(--zn-radius-lg);
         background: var(--zn-line);
         color: var(--zn-ink-2);
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -123,7 +123,7 @@
         line-height: 1.35;
     }
     .empl-position-sub {
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-ink-3);
         margin-top: 1px;
     }
@@ -151,7 +151,7 @@
         opacity: 0.35;
     }
     .empl-empty-state p {
-        font-size: 13.5px;
+        font-size: var(--zn-fs);
         margin: 0;
     }
 
@@ -176,18 +176,18 @@
     }
     .empl-card-mobile-header .empl-name {
         font-weight: 600;
-        font-size: 14.5px;
+        font-size: var(--zn-fs-lg);
         color: var(--zn-ink);
         line-height: 1.3;
     }
     .empl-card-mobile-position {
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         color: var(--zn-ink-3);
         margin-top: -6px;
         margin-bottom: 10px;
     }
     .empl-card-mobile-body {
-        font-size: 13px;
+        font-size: var(--zn-fs);
         color: var(--zn-ink-2);
         border-top: 1px dashed var(--zn-line);
         padding-top: 10px;
@@ -196,7 +196,7 @@
         gap: 7px;
     }
     .empl-card-mobile-body i {
-        font-size: 14px;
+        font-size: var(--zn-fs);
         vertical-align: -2px;
         margin-right: 7px;
         color: var(--zn-line-2);

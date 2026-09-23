@@ -13,6 +13,10 @@ class ApplicantIntakeController extends Controller
     public function index()
     {
         return view('pages.recruitment', [
+            // Applicants asking for a new assessment access code.
+            'accessRequests' => \Illuminate\Support\Facades\Gate::allows('applicant-assessments.issue-access')
+                ? \App\Services\Recruitment\AssessmentAccessCodes::openRequests()
+                : collect(),
             'main_link' => 'recruitment',
             'sub_link' => 'applicant-intake',
             'maincat' => 'applicant-intake',

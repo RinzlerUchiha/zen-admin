@@ -4,7 +4,7 @@
 
 <style>
     #form-personal {
-        font-size: 16px;
+        font-size: var(--zn-fs-lg);
     }
 
     /* ── Section cards with left border ───────────────────────── */
@@ -17,7 +17,7 @@
     .info-section > h6 {
         color: var(--zn-accent);
         font-weight: 600;
-        font-size: 14px;
+        font-size: var(--zn-fs);
         text-transform: uppercase;
         letter-spacing: .05em;
         margin-bottom: .65rem;
@@ -29,7 +29,7 @@
     /* ── Field label / value ───────────────────────────────────── */
     .field-label {
         color: var(--zn-ink-3);
-        font-size: 14px;
+        font-size: var(--zn-fs);
         text-transform: uppercase;
         letter-spacing: .04em;
         margin-bottom: 1px;
@@ -48,7 +48,7 @@
         background: transparent;
         color: var(--zn-line-2);
         cursor: pointer;
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         vertical-align: middle;
         transition: color .15s;
     }
@@ -62,7 +62,7 @@
         background: transparent;
         color: var(--zn-ink-3);
         cursor: pointer;
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         vertical-align: middle;
         transition: color .15s;
     }
@@ -74,7 +74,7 @@
     /* ── Status badge ───────────────────────────────────────────── */
     .status-badge {
         display: inline-block;
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .06em;
@@ -88,7 +88,7 @@
     }
 
     .info-accordion .accordion-button {
-        font-size: 14px;
+        font-size: var(--zn-fs);
         font-weight: 600;
         color: var(--zn-ink-2);
         background: transparent;
@@ -139,7 +139,7 @@
 
         .info-section { border-left-color: #000 !important; page-break-inside: avoid; }
         .info-accordion .accordion-collapse { display: block !important; }
-        body, #form-personal { font-size: 10px; }
+        body, #form-personal { font-size: var(--zn-fs-xs); }
         .masked { color: #000 !important; letter-spacing: normal; }
     }
 </style>
@@ -165,12 +165,12 @@
                         $applicant?->app_lname,
                     ])->filter()->implode(' ')) ?: '—' }}
                     @if($applicant?->app_suffix)
-                        <span class="text-muted fw-normal" style="font-size:16px;">{{ $applicant->app_suffix }}</span>
+                        <span class="text-muted fw-normal" style="font-size:var(--zn-fs-lg);">{{ $applicant->app_suffix }}</span>
                     @endif
                 </div>
 
                 {{-- Position applied --}}
-                <div class="text-muted mb-1" style="font-size:14px;">
+                <div class="text-muted mb-1" style="font-size:var(--zn-fs);">
                     Applied for: <strong>{{ $applicant?->app_posapplied ?: '—' }}</strong>
                 </div>
 
@@ -190,7 +190,7 @@
 
                 {{-- Record date --}}
                 @if($applicant?->app_date)
-                    <div class="text-muted mt-1" style="font-size:12px;">
+                    <div class="text-muted mt-1" style="font-size:var(--zn-fs-ui);">
                         Record created: {{ \Carbon\Carbon::parse($applicant->app_date)->format('M d, Y') }}
                     </div>
                 @endif

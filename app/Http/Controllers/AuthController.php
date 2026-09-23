@@ -34,7 +34,9 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, true)) {
             $request->session()->regenerate();
-            return redirect()->intended(route('dashboard'));
+            // Always the dashboard: HR starts from the metrics, not from
+            // whichever page they happened to be on when the session ended.
+            return redirect()->route('dashboard');
         }
 
         // $user = User::where([

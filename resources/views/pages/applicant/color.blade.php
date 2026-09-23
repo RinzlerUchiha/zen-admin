@@ -8,7 +8,7 @@
     <style>
         #form-color {
             user-select: none;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
         }
     </style>
 

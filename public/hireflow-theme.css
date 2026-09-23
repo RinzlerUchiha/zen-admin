@@ -49,6 +49,15 @@
   --zn-radius:    6px;
   --zn-radius-lg: 8px;
 
+  /* Type scale — one system for all of HireFlow. The body size follows
+     ZenHub's own theme (admin_template: body 0.875em = 14px); 12px is the
+     reference size for secondary text. Headings stay larger. */
+  --zn-fs-xs: 11px;   /* tiny meta, overlines */
+  --zn-fs-sm: 12px;   /* secondary text: hints, meta, captions, chips */
+  --zn-fs-ui: 13px;   /* dense controls: small buttons, data tables */
+  --zn-fs:    14px;   /* body, form fields, buttons, reading text */
+  --zn-fs-lg: 16px;   /* large controls, section titles */
+
   --zn-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -128,9 +137,27 @@
   --bs-secondary-bg: var(--zn-surface-2);
   --bs-tertiary-bg: var(--zn-surface-2);
   --bs-font-sans-serif: var(--zn-font);
+  --bs-body-font-size: var(--zn-fs);
   color: var(--zn-ink);
   font-family: var(--zn-font);
+  font-size: var(--zn-fs);
 }
+
+/* The type scale (--zn-fs-*). Bootstrap sizes its components in rem, so
+   they are tied to the scale here: body and regular controls at the body
+   size, the compact (-sm) variants and data tables one step down, -lg up. */
+.hf-theme .form-control, .hf-theme .form-select, .hf-theme .input-group-text,
+.hf-theme .btn, .hf-theme .dropdown-menu, .hf-theme .dropdown-item,
+.hf-theme .nav-link, .hf-theme .page-link, .hf-theme .alert, .hf-theme .form-label,
+.hf-theme .modal-body, .hf-theme .list-group-item, .hf-theme .card-body {
+  font-size: var(--zn-fs);
+}
+.hf-theme .table, .hf-theme .btn-sm, .hf-theme .form-control-sm, .hf-theme .form-select-sm,
+.hf-theme .pagination-sm .page-link { font-size: var(--zn-fs-ui); }
+.hf-theme .btn-lg, .hf-theme .form-control-lg, .hf-theme .form-select-lg { font-size: var(--zn-fs-lg); }
+/* Bootstrap's relative "smaller" text (.875em) would shrink again inside a
+   table or a small button; it is the scale's small step instead. */
+.hf-theme small, .hf-theme .small, .hf-theme .form-text { font-size: var(--zn-fs-sm); }
 
 .hf-theme .btn-primary {
   --bs-btn-bg: var(--zn-accent);
@@ -237,7 +264,7 @@
 .hf-chip {
   display: inline-flex; align-items: center; gap: 6px;
   border-radius: 20px; padding: 4px 12px;
-  font-size: 11px; font-weight: 700; letter-spacing: .2px; white-space: nowrap;
+  font-size: var(--zn-fs-sm); font-weight: 700; letter-spacing: .2px; white-space: nowrap;
   background: var(--zn-lock-soft); color: var(--zn-ink-2);
 }
 .hf-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
@@ -247,3 +274,37 @@
 .hf-chip-caution { background: var(--zn-caution-soft); color: var(--zn-caution); }
 .hf-chip-lock    { background: var(--zn-lock-soft);    color: var(--zn-ink-2); }
 .hf-chip-pool    { background: var(--zn-accent-soft);  color: var(--zn-accent-dark); }
+
+
+/* ---------- 3. Calendar (Flatpickr) in the HireFlow theme ---------------
+   The visible field is Flatpickr's own input next to the (hidden) original;
+   it takes the form's input styling, and the calendar follows the tokens in
+   both colour modes. ZenHub gets this section through hireflow-theme.css
+   (copied by the theme build) — edit it here. */
+
+.flatpickr-input[readonly] { cursor: pointer; }
+.flatpickr-calendar {
+  font-family: var(--zn-font); font-size: var(--zn-fs); background: var(--zn-surface);
+  border: 1px solid var(--zn-line); border-radius: var(--zn-radius-lg);
+  box-shadow: var(--zn-shadow-pop);
+}
+.flatpickr-calendar.arrowTop::before, .flatpickr-calendar.arrowTop::after { border-bottom-color: var(--zn-line); }
+.flatpickr-calendar.arrowBottom::before, .flatpickr-calendar.arrowBottom::after { border-top-color: var(--zn-line); }
+.flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year, span.flatpickr-weekday { color: var(--zn-ink); fill: var(--zn-ink); background: transparent; }
+.flatpickr-current-month { font-size: var(--zn-fs); font-weight: 700; }
+.flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month { background: var(--zn-surface); color: var(--zn-ink); }
+.flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { color: var(--zn-ink-2); fill: var(--zn-ink-2); }
+.flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--zn-accent); }
+span.flatpickr-weekday { color: var(--zn-ink-3); font-weight: 600; }
+.flatpickr-day { color: var(--zn-ink); border-radius: var(--zn-radius); }
+.flatpickr-day:hover, .flatpickr-day:focus { background: var(--zn-accent-soft); border-color: var(--zn-accent-soft); }
+.flatpickr-day.today { border-color: var(--zn-accent); }
+.flatpickr-day.today:hover { background: var(--zn-accent-soft); color: var(--zn-ink); }
+.flatpickr-day.selected, .flatpickr-day.selected:hover, .flatpickr-day.selected:focus {
+  background: var(--zn-accent); border-color: var(--zn-accent); color: var(--zn-on-accent);
+}
+.flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay, .flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover { color: var(--zn-ink-3); opacity: .55; }
+.numInputWrapper span.arrowUp::after { border-bottom-color: var(--zn-ink-2); }
+.numInputWrapper span.arrowDown::after { border-top-color: var(--zn-ink-2); }

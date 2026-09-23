@@ -8,7 +8,7 @@
 <style>
     #form-basic-math {
         user-select: none;
-        font-size: 15px;
+        font-size: var(--zn-fs-lg);
     }
 </style>
 

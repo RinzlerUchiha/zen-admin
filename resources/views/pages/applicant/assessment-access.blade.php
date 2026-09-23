@@ -25,6 +25,25 @@
         </div>
     @endif
 
+    @if ($assessmentAccessRequest ?? null)
+        @php $req = $assessmentAccessRequest; @endphp
+        <div class="alert alert-warning d-flex align-items-center gap-2 py-2" role="status">
+            <i class="bi bi-send-exclamation"></i>
+            <div class="small">
+                <b>The applicant asked for a new access code</b>
+                {{ \Illuminate\Support\Carbon::parse($req->requested_at)->format('M j, g:i A') }}
+                · {{ config('applicant_assessments.request_reasons.' . $req->reason, $req->reason) }}
+                @if ($req->assessment)
+                    ({{ config('applicant_assessments.list.' . $req->assessment . '.label', $req->assessment) }})
+                @endif
+                @if ($req->times_asked > 1)
+                    · asked {{ $req->times_asked }} times
+                @endif
+                — issuing a code answers it.
+            </div>
+        </div>
+    @endif
+
     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
         <h6 class="mb-0">Assessment access</h6>
         @can('applicant-assessments.issue-access')

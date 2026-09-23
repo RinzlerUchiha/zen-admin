@@ -2,17 +2,17 @@
 
 @push('styles')
 <style>
-    #applicant-documents { font-size: 13px; }
+    #applicant-documents { font-size: var(--zn-fs); }
 
     .adoc-summary {
         display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
         border: 1px solid var(--zn-line); border-radius: var(--zn-radius-lg); padding: 12px 16px; margin-bottom: 14px; background: var(--zn-surface);
     }
-    .adoc-summary b { font-size: 14px; }
+    .adoc-summary b { font-size: var(--zn-fs); }
 
     .adoc-badge {
         display: inline-block; padding: 2px 10px; border-radius: 999px;
-        font-size: 11.5px; font-weight: 600; white-space: nowrap;
+        font-size: var(--zn-fs-sm); font-weight: 600; white-space: nowrap;
     }
     .adoc-missing  { background: var(--zn-surface-2); color: var(--zn-ink-2); }
     .adoc-pending  { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
@@ -35,17 +35,17 @@
         border-top: 1px solid var(--zn-surface-2); padding-top: 10px; margin-top: 10px;
     }
     .adoc-process-facts { display: flex; gap: 22px; flex-wrap: wrap; }
-    .adoc-process-facts div { font-size: 12px; color: var(--zn-ink-3); }
-    .adoc-process-facts b { display: block; font-size: 13.5px; color: var(--zn-ink); }
+    .adoc-process-facts div { font-size: var(--zn-fs-ui); color: var(--zn-ink-3); }
+    .adoc-process-facts b { display: block; font-size: var(--zn-fs); color: var(--zn-ink); }
     .adoc-overdue { color: var(--zn-warn) !important; }
 
     #applicant-documents-table thead th {
-        font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
+        font-size: var(--zn-fs-sm); font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
         color: var(--zn-ink-3); border-bottom: 1px solid var(--zn-line); white-space: nowrap;
     }
     #applicant-documents-table td { vertical-align: top; padding-top: 12px; padding-bottom: 12px; }
-    .adoc-sub { color: var(--zn-ink-3); font-size: 12px; }
-    .adoc-note { font-size: 12px; margin-top: 4px; color: var(--zn-accent-dark); }
+    .adoc-sub { color: var(--zn-ink-3); font-size: var(--zn-fs-ui); }
+    .adoc-note { font-size: var(--zn-fs-ui); margin-top: 4px; color: var(--zn-accent-dark); }
     .adoc-preview { width: 100%; height: 70vh; border: 0; }
     .adoc-preview-img { max-width: 100%; max-height: 70vh; display: block; margin: 0 auto; }
 </style>
@@ -72,7 +72,7 @@
     {{-- Say why there are no actions, rather than leaving a reviewer to guess
          whether the page is broken. --}}
     @unless ($canReview)
-        <div class="alert alert-secondary py-2 mb-3" style="font-size:12.5px">
+        <div class="alert alert-secondary py-2 mb-3" style="font-size:var(--zn-fs-ui)">
             You can view these documents. Accepting a document, asking for a replacement or requesting a
             missing document needs the HRIS <b>Employee Application Profile</b> permission with
             <b>Direct Edit</b> or <b>Hire</b>.
@@ -192,7 +192,7 @@
                                 <a href="#" class="js-preview" data-bs-toggle="modal" data-bs-target="#docPreviewModal"
                                    data-src="{{ route('applicant.documents.file', ['id' => $document->app_id, 'document' => $document->id]) }}"
                                    data-pdf="{{ $document->is_pdf ? 1 : 0 }}"
-                                   data-title="{{ $slot['label'] }}">{{ $document->doc_original_name }}</a>
+                                   data-title="{{ $slot['label'] }}">{{ $document->display_name }}</a>
                                 <div class="adoc-sub">
                                     {{ $document->size_for_humans }} · sent {{ $document->uploaded_at?->format('M j, Y g:i A') }}
                                 </div>

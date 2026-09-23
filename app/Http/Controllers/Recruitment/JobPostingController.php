@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Recruitment\HireflowManpowerRequest;
 use App\Models\Recruitment\HireflowManpowerPosition;
 use App\Models\Recruitment\JobPosting;
+use App\Services\Recruitment\Ad\JobShortDescription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -48,6 +49,7 @@ class JobPostingController extends Controller
             'title' => $position->positionTitle(),
             'description' => $position->draftPostingDescription(),
             'public_ad' => $position->draftPublicAd(),
+            'short_description' => (new JobShortDescription())->composeFor($position),
         ]);
     }
 
@@ -67,6 +69,7 @@ class JobPostingController extends Controller
             'mr_no' => $jobPosting->hireflowPosition?->request?->mr_no ?? '—',
             'posting_description' => $jobPosting->posting_description,
             'public_description' => $jobPosting->public_description,
+            'short_description' => $jobPosting->short_description,
             'ad_is_custom' => (bool) $jobPosting->ad_is_custom,
             'created_by' => $jobPosting->created_by,
             'posted_at' => $jobPosting->posted_at?->format('M d, Y h:i A'),
@@ -81,6 +84,7 @@ class JobPostingController extends Controller
             'posting_title'       => 'required|string|max:255',
             'posting_description' => 'nullable|string',
             'public_description'  => 'nullable|string',
+            'short_description'   => 'nullable|string|max:' . JobShortDescription::MAX,
         ]);
 
         $position = HireflowManpowerPosition::findOrFail($validated['request_position_id']);
@@ -99,6 +103,10 @@ class JobPostingController extends Controller
             'posting_title'        => $validated['posting_title'],
             'posting_description'  => $validated['posting_description'] ?? null,
             'public_description'   => $ad,
+            // Like the ad: never created without one.
+            'short_description'    => trim((string) ($validated['short_description'] ?? '')) !== ''
+                ? trim($validated['short_description'])
+                : (new JobShortDescription())->composeFor($position),
             'status'                => 'Draft',
             'created_by'            => Auth::user()->Emp_No ?? null,
         ]);
@@ -132,6 +140,7 @@ class JobPostingController extends Controller
 
         return response()->json([
             'public_description' => $position->draftPublicAd(),
+            'short_description' => (new JobShortDescription())->composeFor($position),
         ]);
     }
 
@@ -183,6 +192,7 @@ class JobPostingController extends Controller
         $validated = $request->validate([
             'posting_description' => 'nullable|string',
             'public_description'  => 'nullable|string',
+            'short_description'   => 'nullable|string|max:' . JobShortDescription::MAX,
         ]);
 
         // has() guards so a request carrying only one field cannot blank the other.
@@ -198,6 +208,10 @@ class JobPostingController extends Controller
             $jobPosting->markAdOwnership($validated['public_description']);
         }
 
+        if ($request->has('short_description')) {
+            $jobPosting->short_description = trim((string) $validated['short_description']) ?: null;
+        }
+
         $jobPosting->save();
 
         return response()->json([
@@ -205,6 +219,7 @@ class JobPostingController extends Controller
             'id'                  => $jobPosting->id,
             'posting_description' => $jobPosting->posting_description,
             'public_description'  => $jobPosting->public_description,
+            'short_description'   => $jobPosting->short_description,
             'ad_is_custom'        => (bool) $jobPosting->ad_is_custom,
         ]);
     }

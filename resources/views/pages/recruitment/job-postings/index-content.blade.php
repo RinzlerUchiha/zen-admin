@@ -45,7 +45,7 @@
     }
 
     .jp-mr-label {
-        font-size: 9.5px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;
@@ -58,7 +58,7 @@
         font-weight: 800;
         letter-spacing: 0;
         text-transform: none;
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         margin-left: 4px;
     }
 
@@ -91,7 +91,7 @@
         align-items: center;
         flex: 1;
         min-width: 0;
-        font-size: 11.5px;
+        font-size: var(--zn-fs-sm);
         color: var(--zn-ink);
     }
 
@@ -138,7 +138,7 @@
         background: linear-gradient(135deg, var(--zn-accent), var(--zn-accent-dark));
         color: var(--zn-on-accent);
         font-weight: 700;
-        font-size: 10.5px;
+        font-size: var(--zn-fs-xs);
         padding: 5px 12px;
         white-space: nowrap;
         box-shadow: 0 2px 6px rgba(93, 37, 2,.22);
@@ -172,7 +172,7 @@
         gap: 6px;
         border-radius: 20px;
         padding: 5px 14px;
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 700;
         letter-spacing: .2px;
     }
@@ -207,7 +207,7 @@
         gap: 8px;
         margin: 8px 0 14px;
         font-weight: 700;
-        font-size: 13px;
+        font-size: var(--zn-fs);
         color: var(--zn-ink);
     }
 
@@ -256,11 +256,11 @@
         width: 100%;
         border-collapse: collapse;
         margin-bottom: 0;
-        font-size: 13px;
+        font-size: var(--zn-fs);
     }
 
     table.jp-list-table thead th {
-        font-size: 10.5px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .03em;
         text-transform: uppercase;
@@ -294,7 +294,7 @@
 
     .jp-row-chevron {
         color: var(--zn-line-2);
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         transition: color .15s ease, transform .15s ease;
     }
 
@@ -334,7 +334,7 @@
     }
 
     #modal-create-posting .form-label {
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .05em;
         text-transform: uppercase;
@@ -354,7 +354,7 @@
     #alert-box .alert {
         border-radius: var(--zn-radius-lg);
         border: none;
-        font-size: 13px;
+        font-size: var(--zn-fs);
     }
 
     /* ===== Slide-over panel ===== */
@@ -420,7 +420,7 @@
 
     .jp-panel-head h6 {
         font-weight: 800;
-        font-size: 16px;
+        font-size: var(--zn-fs-lg);
         color: var(--zn-ink);
         margin: 0 0 8px;
     }
@@ -468,7 +468,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .05em;
         text-transform: uppercase;
@@ -477,19 +477,19 @@
     }
 
     .jp-panel-label i {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         color: var(--zn-line-2);
     }
 
     .jp-panel-value {
-        font-size: 13.5px;
+        font-size: var(--zn-fs);
         color: var(--zn-ink);
     }
 
     .jp-panel-value.mono {
         white-space: pre-wrap;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         line-height: 1.6;
         background: var(--zn-bg);
         border: 1px solid var(--zn-line);
@@ -515,7 +515,7 @@
     .jp-panel-desc-textarea {
         width: 100%;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 12px;
+        font-size: var(--zn-fs-ui);
         line-height: 1.6;
         color: var(--zn-ink);
         background: var(--zn-bg);
@@ -524,6 +524,61 @@
         padding: 14px 16px;
         resize: vertical;
         transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .jp-photos {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .jp-photo,
+    .jp-photo-add {
+        position: relative;
+        aspect-ratio: 4 / 3;
+        border-radius: var(--zn-radius);
+        overflow: hidden;
+        background: var(--zn-surface-2);
+    }
+
+    .jp-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .jp-photo-remove {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 22px;
+        height: 22px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(32, 26, 22, .7);
+        color: #fff;
+        font-size: var(--zn-fs-sm);
+        line-height: 22px;
+        padding: 0;
+    }
+
+    .jp-photo-add {
+        border: 1px dashed var(--zn-line);
+        color: var(--zn-ink-3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+    }
+
+    .jp-photo-add:hover {
+        border-color: var(--zn-accent);
+        color: var(--zn-accent);
     }
 
     .jp-panel-desc-textarea:focus {
@@ -547,7 +602,7 @@
     }
 
     .jp-desc-hint {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         color: var(--zn-ink-3);
         margin-top: 6px;
     }
@@ -558,7 +613,7 @@
         background: var(--zn-accent-soft);
         color: var(--zn-accent-dark);
         border-radius: 20px;
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .02em;
         text-transform: none;
@@ -570,13 +625,13 @@
 
     .jp-gen-btn:disabled { opacity: .6; }
 
-    .jp-gen-btn i { margin-right: 4px; font-size: 9px; }
+    .jp-gen-btn i { margin-right: 4px; font-size: var(--zn-fs-xs); }
 
     .jp-gen-btn + .jp-field-tag { margin-left: 6px; }
 
     .jp-field-tag {
         margin-left: auto;
-        font-size: 9px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .04em;
         background: var(--zn-surface-2);
@@ -591,7 +646,7 @@
     }
 
     .jp-sync-state {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         line-height: 1.5;
         border-radius: var(--zn-radius-lg);
         padding: 7px 11px;
@@ -612,7 +667,7 @@
 
     .jp-public-warning {
         margin-top: 8px;
-        font-size: 11.5px;
+        font-size: var(--zn-fs-sm);
         line-height: 1.5;
         color: var(--zn-caution);
         background: var(--zn-caution-soft);
@@ -640,7 +695,7 @@
         border: none;
         border-radius: var(--zn-radius-lg);
         font-weight: 700;
-        font-size: 13px;
+        font-size: var(--zn-fs);
         padding: 12px 18px;
         transition: filter .15s ease, transform .15s ease;
     }
@@ -817,16 +872,23 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Internal Jobspec <span class="jp-field-tag">Not public</span></label>
-                        <textarea id="cp-description" class="form-control" rows="8" style="font-family: monospace; font-size: 12.5px;"></textarea>
+                        <textarea id="cp-description" class="form-control" rows="8" style="font-family: monospace; font-size: var(--zn-fs-ui);"></textarea>
                         <div class="form-text">Pre-filled from this position's Job Specification. HR reference only —
                             never shown to applicants.</div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label">Public Ad <span class="jp-field-tag jp-field-tag-live">Careers
                                 page</span></label>
-                        <textarea id="cp-public" class="form-control" rows="14" style="font-size: 13px;"></textarea>
+                        <textarea id="cp-public" class="form-control" rows="14" style="font-size: var(--zn-fs);"></textarea>
                         <div class="form-text">Auto-composed from the Job Specification. This is what applicants read —
                             edit the wording freely before saving.</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label" for="cp-short">Short Description <span class="jp-field-tag jp-field-tag-live">Job
+                                boards &amp; sharing</span></label>
+                        <textarea id="cp-short" class="form-control" rows="3" maxlength="{{ \App\Services\Recruitment\Ad\JobShortDescription::MAX }}"></textarea>
+                        <div class="form-text">Two or three plain sentences for anywhere the full ad does not fit — a job
+                            board's summary, a social post, the careers list. No emoji needed.</div>
                     </div>
                 </div>
             </div>
@@ -905,6 +967,29 @@
                     to the internal jobspec, which exposes age, sex and headcount publicly.
                 </div>
             </div>
+            <div class="jp-panel-field">
+                <div class="jp-panel-label"><i class="fa fa-align-left"></i> Short Description
+                    <button type="button" class="jp-gen-btn" id="jpp-short-generate-btn"
+                        title="Draft from the Job Specification"><i class="fa fa-wand-magic-sparkles"></i>
+                        Draft</button>
+                    <span class="jp-field-tag jp-field-tag-live">Job boards &amp; sharing</span>
+                </div>
+                <textarea class="jp-panel-desc-textarea" id="jpp-short-input" rows="4"
+                    maxlength="{{ \App\Services\Recruitment\Ad\JobShortDescription::MAX }}"
+                    placeholder="Two or three plain sentences about the job, for job boards, social posts and the careers list."></textarea>
+                <div class="jp-desc-hint"><span id="jpp-short-count">0</span> / {{ \App\Services\Recruitment\Ad\JobShortDescription::MAX }}
+                    characters · saved with <strong>Save Description</strong>.</div>
+            </div>
+            <div class="jp-panel-field">
+                <div class="jp-panel-label"><i class="fa fa-images"></i> Photos
+                    <span class="jp-field-tag jp-field-tag-live">Careers page</span>
+                </div>
+                <div class="jp-photos" id="jpp-photos"></div>
+                <input type="file" id="jpp-photo-input" accept="image/jpeg,image/png" class="d-none">
+                <div class="jp-desc-hint">Shown beside the posting on the careers page — up to
+                    {{ \App\Services\Recruitment\JobSpecPhotos::MAX }}, JPG or PNG. They belong to this position's Job
+                    Specification, so every posting of it shows the same photos. Saved as soon as they are added.</div>
+            </div>
         </div>
     </div>
     <div class="jp-panel-footer" id="jp-panel-footer"></div>
@@ -940,6 +1025,7 @@
                 $('#cp-title').val(draft.title);
                 $('#cp-description').val(draft.description);
                 $('#cp-public').val(draft.public_ad || '');
+                $('#cp-short').val(draft.short_description || '');
                 $('#create-posting-loading').addClass('d-none');
                 $('#create-posting-form').removeClass('d-none');
             } catch (err) {
@@ -962,7 +1048,8 @@
                 request_position_id: currentPositionId,
                 posting_title: title,
                 posting_description: description,
-                public_description: publicAd
+                public_description: publicAd,
+                short_description: $('#cp-short').val()
             });
         }
 
@@ -1062,6 +1149,8 @@
             $('#jpp-description-input').prop('readonly', !editable);
             $('#jpp-public-input').prop('readonly', !editable);
             $('#jpp-generate-btn').prop('disabled', !editable);
+            $('#jpp-short-input').prop('readonly', !editable);
+            $('#jpp-short-generate-btn').prop('disabled', !editable);
             $('#jpp-desc-hint').toggle(editable);
         }
 
@@ -1118,12 +1207,112 @@
             }
         });
 
+        // ===== Short description: counter, and a fresh draft on request =====
+        function updateShortCount() {
+            $('#jpp-short-count').text($('#jpp-short-input').val().length);
+        }
+        $(document).on('input', '#jpp-short-input', updateShortCount);
+
+        // Fills the textarea only — nothing is stored until Save.
+        $(document).on('click', '#jpp-short-generate-btn', async function() {
+            clearAlert();
+            const $btn = $(this);
+
+            if ($('#jpp-short-input').val().trim() &&
+                !confirm('Replace the current short description with a fresh draft? Your edits will be lost.')) {
+                return;
+            }
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Drafting…');
+
+            try {
+                const data = await GET('recruitment/job-postings/' + currentPostingId + '/suggest-ad');
+                $('#jpp-short-input').val(data.short_description || '');
+                updateShortCount();
+                showAlert('info', 'Short description drafted from the Job Specification. Review it, then click Save Description.');
+            } catch (err) {
+                console.error(err);
+                showAlert('danger', 'Could not draft a short description for this posting.');
+            } finally {
+                $btn.prop('disabled', false).html('<i class="fa fa-wand-magic-sparkles"></i> Draft');
+            }
+        });
+
+        // ===== Photos (the Job Specification's; saved immediately) =====
+        let photosEditable = true;
+
+        function renderPhotos(data) {
+            const photos = (data && data.photos) || [];
+            let html = photos.map(p =>
+                '<div class="jp-photo"><img src="' + p.url + '" alt="" loading="lazy">' +
+                (photosEditable ? '<button type="button" class="jp-photo-remove" data-name="' + p.name +
+                    '" title="Remove photo" aria-label="Remove photo"><i class="fa fa-times"></i></button>' : '') +
+                '</div>').join('');
+            if (photosEditable && photos.length < (data ? data.max : 0)) {
+                html += '<button type="button" class="jp-photo-add" id="jpp-photo-add"><i class="fa fa-plus"></i><span>Add photo</span></button>';
+            }
+            $('#jpp-photos').html(html || '<span class="text-muted small">No photos.</span>');
+        }
+
+        async function loadPhotos() {
+            $('#jpp-photos').html('<span class="text-muted small">Loading photos…</span>');
+            try {
+                renderPhotos(await GET('recruitment/job-postings/' + currentPostingId + '/photos'));
+            } catch (err) {
+                $('#jpp-photos').html('<span class="text-muted small">Photos could not be loaded.</span>');
+            }
+        }
+
+        async function photoRequest(method, url, body) {
+            const res = await fetch(`${BASE}/${url}`, {
+                method,
+                redirect: 'error',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                body
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.message || (data.errors && Object.values(data.errors)[0][0]) || ('Status ' + res.status));
+            }
+            return data;
+        }
+
+        $(document).on('click', '#jpp-photo-add', function() {
+            $('#jpp-photo-input').val('').trigger('click');
+        });
+
+        $('#jpp-photo-input').on('change', async function() {
+            if (!this.files.length) return;
+            clearAlert();
+            const form = new FormData();
+            form.append('photo', this.files[0]);
+            $('#jpp-photo-add').prop('disabled', true).find('span').text('Uploading…');
+            try {
+                renderPhotos(await photoRequest('POST', 'recruitment/job-postings/' + currentPostingId + '/photos', form));
+            } catch (err) {
+                showAlert('danger', 'Photo not added: ' + err.message);
+                loadPhotos();
+            }
+        });
+
+        $(document).on('click', '.jp-photo-remove', async function() {
+            if (!confirm('Remove this photo from every posting of this position?')) return;
+            clearAlert();
+            try {
+                renderPhotos(await photoRequest('DELETE', 'recruitment/job-postings/' + currentPostingId + '/photos/' +
+                    encodeURIComponent($(this).data('name'))));
+            } catch (err) {
+                showAlert('danger', 'Photo not removed: ' + err.message);
+            }
+        });
+
         // ===== Save description only (no status change) =====
         $(document).on('click', '#jp-save-desc-btn', async function() {
             clearAlert();
             const $btn = $(this);
             const posting_description = $('#jpp-description-input').val();
             const public_description = $('#jpp-public-input').val();
+            const short_description = $('#jpp-short-input').val();
 
             $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>Saving…');
 
@@ -1136,7 +1325,7 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': CSRF
                     },
-                    body: JSON.stringify({ posting_description, public_description })
+                    body: JSON.stringify({ posting_description, public_description, short_description })
                 });
 
                 if (!res.ok) {
@@ -1176,11 +1365,15 @@
                 $('#jpp-public-input').val(data.public_description || '');
                 $('#jpp-public-warning').toggleClass('d-none', !!(data.public_description || '').trim());
                 renderSyncState(data.ad_is_custom);
+                $('#jpp-short-input').val(data.short_description || '');
+                updateShortCount();
                 $('#jpp-createdby').text(data.created_by ?? '—');
                 $('#jpp-postedat').text(data.posted_at ?? 'Not yet published');
                 $('#jpp-closedat').text(data.closed_at ?? 'Not closed');
 
                 renderFooter(data.status);
+                photosEditable = data.status !== 'Closed';
+                loadPhotos();
 
                 $('#jp-panel-loading').addClass('d-none');
                 $('#jp-panel-content').removeClass('d-none');

@@ -41,7 +41,7 @@
             --mpr-radius: var(--zn-radius-lg);
             --mpr-radius-sm: var(--zn-radius);
             color: var(--mpr-text);
-            font-size: 14px;
+            font-size: var(--zn-fs);
         }
 
         #mpr-app,
@@ -49,7 +49,7 @@
         #mpr-app select,
         #mpr-app textarea,
         #mpr-app button {
-            font-size: 14px;
+            font-size: var(--zn-fs);
         }
 
         #mpr-app .mpr-shell {
@@ -79,19 +79,19 @@
         }
 
         #mpr-app .mpr-header-titlerow i {
-            font-size: 16px;
+            font-size: var(--zn-fs-lg);
             color: var(--mpr-text-muted);
         }
 
         #mpr-app .mpr-header-title h1 {
-            font-size: 16px;
+            font-size: var(--zn-fs-lg);
             font-weight: 500;
             margin: 0;
             color: var(--mpr-text);
         }
 
         #mpr-app .mpr-header-title p {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             margin: 0;
             padding-left: 24px;
             color: var(--mpr-text-muted);
@@ -214,7 +214,7 @@
             background: var(--mpr-bg-input);
             border-radius: 999px;
             padding: 1px 7px;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 500;
             color: var(--mpr-text-muted);
         }
@@ -255,12 +255,12 @@
         }
 
         #mpr-app .mpr-pp-label {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             color: var(--mpr-text-muted);
         }
 
         #mpr-app .mpr-pp-select {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             padding: 4px 6px;
             width: auto;
             background: var(--mpr-bg-raised);
@@ -299,14 +299,14 @@
             top: 50%;
             transform: translateY(-50%);
             color: var(--mpr-text-muted);
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             line-height: 1;
             pointer-events: none;
         }
 
         #mpr-app .mpr-results-count {
             color: var(--mpr-text-muted);
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             white-space: nowrap;
         }
 
@@ -322,7 +322,7 @@
 
         #mpr-app table.mpr-table thead th {
             text-align: left;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             color: var(--mpr-text-muted);
             font-weight: 500;
             padding: 8px 12px;
@@ -370,7 +370,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 500;
             flex-shrink: 0;
         }
@@ -403,13 +403,13 @@
 
         #mpr-app .mpr-requestor-name {
             font-weight: 500;
-            font-size: 13px;
+            font-size: var(--zn-fs);
             line-height: 1.2;
         }
 
         #mpr-app .mpr-requestor-dept {
             color: var(--mpr-text-muted);
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
         }
 
         #mpr-app .mpr-pill {
@@ -418,7 +418,7 @@
             color: var(--mpr-accent);
             border-radius: var(--mpr-radius-sm);
             padding: 2px 7px;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 500;
             margin: 1px 2px 1px 0;
         }
@@ -451,7 +451,7 @@
             border: 1px solid var(--mpr-border-strong);
             color: var(--mpr-text-muted);
             border-radius: var(--mpr-radius-sm);
-            font-size: 13px;
+            font-size: var(--zn-fs);
         }
 
         #mpr-app .mpr-row-actions button:hover {
@@ -503,7 +503,7 @@
             padding: 8px 14px;
             border-top: 1px solid var(--mpr-border);
             color: var(--mpr-text-muted);
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
         }
 
         #mpr-app .mpr-pager-buttons {
@@ -515,7 +515,7 @@
             width: 28px;
             height: 28px;
             padding: 0;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -557,7 +557,7 @@
         }
 
         #mpr-app .mpr-modal-subtitle {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             color: var(--mpr-text-muted);
             margin: 3px 0 0;
         }
@@ -597,7 +597,7 @@
         #mpr-app textarea.form-control {
             border-color: var(--mpr-border-strong);
             border-radius: var(--mpr-radius-sm);
-            font-size: 13px;
+            font-size: var(--zn-fs);
         }
 
         #mpr-app .form-control:focus,
@@ -624,7 +624,7 @@
             gap: 8px;
             margin: 4px 0 10px;
             font-weight: 500;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             color: var(--mpr-text-muted);
         }
 
@@ -652,7 +652,7 @@
 
         #mpr-app .mpr-section-hint {
             order: 2;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 400;
             color: var(--mpr-text-muted);
             white-space: nowrap;
@@ -669,7 +669,7 @@
         }
 
         #mpr-app .mpr-card-table thead th {
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 500;
             color: var(--mpr-text-muted);
             padding: 6px 8px;
@@ -689,7 +689,7 @@
 
         #mpr-app .mpr-card-table .form-control,
         #mpr-app .mpr-card-table .form-select {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             border-radius: var(--mpr-radius-sm);
         }
 
@@ -702,7 +702,7 @@
             border-radius: 0;
             padding: 8px 10px;
             font-weight: 400;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             text-align: left;
             display: flex;
             align-items: center;
@@ -742,7 +742,7 @@
         #modal-mpr,
         #modal-view-mpr,
         .mpr-fill-td input {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
         }
 
         .bootstrap-select {
@@ -756,7 +756,7 @@
 
         /* ---------- Applicant picker + interview history (new) ---------- */
         #mpr-app .mpr-applicant-select {
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             border-radius: var(--mpr-radius-sm);
         }
 
@@ -777,7 +777,7 @@
             border: 1px solid var(--mpr-accent);
             border-radius: var(--mpr-radius-sm);
             padding: 4px 6px 4px 10px;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             font-weight: 500;
             cursor: pointer;
         }
@@ -809,7 +809,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             line-height: 1;
         }
 
@@ -829,7 +829,7 @@
 
         #mpr-app .mpr-iv-toggle {
             border-radius: 999px;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             padding: 4px 12px;
             font-weight: 500;
             border: 1px solid var(--mpr-border-strong);
@@ -861,7 +861,7 @@
         }
 
         #mpr-app .mpr-iv-detail-label {
-            font-size: 10px;
+            font-size: var(--zn-fs-xs);
             text-transform: uppercase;
             letter-spacing: .02em;
             color: var(--mpr-text-muted);
@@ -870,7 +870,7 @@
         }
 
         #mpr-app .mpr-iv-detail-value {
-            font-size: 13px;
+            font-size: var(--zn-fs);
             color: var(--mpr-text);
             margin-bottom: 10px;
         }
@@ -880,14 +880,14 @@
             border-radius: var(--mpr-radius-sm);
             background: var(--mpr-bg-input);
             padding: 8px 10px;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             min-height: 48px;
             color: var(--mpr-text);
         }
 
         #mpr-app .mpr-iv-empty {
             color: var(--mpr-text-muted);
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
             padding: 16px;
             text-align: center;
         }
@@ -896,7 +896,7 @@
             display: inline-block;
             padding: 2px 8px;
             border-radius: 999px;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 600;
         }
 
@@ -930,7 +930,7 @@
         }
 
         #mpr-app .mpr-iv-applicant-name-display {
-            font-size: 13px;
+            font-size: var(--zn-fs);
             font-weight: 600;
             color: var(--mpr-text);
             overflow: hidden;
@@ -942,7 +942,7 @@
             font-weight: 400;
             color: var(--mpr-text-muted);
             font-style: italic;
-            font-size: 12px;
+            font-size: var(--zn-fs-ui);
         }
 
         #mpr-app .mpr-iv-open-btn {
@@ -950,7 +950,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 500;
             color: var(--mpr-accent);
             background: var(--mpr-accent-soft);
@@ -976,7 +976,7 @@
             border: 1px solid var(--mpr-border-strong);
             border-radius: 999px;
             padding: 1px 8px;
-            font-size: 11px;
+            font-size: var(--zn-fs-sm);
             font-weight: 500;
             margin: 1px 2px 1px 0;
             white-space: nowrap;
@@ -1375,7 +1375,7 @@
                                     </div>
 
                                     <div class="alert alert-warning py-2 px-3 mb-3 mt-3" id="mpr-edit-reason-box"
-                                        style="display:none; font-size: 12px;">
+                                        style="display:none; font-size: var(--zn-fs-ui);">
                                         <strong>Reason for edit request:</strong>
                                         <div id="mpr-edit-reason-text"></div>
                                     </div>

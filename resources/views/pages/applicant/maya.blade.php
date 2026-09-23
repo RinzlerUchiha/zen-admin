@@ -8,7 +8,7 @@
     <style>
         #form-maya {
             user-select: none;
-            font-size: 15px;
+            font-size: var(--zn-fs-lg);
         }
 
         #maya-answers >.card:not(:last-child) {
@@ -27,7 +27,7 @@
         }
     </style>
 
-    <div class="row mb-5" style="font-size: 12px;">
+    <div class="row mb-5" style="font-size: var(--zn-fs-ui);">
         <div class="col-md-auto">
             <table class="table table-bordered text-center w-auto">
                 <tr>

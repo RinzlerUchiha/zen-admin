@@ -50,7 +50,7 @@ class ApplicantDocumentController extends Controller
             // From the upload allow-list (PDF, JPEG, PNG, WebP) — never taken
             // from the file or its name.
             'Content-Type' => $document->doc_mime,
-            'Content-Disposition' => 'inline; filename="' . str_replace(['"', "\r", "\n"], '', $document->doc_original_name) . '"',
+            'Content-Disposition' => $document->content_disposition,
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, max-age=0, no-store',
         ]);

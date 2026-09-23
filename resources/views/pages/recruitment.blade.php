@@ -33,7 +33,7 @@
     }
 
     .rc-group {
-        font-size: 10px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .06em;
         text-transform: uppercase;
@@ -71,7 +71,7 @@
         gap: 10px;
         padding: 8px 10px;
         border-radius: var(--zn-radius-lg);
-        font-size: 12.5px;
+        font-size: var(--zn-fs-ui);
         font-weight: 600;
         color: var(--zn-ink-2);
         text-decoration: none;
@@ -93,7 +93,7 @@
         background: var(--zn-surface);
         border: 2px solid var(--zn-line-2);
         color: var(--zn-ink-3);
-        font-size: 9px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         display: inline-flex;
         align-items: center;
@@ -166,7 +166,7 @@
     }
 
     .rc-soon {
-        font-size: 9px;
+        font-size: var(--zn-fs-xs);
         font-weight: 700;
         letter-spacing: .04em;
         text-transform: uppercase;

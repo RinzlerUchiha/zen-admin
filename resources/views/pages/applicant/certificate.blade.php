@@ -4,7 +4,7 @@
 <style>
     /* ── Table header (matches family) ── */
     #certificate-list-table thead th {
-        font-size: 11px;
+        font-size: var(--zn-fs-sm);
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -48,7 +48,7 @@
         justify-content: space-between;
     }
     #certificate-list-card .card-header .card-title {
-        font-size: 15px;
+        font-size: var(--zn-fs-lg);
         font-weight: 500;
         margin: 0;
     }
@@ -66,10 +66,10 @@
     }
     .cert-card-mobile-header .cert-title {
         font-weight: 500;
-        font-size: 14px;
+        font-size: var(--zn-fs);
     }
     .cert-card-mobile-body {
-        font-size: 13px;
+        font-size: var(--zn-fs);
         border-top: 1px solid var(--zn-line);
         padding-top: 10px;
         display: flex;
@@ -77,7 +77,7 @@
         gap: 6px;
     }
     .cert-card-mobile-body i {
-        font-size: 14px;
+        font-size: var(--zn-fs);
         vertical-align: -2px;
         margin-right: 6px;
         color: var(--zn-ink-3);

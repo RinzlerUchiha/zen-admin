@@ -108,6 +108,9 @@ class ApplicantProfileController extends Controller
     public function show($id, $tab = 'personal')
     {
         $applicant = ApplicantPersonal::find($id);
+        // No such applicant: Not Found. (Every tab used to fail with a server
+        // error here instead — the profile layout needs an applicant.)
+        abort_unless($applicant, 404);
         $params = [
             'main_link' => 'applicant',
             'sub_link' => $tab,
@@ -121,6 +124,17 @@ class ApplicantProfileController extends Controller
         if ($applicant) {
             $params['assessmentResults'] = AssessmentResults::summaries((int) $applicant->app_id);
             $params['assessmentSummary'] = $params['assessmentResults']->firstWhere('tab', $tab);
+
+            // The overview header: what this applicant applied for, where
+            // their documents stand, and how far the assessments have got.
+            $params['profileApplications'] = \App\Models\Applicant\ApplicantApplication::where('app_id', $applicant->app_id)
+                ->orderByDesc('applied_at')
+                ->get()
+                ->each(fn ($application) => $application->setAttribute(
+                    'posting_title',
+                    \Illuminate\Support\Facades\DB::table('tbl_job_posting')->where('id', $application->job_posting_id)->value('posting_title')
+                ));
+            $params['profileDocuments'] = \App\Services\Recruitment\ApplicantDocumentReview::summary((int) $applicant->app_id);
         }
 
         if ($tab == 'personal') {
@@ -380,6 +394,7 @@ class ApplicantProfileController extends Controller
         if ($tab == 'assessment-access') {
             $params['assessmentAttempts'] = ApplicantAssessmentAttempt::where('app_id', $id)->get()->keyBy('assessment');
             $params['assessmentAccess'] = AssessmentAccessCodes::latest((int) $id);
+            $params['assessmentAccessRequest'] = AssessmentAccessCodes::openRequest((int) $id);
         }
 
         if ($tab == 'interview-details') {
