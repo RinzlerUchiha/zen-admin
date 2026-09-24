@@ -71,11 +71,11 @@ class ApplicantIntakeController extends Controller
                 ->whereIn('id', $postingIds)
                 ->pluck('posting_title', 'id');
 
-        // 5 & 6. One query on the hrd2 (HireFlow) connection, keyed by position id.
+        // 5 & 6. One query on the portal_db (HireFlow) connection, keyed by position id.
         // Aliased in the SELECT so pluck() never has to guess at a qualified name.
         $positionMrNos = $positionIds->isEmpty()
             ? collect()
-            : DB::connection('hrd2')->table('tbl_manpower_request_position as pos')
+            : DB::connection('mysql')->table('tbl_manpower_request_position as pos')
                 ->leftJoin('tbl_manpower_request as r', 'r.id', '=', 'pos.request_id')
                 ->whereIn('pos.id', $positionIds)
                 ->select('pos.id as position_id', 'r.mr_no')
