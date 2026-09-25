@@ -1,7 +1,11 @@
 @if ($data->isEmpty())
     <div class="mpr-empty-state">
         <i class="bi bi-inbox"></i>
-        No {{ $stat }} manpower requests.
+        @if ($stat === 'change-pending')
+            No approved request is waiting on an edit or cancel decision.
+        @else
+            No {{ $stat }} manpower requests.
+        @endif
     </div>
 @else
 <div class="mpr-card-list">
@@ -17,7 +21,8 @@
                 default => 'mpv-chip-draft',
             };
         @endphp
-        <div class="mpr-card" data-id="{{ $v->id }}">
+        @php $pendingChange = $v->pendingChange; @endphp
+        <div class="mpr-card {{ $pendingChange ? 'mpr-card-flagged' : '' }}" data-id="{{ $v->id }}">
             <div class="mpr-card-row">
                 <span class="mpr-toggle-btn"><i class="fa fa-chevron-right"></i></span>
 
@@ -31,7 +36,14 @@
                     <div class="mpr-dept">{{ $v->requestor_dept }}</div>
                 </div>
 
-                <div></div>
+                <div>
+                    @if ($pendingChange)
+                        <span class="mpr-change-chip" title="Asked on {{ \Illuminate\Support\Carbon::parse($pendingChange->created_at)->format('M d, Y h:i A') }}">
+                            <i class="fa fa-clock"></i>
+                            {{ $pendingChange->change_type === 'cancel' ? 'Cancel requested' : 'Edit requested' }}
+                        </span>
+                    @endif
+                </div>
 
                 <div><span class="mpv-chip {{ $statusClass }}">{{ $v->status }}</span></div>
 
@@ -50,6 +62,24 @@
 {{-- Positions detail templates, read via document.getElementById() by the toggle script above --}}
 @foreach ($data as $v)
 <template id="mpr-positions-{{ $v->id }}">
+    @php $pendingChange = $v->pendingChange; @endphp
+    @if ($pendingChange)
+        <div class="mpr-change-note">
+            <i class="fa fa-clock"></i>
+            <div>
+                <strong>{{ $pendingChange->change_type === 'cancel' ? 'Cancel' : 'Edit' }} requested</strong>
+                by {{ $v->requestor_name }}
+                on {{ \Illuminate\Support\Carbon::parse($pendingChange->created_at)->format('M d, Y h:i A') }}.
+                <div class="mpr-change-reason">
+                    {{ trim((string) $pendingChange->reason) !== '' ? $pendingChange->reason : 'No reason given.' }}
+                </div>
+                <div class="mpr-change-where">
+                    Waiting on the Requestor&rsquo;s Approver in HireFlow. Approve or decline it there.
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if ($v->positions->isEmpty())
         <p class="text-muted small mb-0 ps-2">No positions on this request.</p>
     @else

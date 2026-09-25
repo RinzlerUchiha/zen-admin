@@ -67,6 +67,19 @@
         color: var(--zn-accent-dark);
     }
 
+    .mpr-tabs .mpr-tab-change { gap: 6px; }
+    .mpr-tabs .mpr-tab-change i { font-size: var(--zn-fs-sm); }
+
+    /* only once something is actually waiting */
+    .mpr-tabs .mpr-tab-change.has-open {
+        color: var(--zn-accent-dark);
+    }
+
+    .mpr-tabs .mpr-tab-change.has-open .mpr-tab-badge {
+        background: var(--zn-accent);
+        color: var(--zn-on-accent);
+    }
+
     /* ===== Status chip (shared) ===== */
     .mpv-chip {
         display: inline-flex;
@@ -105,6 +118,59 @@
 
     .mpv-type-replacement { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
     .mpv-type-additional  { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
+
+    /* ===== Open Edit/Cancel ask (read-only; decided in HireFlow) ===== */
+    .mpr-change-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        border: 1px solid var(--zn-accent);
+        border-radius: 20px;
+        padding: 3px 11px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 700;
+        color: var(--zn-accent-dark);
+        background: var(--zn-accent-soft);
+    }
+
+    .mpr-change-chip i { font-size: var(--zn-fs-xs); }
+
+    /* left rail so a flagged card is findable by scanning the list */
+    .mpr-card-flagged {
+        border-color: var(--zn-accent);
+        box-shadow: inset 3px 0 0 var(--zn-accent), 0 1px 3px rgba(32, 26, 22, .04);
+    }
+
+    .mpr-change-note {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        padding: 11px 14px;
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-accent-soft);
+        color: var(--zn-ink-2);
+        font-size: var(--zn-fs-ui);
+    }
+
+    .mpr-change-note > i {
+        margin-top: 3px;
+        color: var(--zn-accent);
+    }
+
+    .mpr-change-reason {
+        margin-top: 4px;
+        color: var(--zn-ink);
+        white-space: pre-line;
+        word-break: break-word;
+    }
+
+    .mpr-change-where {
+        margin-top: 4px;
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-3);
+    }
 
     /* ===== Card list (replaces dense DataTable look) ===== */
     .mpr-card-list { display: flex; flex-direction: column; gap: 10px; }
@@ -434,6 +500,38 @@
         color: var(--zn-ink-3);
     }
 
+    /* ===== Month filter banner (arrives from the dashboard) ===== */
+    .mpr-month-filter {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-accent-soft);
+        color: var(--zn-ink-2);
+        font-size: var(--zn-fs-ui);
+    }
+
+    .mpr-month-filter i { color: var(--zn-accent); }
+
+    .mpr-month-filter button {
+        margin-left: auto;
+        border: 1px solid var(--zn-accent);
+        background: transparent;
+        color: var(--zn-accent-dark);
+        font-size: var(--zn-fs-sm);
+        font-weight: 700;
+        border-radius: var(--zn-radius);
+        padding: 2px 10px;
+        cursor: pointer;
+    }
+
+    .mpr-month-filter button:hover {
+        background: var(--zn-accent);
+        color: var(--zn-on-accent);
+    }
+
     /* ===== Search/controls bar ===== */
     .mpr-toolbar {
         display: flex;
@@ -468,10 +566,57 @@
 
 <script type="text/javascript">
     let currentStat = 'draft';
+    let currentMonth = null; // 'YYYY-MM' or null
+
+    // Tabs this page will honour in ?stat=, so a link from elsewhere in
+    // HireFlow can open the list already filtered.
+    const MPR_TABS = ['draft', 'pending', 'approved', 'declined', 'cancelled', 'change-pending'];
+
+    /** '' or '?month=YYYY-MM', appended to the list and counts requests. */
+    function mprMonthQuery() {
+        return currentMonth ? '?month=' + encodeURIComponent(currentMonth) : '';
+    }
+
+    function mprShowMonth() {
+        if (!currentMonth) {
+            $('#mpr-month-filter').hide();
+            return;
+        }
+        const [y, m] = currentMonth.split('-');
+        const shown = new Date(Number(y), Number(m) - 1, 1)
+            .toLocaleString(undefined, { month: 'long', year: 'numeric' });
+        $('#mpr-month-label').text(shown);
+        $('#mpr-month-filter').show();
+    }
+
+    function mprSelectTab(stat) {
+        currentStat = stat;
+        $('#mpr-tabs .mpr-tab-link').removeClass('active');
+        $(`#mpr-tabs .mpr-tab-link[data-stat="${stat}"]`).addClass('active');
+        load_manpower_list(stat);
+    }
 
     $(function() {
+        const params = new URLSearchParams(window.location.search);
+        const wanted = params.get('stat');
+        const month = params.get('month');
+
+        currentMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(month || '') ? month : null;
+        mprShowMonth();
+
+        // Arriving with only ?month= means "show me that month", and the
+        // approved requests are the ones worth landing on.
+        const startStat = MPR_TABS.includes(wanted) ? wanted : (currentMonth ? 'approved' : 'draft');
+
+        $('#mpr-month-clear').on('click', function () {
+            currentMonth = null;
+            mprShowMonth();
+            load_counts();
+            load_manpower_list(currentStat);
+        });
+
         load_counts();
-        load_manpower_list(currentStat);
+        mprSelectTab(startStat);
 
         $('#modal-mpr-view').on('shown.bs.modal', async function(e) {
             let btn = $(e.relatedTarget);
@@ -529,17 +674,50 @@
             .text(data.status)
             .attr('class', 'mpv-chip ' + (MP_STATUS_CLASS[data.status] || 'mpv-chip-draft'));
 
+        const change = data.pending_change || null;
+        if (change) {
+            $('#mpr-view-change-title').text(
+                (change.change_type === 'cancel' ? 'Cancel' : 'Edit') + ' requested'
+            );
+            $('#mpr-view-change-when').text(
+                change.created_at ? ' — asked on ' + mprFormatDateTime(change.created_at) + '.' : '.'
+            );
+            $('#mpr-view-change-reason').text(
+                (change.reason || '').trim() !== '' ? change.reason : 'No reason given.'
+            );
+            $('#mpr-view-change').show();
+        } else {
+            $('#mpr-view-change').hide();
+        }
+
         let positions = data.positions || [];
         $('#mpr-view-position-rows').html(mpvRenderAllRows(positions));
     }
 
+    /**
+     * MySQL DATETIME comes back as "YYYY-MM-DD HH:MM:SS"; Safari refuses that
+     * in new Date(), so normalise before formatting and fall back to the raw
+     * string rather than printing "Invalid Date".
+     */
+    function mprFormatDateTime(value) {
+        const parsed = new Date(String(value).replace(' ', 'T'));
+        if (isNaN(parsed)) { return value; }
+        return parsed.toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+
     function load_counts() {
-        fetch('/recruitment/manpower/counts')
+        fetch('/recruitment/manpower/counts' + mprMonthQuery())
             .then(res => res.json())
             .then(data => {
-                ['draft', 'pending', 'approved', 'declined', 'cancelled'].forEach(stat => {
+                MPR_TABS.forEach(stat => {
                     $(`#mpr-badge-${stat}`).text(data[stat] ?? 0);
                 });
+
+                // Highlight the Edit/Cancel tab only while something is open.
+                $('#mpr-tabs .mpr-tab-change').toggleClass('has-open', (data['change-pending'] ?? 0) > 0);
             });
     }
 
@@ -547,7 +725,7 @@
         currentStat = stat;
         $('#manpower-list').html('<div class="mpr-empty-state"><i class="bi bi-hourglass-split"></i>Loading…</div>');
 
-        fetch('/recruitment/manpower/list/' + stat)
+        fetch('/recruitment/manpower/list/' + stat + mprMonthQuery())
             .then(res => res.text())
             .then(html => {
                 $('#manpower-list').html(html);
@@ -605,13 +783,34 @@
     <ul class="mpr-tabs list-unstyled mb-0" id="mpr-tabs">
         @foreach (['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'declined' => 'Declined', 'cancelled' => 'Cancelled'] as $stat => $label)
             <li class="d-inline-block m-0">
-                <button type="button" class="mpr-tab-link {{ $stat == 'draft' ? 'active' : '' }}"
-                    onclick="load_manpower_list('{{ $stat }}'); $('#mpr-tabs .mpr-tab-link').removeClass('active'); $(this).addClass('active');">
+                <button type="button" class="mpr-tab-link" data-stat="{{ $stat }}"
+                    onclick="mprSelectTab('{{ $stat }}');">
                     {{ $label }} <span class="mpr-tab-badge" id="mpr-badge-{{ $stat }}">0</span>
                 </button>
             </li>
         @endforeach
+
+        {{-- Not a status: approved requests whose Requestor is waiting on an
+             edit/cancel decision. HR needs to spot these; the decision itself
+             stays with the Approver in HireFlow. --}}
+        <li class="d-inline-block m-0">
+            <button type="button" class="mpr-tab-link mpr-tab-change" data-stat="change-pending"
+                onclick="mprSelectTab('change-pending');"
+                title="Approved requests waiting on an edit or cancel decision">
+                <i class="fa fa-clock"></i> Edit/Cancel
+                <span class="mpr-tab-badge" id="mpr-badge-change-pending">0</span>
+            </button>
+        </li>
     </ul>
+
+    {{-- Set by the dashboard's "requests raised" chart. It sits across every
+         tab, and the badges honour it too, so a count never disagrees with
+         the list under it. --}}
+    <div class="mpr-month-filter" id="mpr-month-filter" style="display:none;">
+        <i class="fa fa-calendar-day"></i>
+        <span>Showing requests raised in <strong id="mpr-month-label"></strong></span>
+        <button type="button" id="mpr-month-clear">Clear</button>
+    </div>
 
     <div class="mpr-toolbar">
         <input type="search" id="mpr-search" placeholder="Search requestor, MR no, dept…">
@@ -645,6 +844,18 @@
                         <div class="mpv-value" id="mpr-view-mrno"></div>
                     </div>
                     <span id="mpr-view-status" class="mpv-chip"></span>
+                </div>
+
+                <div class="mpr-change-note" id="mpr-view-change" style="display:none;">
+                    <i class="fa fa-clock"></i>
+                    <div>
+                        <strong id="mpr-view-change-title"></strong>
+                        <span id="mpr-view-change-when"></span>
+                        <div class="mpr-change-reason" id="mpr-view-change-reason"></div>
+                        <div class="mpr-change-where">
+                            Waiting on the Requestor&rsquo;s Approver in HireFlow. Approve or decline it there.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mpv-section-divider"><span class="dot"></span> Positions</div>

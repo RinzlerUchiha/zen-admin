@@ -9,6 +9,77 @@
         --my-top-space: calc(var(--main-top-margin) + .25rem);
     }
 
+    /* ===== Collapsible rail =====
+       The rail keeps Bootstrap's row/col gutters; only its width is taken
+       over, and only from md up, where the two columns sit side by side.
+       Below that breakpoint the columns already stack and the rail becomes a
+       horizontal strip, so the collapse has nothing to do. */
+    #hf-shell {
+        --hf-rail-w: 16.66666667%;
+    }
+
+    @media (min-width: 992px) {
+        #hf-shell {
+            --hf-rail-w: 232px;
+            flex-wrap: nowrap;
+        }
+
+        #hf-shell[data-collapsed="1"] {
+            --hf-rail-w: 68px;
+        }
+
+        #hf-shell > #hf-rail {
+            flex: 0 0 var(--hf-rail-w);
+            width: var(--hf-rail-w);
+            max-width: var(--hf-rail-w);
+            transition: flex-basis .18s ease, width .18s ease, max-width .18s ease;
+        }
+
+        #hf-shell > #hf-main {
+            flex: 1 1 auto;
+            width: auto;
+            max-width: none;
+            min-width: 0;
+        }
+    }
+
+    #hf-nav-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--zn-ink-3);
+        font-size: var(--zn-fs-sm);
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        padding: 6px 10px;
+        margin-bottom: 4px;
+        border-radius: var(--zn-radius-lg);
+        cursor: pointer;
+        transition: background .15s ease, color .15s ease;
+    }
+
+    #hf-nav-toggle:hover {
+        background: var(--zn-surface-2);
+        color: var(--zn-ink);
+    }
+
+    #hf-nav-toggle:focus-visible {
+        outline: none;
+        border-color: var(--zn-accent);
+    }
+
+    #hf-nav-toggle .hf-toggle-ico {
+        flex-shrink: 0;
+        width: 30px;
+        display: inline-flex;
+        justify-content: center;
+        font-size: var(--zn-fs);
+    }
+
     #page-tabs {
         width: 100%;
         height: calc(100vh - var(--my-top-space));
@@ -43,6 +114,11 @@
 
     .rc-item {
         position: relative;
+    }
+
+    /* an item that stands outside the numbered pipeline */
+    .rc-item-plain::before {
+        display: none;
     }
 
     /* vertical rail that ties the steps into one pipeline */
@@ -176,6 +252,63 @@
         padding: 2px 7px;
     }
 
+    /* ===== Collapsed: icons only, still clickable, named on hover ===== */
+    @media (min-width: 992px) {
+        #hf-shell[data-collapsed="1"] #page-tabs {
+            padding-left: 8px;
+            padding-right: 8px;
+            align-items: stretch;
+        }
+
+        #hf-shell[data-collapsed="1"] .rc-group {
+            /* the group heading has no icon to fall back to */
+            height: 0;
+            padding: 0;
+            overflow: hidden;
+            visibility: hidden;
+        }
+
+        #hf-shell[data-collapsed="1"] .rc-text,
+        #hf-shell[data-collapsed="1"] .rc-soon,
+        #hf-shell[data-collapsed="1"] #hf-nav-toggle .hf-toggle-text {
+            display: none;
+        }
+
+        #hf-shell[data-collapsed="1"] .rc-link {
+            justify-content: center;
+            gap: 0;
+            padding: 8px 6px;
+        }
+
+        /* the step number rides the icon instead of taking its own column */
+        #hf-shell[data-collapsed="1"] .rc-step {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 15px;
+            height: 15px;
+            font-size: 10px;
+            background: var(--zn-surface);
+            border-width: 1.5px;
+        }
+
+        /* the pipeline rail follows the icons to the middle */
+        #hf-shell[data-collapsed="1"] .rc-item::before {
+            left: 50%;
+            margin-left: -1px;
+        }
+
+        #hf-shell[data-collapsed="1"] .rc-link.active::after {
+            left: -4px;
+        }
+
+        #hf-shell[data-collapsed="1"] #hf-nav-toggle {
+            justify-content: center;
+            padding-left: 6px;
+            padding-right: 6px;
+        }
+    }
+
     @media (max-width: 991.98px) {
         #page-tabs {
             height: auto;
@@ -183,6 +316,11 @@
             position: static;
             border-right: none;
             border-bottom: 1px solid var(--zn-line);
+        }
+
+        /* stacked layout: there is no narrow rail to collapse */
+        #hf-nav-toggle {
+            display: none;
         }
     }
 </style>
@@ -198,12 +336,93 @@
     });
 </script>
 
+<script type="text/javascript">
+    /**
+     * Collapse/expand for the HireFlow rail.
+     *
+     * Collapsed, every item keeps its icon and stays clickable; the label it
+     * loses comes back as a tooltip, so nothing becomes unidentifiable. The
+     * choice is remembered per browser. Everything here is scoped to
+     * #hf-shell, which exists only on HireFlow pages.
+     */
+    $(function () {
+        const STORE_KEY = 'hf.nav.collapsed';
+        const shell = document.getElementById('hf-shell');
+        const toggle = document.getElementById('hf-nav-toggle');
+        if (!shell || !toggle) { return; }
+
+        const links = Array.from(shell.querySelectorAll('#page-tabs .rc-link'));
+        const tipTargets = links.concat([toggle]);
+        const hasBootstrapTips = typeof bootstrap !== 'undefined' && bootstrap.Tooltip;
+
+        // The label each item shows when there is room for it.
+        links.forEach(function (link) {
+            const text = link.querySelector('.rc-text');
+            link.dataset.hfLabel = text ? text.textContent.trim() : '';
+            if (link.classList.contains('rc-disabled')) {
+                link.dataset.hfLabel += ' — coming soon';
+            }
+        });
+
+        function clearTip(el) {
+            if (hasBootstrapTips) {
+                const tip = bootstrap.Tooltip.getInstance(el);
+                if (tip) { tip.dispose(); }
+            }
+            el.removeAttribute('title');
+        }
+
+        function applyTips(collapsed) {
+            tipTargets.forEach(clearTip);
+            if (!collapsed) { return; }
+
+            links.forEach(function (link) {
+                link.setAttribute('title', link.dataset.hfLabel);
+            });
+            toggle.setAttribute('title', 'Expand menu');
+
+            if (!hasBootstrapTips) { return; } // native title tooltips still work
+
+            tipTargets.forEach(function (el) {
+                new bootstrap.Tooltip(el, { placement: 'right', container: 'body' });
+            });
+        }
+
+        function render(collapsed) {
+            shell.setAttribute('data-collapsed', collapsed ? '1' : '0');
+            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            toggle.setAttribute('aria-label', collapsed ? 'Expand menu' : 'Collapse menu');
+            toggle.querySelector('.hf-toggle-ico i').className =
+                collapsed ? 'fa fa-angles-right' : 'fa fa-angles-left';
+            applyTips(collapsed);
+        }
+
+        // The inline script above already set the attribute; start from it so
+        // the two never disagree.
+        let collapsed = shell.getAttribute('data-collapsed') === '1';
+        render(collapsed);
+
+        toggle.addEventListener('click', function () {
+            collapsed = !collapsed;
+            render(collapsed);
+            try { localStorage.setItem(STORE_KEY, collapsed ? '1' : '0'); } catch (e) { /* not fatal */ }
+        });
+    });
+</script>
+
 {{-- Recruitment pipeline icon set (inline sprite; inherits currentColor) --}}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <defs>
         <g id="ri-base" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
             stroke-linejoin="round"></g>
     </defs>
+    <symbol id="ri-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="4" width="7" height="6" rx="1.2" />
+        <rect x="4" y="13" width="7" height="7" rx="1.2" />
+        <rect x="14" y="4" width="6" height="10" rx="1.2" />
+        <rect x="14" y="17" width="6" height="3" rx="1.2" />
+    </symbol>
     <symbol id="ri-manpower" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
         stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1Z" />
@@ -248,9 +467,36 @@
     </symbol>
 </svg>
 
-<div class="row pt-1">
-    <div class="col-md-2">
+<div class="row pt-1" id="hf-shell" data-collapsed="0">
+    {{-- Restore the rail's width before first paint, so a collapsed rail does
+         not flash wide and snap shut on every page load. --}}
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('hf.nav.collapsed') === '1') {
+                    document.getElementById('hf-shell').setAttribute('data-collapsed', '1');
+                }
+            } catch (e) { /* storage blocked: stay expanded */ }
+        })();
+    </script>
+
+    <div class="col-md-2" id="hf-rail">
         <ul class="nav flex-column" id="page-tabs">
+            <li class="nav-item">
+                <button type="button" id="hf-nav-toggle" aria-controls="page-tabs" aria-expanded="true">
+                    <span class="hf-toggle-ico"><i class="fa fa-angles-left" aria-hidden="true"></i></span>
+                    <span class="hf-toggle-text">Collapse</span>
+                </button>
+            </li>
+
+            <li class="nav-item rc-item rc-item-plain">
+                <a href="{{ url('/recruitment/dashboard') }}"
+                    class="rc-link {{ $maincat == 'dashboard' ? 'active' : '' }}">
+                    <span class="rc-ico"><svg><use href="#ri-dashboard" /></svg></span>
+                    <span class="rc-text">Dashboard</span>
+                </a>
+            </li>
+
             <li class="rc-group">Hiring Pipeline</li>
 
             <li class="nav-item rc-item">
@@ -318,7 +564,7 @@
         </ul>
     </div>
 
-    <div class="col-md-10">
+    <div class="col-md-10" id="hf-main">
         <div class="row">
             <div class="col-12">
                 @includeIf($page ?? '')

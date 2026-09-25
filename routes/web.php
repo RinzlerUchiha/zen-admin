@@ -302,8 +302,13 @@ Route::middleware(['auth'])->group(function () {
 
 
 
+    // Entering HireFlow lands on its dashboard.
     Route::get('/recruitment', function () {
-        return redirect()->route('recruitment.manpower.index');
+        return redirect()->route('recruitment.dashboard.index');
+    });
+
+    Route::prefix('recruitment/dashboard')->name('recruitment.dashboard.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Recruitment\HireflowDashboardController::class, 'index'])->name('index');
     });
 
     Route::prefix('recruitment/manpower')->name('recruitment.manpower.')->group(function () {
