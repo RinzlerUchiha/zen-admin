@@ -327,6 +327,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/', [JobPostingController::class, 'store'])->name('store');
         Route::patch('/{jobPosting}/status', [JobPostingController::class, 'updateStatus'])->name('status');
         Route::patch('/{jobPosting}/description', [JobPostingController::class, 'updateDescription'])->name('description');
+        // Where HR advertises this posting, and what came back from each place.
+        Route::get('/{jobPosting}/channels', [JobPostingController::class, 'channels'])->name('channels.index');
+        Route::put('/{jobPosting}/channels', [JobPostingController::class, 'updateChannels'])->name('channels.update');
         // Photos shown beside the posting on the careers page (its Job Specification's).
         Route::get('/{jobPosting}/photos', [JobPostingPhotoController::class, 'index'])->name('photos.index');
         Route::post('/{jobPosting}/photos', [JobPostingPhotoController::class, 'store'])->name('photos.store');
@@ -337,6 +340,7 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'index'])->name('index');
         Route::get('/data', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'data'])->name('data');
+        Route::get('/candidate-pool', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'candidatePool'])->name('candidate-pool');
 
         // Decisions on ONE application (HireFlow 2.5 · M3). Each closes only the
         // application in the URL.

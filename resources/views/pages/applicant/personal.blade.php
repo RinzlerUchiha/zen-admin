@@ -7,36 +7,43 @@
         font-size: var(--zn-fs-lg);
     }
 
-    /* ── Section cards with left border ───────────────────────── */
+    /* ── Section cards ────────────────────────────────────────── */
     .info-section {
-        border-left: 3px solid var(--zn-accent);
-        padding-left: 1rem;
-        margin-bottom: 1.75rem;
+        background: var(--zn-surface);
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        padding: 16px 18px;
+        margin-bottom: 14px;
     }
 
     .info-section > h6 {
-        color: var(--zn-accent);
+        color: var(--zn-ink-2);
         font-weight: 600;
         font-size: var(--zn-fs);
-        text-transform: uppercase;
-        letter-spacing: .05em;
-        margin-bottom: .65rem;
+        letter-spacing: 0;
+        margin-bottom: .9rem;
+        padding-bottom: .55rem;
+        border-bottom: 1px solid var(--zn-line);
         display: flex;
         align-items: center;
-        gap: .4rem;
+        gap: .45rem;
     }
 
+    .info-section > h6 i { color: var(--zn-accent); }
+
     /* ── Field label / value ───────────────────────────────────── */
+    /* The label is the quiet one: smaller and lighter than its value. */
     .field-label {
         color: var(--zn-ink-3);
-        font-size: var(--zn-fs);
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        margin-bottom: 1px;
+        font-size: var(--zn-fs-xs);
+        font-weight: 500;
+        letter-spacing: .02em;
+        margin-bottom: 2px;
     }
 
     .field-value {
         font-weight: 600;
+        color: var(--zn-ink);
         min-height: 1.1em;
         word-break: break-word;
     }
@@ -137,7 +144,7 @@
         button:not(.accordion-button),
         #hireModal { display: none !important; }
 
-        .info-section { border-left-color: #000 !important; page-break-inside: avoid; }
+        .info-section { border-color: #000 !important; page-break-inside: avoid; }
         .info-accordion .accordion-collapse { display: block !important; }
         body, #form-personal { font-size: var(--zn-fs-xs); }
         .masked { color: #000 !important; letter-spacing: normal; }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Recruitment\HireflowManpowerRequest;
+use App\Models\Recruitment\JobPosting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,19 @@ class ManpowerController extends Controller
     | the same way, but it filters on tbl_manpower_change_request instead.
     */
     private const CHANGE_PENDING = 'change-pending';
+
+    /*
+    | Also not a status of its own. HireFlow calls an approved request
+    | "Served" once every position on it has been turned into a job posting;
+    | Zen-Hub derives it the same way (mp_mark_served) and likewise leaves the
+    | stored status as 'Approved'.
+    |
+    | Approved and Served are mutually exclusive, matching Zen-Hub: its
+    | dashboard buckets a served request as 'Served' rather than its status,
+    | and manpower_status_rows.php filters each tab on that flag. So the
+    | Approved tab here means "approved, still waiting for its postings".
+    */
+    private const SERVED = 'served';
 
     public function index()
     {
@@ -81,43 +95,146 @@ class ManpowerController extends Controller
         );
     }
 
-    public function list(Request $request, string $stat)
+    /**
+     * Position ids that already have a job posting, for the given positions.
+     *
+     * Two queries for the whole page rather than one per row: HireFlow marks
+     * an approved request "Served" once every position on it has been turned
+     * into a posting, and HR needs the same distinction here because posting
+     * is their job. Read-only, and it derives from tbl_job_posting exactly as
+     * the Job Postings page does, so the two always agree.
+     */
+    private function postedPositionIds(array $positionIds): array
     {
-        $changePendingOnly = $stat === self::CHANGE_PENDING;
-
-        if (!$changePendingOnly && !array_key_exists($stat, self::STATUS_MAP)) {
-            abort(404);
+        if (empty($positionIds)) {
+            return [];
         }
 
-        // An open edit/cancel ask can only exist on an approved request.
-        $status = $changePendingOnly ? 'Approved' : self::STATUS_MAP[$stat];
+        return JobPosting::whereIn('request_position_id', $positionIds)
+            ->pluck('request_position_id')
+            ->map(fn ($id) => (int) $id)
+            ->flip()
+            ->all();
+    }
 
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
+    /**
+     * Marks each approved request with how many of its positions already have
+     * a job posting, and whether that makes it Served.
+     *
+     * Matches Zen-Hub's mp_mark_served() exactly: a request is Served once AT
+     * LEAST ONE of its positions has a posting row, whatever that posting's
+     * own status. Hiring has started, so the request leaves Approved and is
+     * locked from edit/cancel; the remaining positions still read as Not
+     * posted individually.
+     *
+     * (Note this differs from JobPostingController's "eligible to post" rule,
+     * which ignores Closed postings — that answers a different question and is
+     * deliberately left alone.)
+     */
+    private function markPosted($rows)
+    {
+        $posted = $this->postedPositionIds(
+            $rows->pluck('positions')->flatten()->pluck('id')->map(fn ($id) => (int) $id)->all()
+        );
 
-        // Matches HireFlow's own auth.php lookup exactly: tbl201_basicinfo
-        // on the hrd2 connection, not tbl201_persinfo on the default connection.
-        $employee = DB::connection('hrd2')->table('tbl201_basicinfo')
+        return $rows->each(function ($v) use ($posted) {
+            $v->positions->each(function ($position) use ($posted) {
+                $position->is_posted = isset($posted[(int) $position->id]);
+            });
+
+            $v->posted_count = $v->positions->where('is_posted', true)->count();
+            $v->is_served = $v->status === 'Approved' && $v->posted_count > 0;
+        });
+    }
+
+    /**
+     * Requestor name and department, keyed by employee number.
+     *
+     * This used to fetch the WHOLE employee directory (1,296 rows with two
+     * joins, ~115ms) on every tab click to resolve a handful of names. Same
+     * lookup as HireFlow's own auth.php — tbl201_basicinfo on the hrd2
+     * connection — now limited to the people actually on screen.
+     */
+    private function requestorDirectory(array $employeeIds)
+    {
+        if (empty($employeeIds)) {
+            return collect();
+        }
+
+        return DB::connection('hrd2')->table('tbl201_basicinfo')
             ->selectRaw("bi_empno as pers_empno, Dept_Name, TRIM(CONCAT(bi_emplname, ', ', bi_empfname)) as empname")
             ->leftJoin('tbl201_jobrec', function ($join) {
                 $join->on('jrec_empno', '=', 'bi_empno')
                     ->on('jrec_status', '=', DB::raw("'Primary'"));
             })
             ->leftJoin('tbl_department', 'Dept_Code', '=', 'jrec_department')
-            ->get();
-
-        $data = $this->buildListQuery($status, $user, $changePendingOnly, $this->monthFilter($request->query('month')))
-            ->orderBy('id', 'desc')
+            ->whereIn('bi_empno', $employeeIds)
             ->get()
-            ->map(function ($v) use ($employee) {
-                $requestor = $employee->where('pers_empno', $v->requestor_employee_id)->first();
+            ->keyBy('pers_empno');
+    }
+
+    /**
+     * Position code => full title, in one query instead of one per position.
+     *
+     * HireflowManpowerPosition::positionTitle() hits tbl_jobdescription each
+     * time it is called; over a list that is a query per row. Same source,
+     * same fallback to the raw code when a description is missing.
+     */
+    private function positionTitles($positions)
+    {
+        $codes = $positions->pluck('position')->filter()->unique()->values()->all();
+
+        if (empty($codes)) {
+            return collect();
+        }
+
+        return DB::connection('hrd2')->table('tbl_jobdescription')
+            ->whereIn('jd_code', $codes)
+            ->pluck('jd_title', 'jd_code');
+    }
+
+    public function list(Request $request, string $stat)
+    {
+        $changePendingOnly = $stat === self::CHANGE_PENDING;
+        $servedOnly = $stat === self::SERVED;
+        $approvedOnly = $stat === 'approved';
+
+        if (!$changePendingOnly && !$servedOnly && !array_key_exists($stat, self::STATUS_MAP)) {
+            abort(404);
+        }
+
+        // Both pseudo-tabs are views over approved requests.
+        $status = ($changePendingOnly || $servedOnly) ? 'Approved' : self::STATUS_MAP[$stat];
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $rows = $this->markPosted(
+            $this->buildListQuery($status, $user, $changePendingOnly, $this->monthFilter($request->query('month')))
+                ->orderBy('id', 'desc')
+                ->get()
+        );
+
+        // The two tabs split the approved set between them.
+        if ($servedOnly) {
+            $rows = $rows->filter(fn ($v) => $v->is_served)->values();
+        } elseif ($approvedOnly) {
+            $rows = $rows->filter(fn ($v) => !$v->is_served)->values();
+        }
+
+        $employee = $this->requestorDirectory($rows->pluck('requestor_employee_id')->unique()->all());
+        $titles = $this->positionTitles($rows->pluck('positions')->flatten());
+
+        $data = $rows
+            ->map(function ($v) use ($employee, $titles) {
+                $requestor = $employee[$v->requestor_employee_id] ?? null;
                 $v->requestor_name = $requestor?->empname ?? '—';
                 $v->requestor_dept = $requestor?->Dept_Name ?? '—';
                 $v->total_headcount = $v->positions->sum('headcount');
                 $v->position_count = $v->positions->count();
 
-                $v->positions->each(function ($position) {
-                    $position->position_title = $position->positionTitle();
+                $v->positions->each(function ($position) use ($titles) {
+                    $position->position_title = $titles[$position->position] ?? $position->position;
                 });
 
                 return $v;
@@ -143,12 +260,23 @@ class ManpowerController extends Controller
 
         $counts[self::CHANGE_PENDING] = $this->buildListQuery('Approved', $user, true, $month)->count();
 
+        $counts[self::SERVED] = $this->markPosted($this->buildListQuery('Approved', $user, false, $month)->get())
+            ->filter(fn ($v) => $v->is_served)
+            ->count();
+
+        // Served requests are shown under Served, not Approved, so the badge
+        // matches the list beneath it.
+        $counts['approved'] = max(0, $counts['approved'] - $counts[self::SERVED]);
+
         return response()->json($counts);
     }
 
     public function show($id)
     {
         $data = HireflowManpowerRequest::with(['positions', 'pendingChange'])->findOrFail($id);
+
+        $this->markPosted(collect([$data]));
+        $data->total_headcount = $data->positions->sum('headcount');
 
         // Resolve each position's short code to its full title, matching
         // how HireFlow itself displays positions.

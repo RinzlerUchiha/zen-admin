@@ -24,15 +24,6 @@ class HireflowManpowerRequest extends Model
     }
 
     /**
-     * Every edit/cancel ask ever made against this request, newest first.
-     */
-    public function changeRequests()
-    {
-        return $this->hasMany(HireflowManpowerChangeRequest::class, 'request_id', 'id')
-            ->orderByDesc('id');
-    }
-
-    /**
      * The one open ask, if there is one. HireFlow allows only a single
      * Pending change request per manpower request, so this is at most one row.
      */

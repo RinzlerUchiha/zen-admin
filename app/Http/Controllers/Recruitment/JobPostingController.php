@@ -7,6 +7,7 @@ use App\Models\Recruitment\HireflowManpowerRequest;
 use App\Models\Recruitment\HireflowManpowerPosition;
 use App\Models\Recruitment\JobPosting;
 use App\Services\Recruitment\Ad\JobShortDescription;
+use App\Services\Recruitment\PostingChannels;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,13 +30,41 @@ class JobPostingController extends Controller
             ->filter(fn ($request) => $request->positions->isNotEmpty())
             ->values();
 
-        $postings = JobPosting::with('hireflowPosition')
+        $postings = JobPosting::with(['hireflowPosition.request', 'channels'])
             ->orderByDesc('created_at')
             ->get();
+
+        /*
+         | Posting-desk figures. Deliberately narrower than the dashboard's:
+         | these describe this page's own list, so HR does not have to count
+         | rows or leave to find out what needs doing.
+         */
+        $openIds = $postings->where('status', 'Published')->pluck('id');
+        $withApplicants = $openIds->isEmpty()
+            ? collect()
+            : collect(\Illuminate\Support\Facades\DB::connection('applicant')
+                ->table('tblapp_applications')
+                ->whereIn('job_posting_id', $openIds->all())
+                ->distinct()
+                ->pluck('job_posting_id'))->map(fn ($id) => (int) $id);
+
+        $oldestOpen = $postings->where('status', 'Published')->whereNotNull('posted_at')->min('posted_at');
+
+        $postingStats = [
+            'draft' => $postings->where('status', 'Draft')->count(),
+            'published' => $postings->where('status', 'Published')->count(),
+            'closed' => $postings->where('status', 'Closed')->count(),
+            'no_applicants' => $openIds->reject(fn ($id) => $withApplicants->contains((int) $id))->count(),
+            'waiting' => $eligibleRequests->sum(fn ($r) => $r->positions->count()),
+            'oldest_open_days' => $oldestOpen
+                ? (int) \Illuminate\Support\Carbon::parse($oldestOpen)->diffInDays(now())
+                : null,
+        ];
 
         return view('pages.recruitment', [
             'eligibleRequests' => $eligibleRequests,
             'postings' => $postings,
+            'postingStats' => $postingStats,
             'main_link' => 'recruitment',
             'sub_link' => 'job-postings',
             'maincat' => 'job-postings',
@@ -128,7 +157,7 @@ class JobPostingController extends Controller
      * Returns the draft text only — it is not saved until the user
      * reviews it and hits Save in the panel.
      */
-    public function suggestAd(JobPosting $jobPosting)
+    public function suggestAd(Request $request, JobPosting $jobPosting)
     {
         $position = $jobPosting->hireflowPosition;
 
@@ -138,9 +167,96 @@ class JobPostingController extends Controller
             ], 422);
         }
 
+        $registry = new \App\Services\Recruitment\Ad\AdTemplateRegistry();
+
+        // ?template=<key> writes the ad that way; without it, the rule
+        // recommends. An unknown key is ignored rather than failing.
+        $wanted = $request->query('template');
+        $wanted = ($wanted !== null && $registry->get($wanted)) ? $wanted : null;
+
+        $composer = (new \App\Services\Recruitment\Ad\JobAdComposer())->useTemplate($wanted);
+        $ad = $composer->composeFor($position);
+        $template = $composer->lastTemplate();
+
         return response()->json([
-            'public_description' => $position->draftPublicAd(),
+            'public_description' => $ad,
             'short_description' => (new JobShortDescription())->composeFor($position),
+            'template' => $template ? [
+                'key' => $template['key'],
+                'name' => $template['template']['name'] ?? $template['key'],
+                'reason' => $template['reason'],
+                'chosen_by_hr' => (bool) ($template['forced'] ?? false),
+            ] : null,
+            // Every template HR can switch to, so the panel can offer them.
+            'templates' => collect($registry->all())->map(fn ($t, $key) => [
+                'key' => $key,
+                'name' => $t['name'],
+                'description' => $t['description'],
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Where this posting is advertised, and what each place brought in.
+     *
+     * The counts describe HireFlow's own Careers page: how many people
+     * opened it through each channel's tagged link, and how many of them
+     * applied. They are not the platform's impressions or views — we have
+     * no API to any of these sites and never present one as if we did.
+     */
+    public function channels(JobPosting $jobPosting)
+    {
+        $channels = new PostingChannels();
+
+        return response()->json([
+            'channels' => $channels->summaryFor($jobPosting),
+            // Everything HR could tick, including anything recorded before a
+            // channel was catalogued.
+            'available' => collect($channels->availableFor($jobPosting))
+                ->map(fn ($channel, $key) => [
+                    'key' => $key,
+                    'name' => $channel['name'],
+                    'description' => $channel['description'] ?? '',
+                    'external' => (bool) ($channel['external'] ?? true),
+                ])->values(),
+            // False until CAREERS_URL is set, so the panel can say the links
+            // are unavailable instead of handing out ones that go nowhere.
+            'links_ready' => config('posting_channels.careers_url') !== '',
+        ]);
+    }
+
+    /**
+     * Record where HR is advertising this posting.
+     *
+     * Ticking a channel does not publish anything — HireFlow cannot post to
+     * LinkedIn or JobStreet. It says "we are putting it here", hands back a
+     * tagged link to paste there, and starts counting what returns.
+     */
+    public function updateChannels(Request $request, JobPosting $jobPosting)
+    {
+        if ($jobPosting->status === 'Closed') {
+            return response()->json([
+                'message' => 'A closed posting is no longer being advertised, so its channels cannot be changed.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'channels' => 'present|array',
+            'channels.*.state' => 'nullable|string|in:Posted,Not Posted',
+            'channels.*.external_url' => 'nullable|string|max:500|url',
+        ], [
+            'channels.*.external_url.url' => 'The link to the external post must be a full URL, e.g. https://…',
+        ]);
+
+        $channels = new PostingChannels();
+        $result = $channels->sync($jobPosting, $validated['channels']);
+
+        return response()->json([
+            'success' => true,
+            'channels' => $channels->summaryFor($jobPosting),
+            // A channel with visits or applications behind it is kept rather
+            // than deleted; say so, or the row reappearing looks like a bug.
+            'retained' => $result['retained'],
         ]);
     }
 

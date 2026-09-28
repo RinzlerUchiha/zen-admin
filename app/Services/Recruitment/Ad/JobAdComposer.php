@@ -87,6 +87,29 @@ class JobAdComposer
         return new AdContentProfile($facts, $this->config);
     }
 
+    /**
+     * Compose with a specific template instead of the recommended one.
+     *
+     * The rule still decides what to recommend; this lets HR see the same
+     * Job Specification written three ways and keep whichever reads best.
+     */
+    public function useTemplate(?string $key): self
+    {
+        $this->planner->forceTemplate($key);
+
+        return $this;
+    }
+
+    /**
+     * Which public-ad template the last compose() used, and why.
+     *
+     * @return array{key:string,template:array,reason:string}|null
+     */
+    public function lastTemplate(): ?array
+    {
+        return $this->planner->lastTemplate();
+    }
+
     public function extractor(): SpecFactExtractor
     {
         return $this->extractor;

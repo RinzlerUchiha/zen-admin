@@ -116,6 +116,12 @@
             overflow: auto;
         }
 
+        /* #sidebar is the only scroll container; Bootstrap's offcanvas-body
+           would otherwise add a second scrollbar inside it. */
+        #sidebar .offcanvas-body {
+            overflow: visible;
+        }
+
         @media (min-width: 768px) {
             #sidebar.offcanvas {
                 width: 300px;
@@ -160,6 +166,45 @@
             background: var(--zn-ink-3);  /* Color of the thumb */
             border-radius: var(--zn-radius-lg);  /* Rounded corners for thumb */
         }
+
+        /* Which section of the profile is open, and the applicant it belongs to. */
+        .ap-section-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .ap-section-head h5 { margin: 0 0 2px; }
+
+        .ap-section-sub {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            color: var(--zn-ink-3);
+            font-size: var(--zn-fs-sm);
+        }
+
+        /*
+         | Status chips shared by the section header and the Applications tab.
+         | Small, quiet, and readable at a glance — the same shape the intake
+         | list uses, so a status looks the same wherever HR meets it.
+         */
+        .hf-chip {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: var(--zn-fs-xs);
+            font-weight: 600;
+            line-height: 1.6;
+            white-space: nowrap;
+        }
+
+        .hf-chip-ok   { background: var(--hf-done-soft);     color: var(--hf-done); }
+        .hf-chip-lock { background: var(--hf-inactive-soft); color: var(--hf-inactive); }
+        .hf-chip-pool { background: var(--hf-attention-soft); color: var(--hf-attention-ink); }
     </style>
 
     <script>
@@ -227,25 +272,24 @@
             <div class="offcanvas-body p-0">
                 <ul class="nav flex-column p-3">
 
-                    @can('applicant-documents.view')
-                        <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
-                            <span>Application</span>
-                        </h6>
-                        <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'documents']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'documents' ? 'active' : '' }}">Documents</a></li>
-
-                        <hr class="my-3">
-                    @endcan
-
-                <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
-                        <span>Interview Results</span>
+                    {{-- Hiring first: what this person applied for, how far
+                         each application got, and the documents behind it. --}}
+                    <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
+                        <span>Hiring</span>
+                        @if (isset($profileApplications))
+                            <span class="badge rounded-pill text-bg-light border fw-normal">{{ count($profileApplications) }}</span>
+                        @endif
                     </h6>
-
+                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'applications']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'applications' ? 'active' : '' }}">Applications</a></li>
+                    @can('applicant-documents.view')
+                        <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'documents']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'documents' ? 'active' : '' }}">Documents</a></li>
+                    @endcan
                     <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'interview-details']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'interview-details' ? 'active' : '' }}">Interview Details</a></li>
 
                     <hr class="my-3">
 
                     <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
-                        <span>Profile</span>
+                        <span>Candidate Profile</span>
                     </h6>
                     <li class="nav-item"><a href="{{ route('applicant.show', [ 'id' => $applicant?->app_id, 'tab' => 'personal']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'personal' ? 'active' : '' }}">Personal</a></li>
                     <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'family']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'family' ? 'active' : '' }}">Family Background</a></li>
@@ -254,18 +298,14 @@
 
                     <hr class="my-3">
 
+                    {{-- Credentials and work history were two groups of two
+                         items; they answer the same question. --}}
                     <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
-                        <span>Professional</span>
-                    </h6>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'license']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'license' ? 'active' : '' }}">Eligibility/Licenses</a></li>
-                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'certificate']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'certificate' ? 'active' : '' }}">Certificate</a></li>
-
-                    <hr class="my-3">
-
-                    <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
-                        <span>Work</span>
+                        <span>Experience &amp; Credentials</span>
                     </h6>
                     <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'employment']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'employment' ? 'active' : '' }}">Employment Record</a></li>
+                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'license']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'license' ? 'active' : '' }}">Eligibility/Licenses</a></li>
+                    <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'certificate']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'certificate' ? 'active' : '' }}">Certificate</a></li>
                     <li class="nav-item"><a href="{{ route('applicant.show', ['id' => $applicant?->app_id, 'tab' => 'characterref']) }}" class="nav-link align-items-center gap-2 {{ ($sub_link ?? '') == 'characterref' ? 'active' : '' }}">Character Reference</a></li>
 
                     <hr class="my-3">
@@ -273,7 +313,7 @@
                     {{-- Assessments (HireFlow 2.5): read-only results, each marked with
                          where it stands. The same view for HR and approvers. --}}
                     <h6 class="d-flex justify-content-between align-items-center px-3 mt-2 mb-1 text-body-light text-uppercase">
-                        <span>Assessments</span>
+                        <span>Assessments &amp; Interviews</span>
                         @if (isset($assessmentResults))
                             <span class="badge rounded-pill text-bg-light border fw-normal">{{ $assessmentResults->where('hasResult', true)->count() }}/{{ $assessmentResults->count() }}</span>
                         @endif
@@ -310,9 +350,39 @@
                 @endif
                 @include('pages.applicant.partials.profile-overview')
 
-                <div class="d-flex mb-2">
-                    <h5>Applicant Profile - {{ $applicant?->first_last_name }}</h5>
-                    {{-- <button class="btn btn-outline-secondary btn-sm">Hire</button> --}}
+@php
+    // The section being viewed, so the header says where you are rather than
+    // repeating the applicant's name that is already in the card above.
+    $apSectionTitles = [
+        'applications' => 'Applications',
+        'documents' => 'Documents',
+        'interview-details' => 'Interview Details',
+        'personal' => 'Personal Information',
+        'family' => 'Family Background',
+        'skill' => 'Special Skills',
+        'education' => 'Education',
+        'employment' => 'Employment Record',
+        'license' => 'Eligibility & Licenses',
+        'certificate' => 'Certificates',
+        'characterref' => 'Character References',
+        'assessment-access' => 'Assessment Access & Status',
+    ];
+    $apSection = $apSectionTitles[$sub_link ?? ''] ?? 'Assessment Result';
+    $apOpen = collect($profileApplications ?? [])->reject(fn ($a) => $a->is_closed);
+@endphp
+
+                <div class="ap-section-head">
+                    <div>
+                        <h5>{{ $apSection }}</h5>
+                        <span class="ap-section-sub">
+                            {{ $applicant?->first_last_name }}
+                            @if ($apOpen->isNotEmpty())
+                                · <span class="hf-chip hf-chip-ok">{{ $apOpen->count() }} open {{ \Illuminate\Support\Str::plural('application', $apOpen->count()) }}</span>
+                            @elseif (!empty($profileApplications))
+                                · <span class="hf-chip hf-chip-lock">No open application</span>
+                            @endif
+                        </span>
+                    </div>
                     @if(($sub_link ?? '') !== 'interview-details')
                     <div class="btn-group dropstart ms-auto">
                         <button type="button" class="btn btn-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Set Status</button>

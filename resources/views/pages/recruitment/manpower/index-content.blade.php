@@ -191,11 +191,70 @@
 
     .mpr-card-row {
         display: grid;
-        grid-template-columns: 40px 1.4fr 1.6fr 1fr 1.1fr 110px;
+        grid-template-columns: 32px minmax(0, 1fr) auto;
         align-items: center;
-        gap: 10px;
+        gap: 14px;
         padding: 14px 16px;
         cursor: pointer;
+    }
+
+    .mpr-ident { min-width: 0; }
+
+    /* the job itself leads — this is what HR recognises */
+    .mpr-subject {
+        font-size: var(--zn-fs-lg, 1.05rem);
+        font-weight: 700;
+        color: var(--zn-ink);
+        line-height: 1.25;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        word-break: break-word;
+    }
+
+    .mpr-more {
+        display: inline-block;
+        margin-left: 8px;
+        padding: 1px 8px;
+        border-radius: 20px;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-3);
+        font-size: var(--zn-fs-xs);
+        font-weight: 700;
+        vertical-align: middle;
+    }
+
+    /* reference number kept, but demoted */
+    .mpr-mrno {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-3);
+        letter-spacing: .02em;
+        margin-top: 2px;
+    }
+
+    .mpr-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        margin-top: 6px;
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-2);
+    }
+
+    .mpr-meta > span + span::before {
+        content: '·';
+        margin-right: 10px;
+        color: var(--zn-line-2);
+    }
+
+    .mpr-state {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        flex-shrink: 0;
     }
 
     .mpr-toggle-btn {
@@ -483,8 +542,9 @@
 
     .mpv-table-wrap th:nth-child(1), .mpv-table-wrap td:nth-child(1) { width: 130px; }
     .mpv-table-wrap th:nth-child(5), .mpv-table-wrap td:nth-child(5) { white-space: nowrap; width: 90px; }
-    .mpv-table-wrap th:nth-child(6), .mpv-table-wrap td:nth-child(6) { width: 32%; }
-    .mpv-table-wrap th:nth-child(7), .mpv-table-wrap td:nth-child(7) { white-space: nowrap; width: 50px; text-align: center; }
+    .mpv-table-wrap th:nth-child(6), .mpv-table-wrap td:nth-child(6) { width: 24%; }
+    .mpv-table-wrap th:nth-child(7), .mpv-table-wrap td:nth-child(7) { white-space: nowrap; width: 108px; }
+    .mpv-table-wrap th:nth-child(8), .mpv-table-wrap td:nth-child(8) { white-space: nowrap; width: 50px; text-align: center; }
 
     .mpv-table-wrap tbody tr:hover { background: var(--zn-accent-soft); }
     .mpv-table-wrap tbody tr:last-child td { border-bottom: none; }
@@ -536,31 +596,162 @@
     .mpr-toolbar {
         display: flex;
         justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
         margin-bottom: 12px;
     }
+
+    .mpr-search-summary {
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-3);
+    }
+
+    .mpr-search-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .mpr-search-wrap #mpr-search-clear {
+        position: absolute;
+        right: 6px;
+        border: none;
+        background: transparent;
+        color: var(--zn-ink-3);
+        font-size: 18px;
+        line-height: 1;
+        padding: 2px 6px;
+        cursor: pointer;
+        border-radius: var(--zn-radius);
+    }
+
+    .mpr-search-wrap #mpr-search-clear:hover {
+        background: var(--zn-surface-2);
+        color: var(--zn-ink);
+    }
+
+    /* how many of an approved request's positions already have a posting */
+    .mpr-post-progress {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: var(--zn-fs-xs);
+        font-weight: 700;
+        color: var(--zn-ink-3);
+        white-space: nowrap;
+    }
+
+    /* every position posted — this is what the Served tab collects */
+    .mpr-post-progress.is-complete {
+        color: var(--zn-ok);
+    }
+
+    /*
+       A position that already has a job posting gets a faint green wash, so
+       a part-posted request can be read at a glance without checking every
+       chip. Deliberately lighter than --zn-ok-soft: that is the chip's own
+       background, and matching it would make the chip vanish into the row.
+       The tint is decoration — the chip still carries the meaning in words.
+    */
+    #manpower-list .mpr-detail-table tbody tr.is-posted-row,
+    #modal-mpr-view .mpv-table-wrap tbody tr.is-posted-row {
+        background: var(--zn-ok-soft); /* fallback where color-mix is unsupported */
+        background: color-mix(in srgb, var(--zn-ok-soft) 45%, var(--zn-surface));
+    }
+
+    /* Hover still has to register, and should stay in the same colour family
+       rather than flipping a posted row to the accent tint. */
+    #manpower-list .mpr-detail-table tbody tr.mpr-pos-row.is-posted-row:hover,
+    #modal-mpr-view .mpv-table-wrap tbody tr.is-posted-row:hover {
+        background: var(--zn-ok-soft);
+        background: color-mix(in srgb, var(--zn-ok-soft) 80%, var(--zn-surface));
+    }
+
+    /* Per-position posting state. Text carries the meaning, so it never
+       depends on colour alone. */
+    .mpr-post-chip {
+        display: inline-block;
+        white-space: nowrap;
+        border-radius: var(--zn-radius);
+        padding: 3px 10px;
+        font-size: var(--zn-fs-xs);
+        font-weight: 700;
+        background: var(--zn-lock-soft);
+        color: var(--zn-ink-3);
+    }
+
+    .mpr-post-chip.is-posted {
+        background: var(--zn-ok-soft);
+        color: var(--zn-ok);
+    }
+
+    .mpr-posting-note,
+    .mpr-view-error {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: var(--zn-radius-lg);
+        font-size: var(--zn-fs-ui);
+        margin-bottom: 14px;
+    }
+
+    .mpr-posting-note {
+        background: var(--zn-accent-soft);
+        color: var(--zn-ink-2);
+    }
+
+    .mpr-posting-note i { color: var(--zn-accent); }
+    .mpr-posting-note a { margin-left: auto; font-weight: 600; white-space: nowrap; }
+
+    .mpr-view-error {
+        align-items: flex-start;
+        background: var(--zn-warn-soft);
+        color: var(--zn-ink-2);
+    }
+
+    .mpr-view-error i { color: var(--zn-warn); margin-top: 2px; }
+
+    .mpr-retry-btn {
+        margin-left: auto;
+        border: 1px solid var(--zn-warn);
+        background: transparent;
+        color: var(--zn-warn);
+        font-weight: 700;
+        font-size: var(--zn-fs-sm);
+        border-radius: var(--zn-radius);
+        padding: 4px 12px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .mpr-retry-btn:hover { background: var(--zn-warn); color: var(--zn-surface); }
 
     .mpr-toolbar input[type="search"] {
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
-        padding: 7px 12px;
+        padding: 7px 30px 7px 12px;
         font-size: var(--zn-fs-ui);
-        width: 220px;
+        width: 260px;
+        max-width: 100%;
     }
 
     /* responsive: stack card grid on small screens */
-    @media (max-width: 900px) {
+    @media (max-width: 760px) {
         .mpr-card-row {
-            grid-template-columns: 32px 1fr;
-            row-gap: 6px;
+            grid-template-columns: 32px minmax(0, 1fr);
+            row-gap: 10px;
         }
 
-        .mpr-card-row > *:not(:first-child) {
+        /* state drops under the identity block rather than squeezing beside it */
+        .mpr-state {
             grid-column: 2;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
         }
 
-        .mpr-positions-count {
-            text-align: left;
-        }
+        .mpr-subject { font-size: var(--zn-fs); }
     }
 </style>
 
@@ -570,7 +761,14 @@
 
     // Tabs this page will honour in ?stat=, so a link from elsewhere in
     // HireFlow can open the list already filtered.
-    const MPR_TABS = ['draft', 'pending', 'approved', 'declined', 'cancelled', 'change-pending'];
+    const MPR_TABS = ['draft', 'pending', 'approved', 'served', 'update', 'declined', 'cancelled', 'change-pending'];
+
+    // Where to land when no ?stat= was given: the first of these that has
+    // rows. Actionable work first, so HR does not open on an empty tab —
+    // "draft" is almost always empty here because drafts stay with the
+    // Requestor in Zen-Hub.
+    // Served is work already done, so it never wins the landing slot.
+    const MPR_LANDING_ORDER = ['pending', 'approved', 'update', 'change-pending', 'draft', 'declined', 'cancelled', 'served'];
 
     /** '' or '?month=YYYY-MM', appended to the list and counts requests. */
     function mprMonthQuery() {
@@ -596,6 +794,38 @@
         load_manpower_list(stat);
     }
 
+    /**
+     * Applies the search box to whatever is currently listed.
+     *
+     * Previously the box kept its text across a tab switch but the filter was
+     * never re-applied, so it could read "junior" while showing everything.
+     * This runs on input AND after every list load, so the two can't disagree.
+     */
+    function mprApplySearch() {
+        const q = ($('#mpr-search').val() || '').trim().toLowerCase();
+        const $cards = $('#manpower-list .mpr-card');
+        let shown = 0;
+
+        $cards.each(function () {
+            const hit = q === '' || $(this).text().toLowerCase().includes(q);
+            $(this).toggle(hit);
+            if (hit) { shown++; }
+        });
+
+        $('#mpr-search-clear').toggle(q !== '');
+
+        if ($cards.length === 0) {
+            $('#mpr-search-summary').hide();       // the tab's own empty state speaks
+            $('#mpr-search-empty').hide();
+            return;
+        }
+
+        $('#mpr-search-summary')
+            .toggle(q !== '')
+            .text('Showing ' + shown + ' of ' + $cards.length);
+        $('#mpr-search-empty').toggle(q !== '' && shown === 0);
+    }
+
     $(function() {
         const params = new URLSearchParams(window.location.search);
         const wanted = params.get('stat');
@@ -604,9 +834,15 @@
         currentMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(month || '') ? month : null;
         mprShowMonth();
 
-        // Arriving with only ?month= means "show me that month", and the
-        // approved requests are the ones worth landing on.
-        const startStat = MPR_TABS.includes(wanted) ? wanted : (currentMonth ? 'approved' : 'draft');
+        $('#mpr-view-retry').on('click', function () {
+            const id = $('#mpr-view-id').val();
+            if (id) { mprLoadRequestIntoModal(id); }
+        });
+
+        $('#mpr-search').on('input', mprApplySearch);
+        $('#mpr-search-clear').on('click', function () {
+            $('#mpr-search').val('').trigger('input').focus();
+        });
 
         $('#mpr-month-clear').on('click', function () {
             currentMonth = null;
@@ -615,31 +851,44 @@
             load_manpower_list(currentStat);
         });
 
-        load_counts();
-        mprSelectTab(startStat);
+        if (MPR_TABS.includes(wanted)) {
+            load_counts();
+            mprSelectTab(wanted);
+        } else if (currentMonth) {
+            // Arriving with only ?month= means "show me that month".
+            load_counts();
+            mprSelectTab('approved');
+        } else {
+            // Pick the landing tab from the counts rather than always opening
+            // Draft, which is empty in almost every real installation.
+            load_counts(function (counts) {
+                const landing = MPR_LANDING_ORDER.find(s => (counts[s] ?? 0) > 0) || 'pending';
+                mprSelectTab(landing);
+            });
+        }
 
         $('#modal-mpr-view').on('shown.bs.modal', async function(e) {
             let btn = $(e.relatedTarget);
             let id = btn.data('id');
             $('#mpr-view-id').val(id);
 
-            try {
-                const response = await fetch('/recruitment/manpower/' + id);
-                const data = await response.json();
-                populateMprView(data);
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to load request.');
-            }
+            mprLoadRequestIntoModal(id);
         });
     });
+
+    // The tabs and the API say "Update" and "Declined"; the modal chip used
+    // to print the raw stored value, so one request had two names.
+    const MP_STATUS_LABEL = {
+        'Returned': 'Update',
+        'Rejected': 'Declined'
+    };
 
     const MP_STATUS_CLASS = {
         'Draft': 'mpv-chip-draft',
         'Pending': 'mpv-chip-pending',
         'Approved': 'mpv-chip-approved',
-        'Returned': 'mpv-chip-returned',
-        'Rejected': 'mpv-chip-rejected',
+        'Update': 'mpv-chip-returned',
+        'Declined': 'mpv-chip-rejected',
         'Cancelled': 'mpv-chip-cancelled'
     };
 
@@ -650,29 +899,69 @@
 
     function mpvRenderAllRows(rows) {
         if (rows.length === 0) {
-            return '<tr><td colspan="7" class="mpv-empty-row">No positions added.</td></tr>';
+            return '<tr><td colspan="8" class="mpv-empty-row">No positions added.</td></tr>';
         }
         return rows.map(p => `
-            <tr>
+            <tr class="${p.is_posted ? 'is-posted-row' : ''}">
                 <td><span class="mpv-type-chip ${MP_TYPE_CLASS[p.type] || ''}">${p.type ? p.type.charAt(0).toUpperCase() + p.type.slice(1) : '—'}</span></td>
                 <td>${p.position_title || p.position}</td>
                 <td>${p.headcount}</td>
                 <td>${p.reason || '—'}</td>
-                <td>${p.date_needed || '—'}</td>
+                <td>${mprFormatDate(p.date_needed)}</td>
                 <td>${p.nonnegotiable || '—'}</td>
+                <td><span class="mpr-post-chip ${p.is_posted ? 'is-posted' : ''}">${p.is_posted ? 'Posted' : 'Not posted'}</span></td>
                 <td>${p.filled ?? 0}</td>
             </tr>
         `).join('');
+    }
+
+    /**
+     * Fills the read-only modal, reporting failure inside the modal with a
+     * way to try again. It used to raise a browser alert and leave the modal
+     * open and blank, with no route back other than closing it.
+     */
+    async function mprLoadRequestIntoModal(id) {
+        $('#mpr-view-error').hide();
+        $('#mpr-view-content').show();
+
+        try {
+            const response = await fetch('/recruitment/manpower/' + id);
+            if (!response.ok) { throw new Error('HTTP ' + response.status); }
+            populateMprView(await response.json());
+        } catch (error) {
+            console.error('Error loading manpower request:', error);
+            $('#mpr-view-content').hide();
+            $('#mpr-view-error').show();
+        }
     }
 
     function populateMprView(data) {
         $('#mpr-view-mrno').text(data.mr_no || '—');
         $('#mpr-view-requestor').text(data.requestor_name || '—');
         $('#mpr-view-dept').text(data.requestor_dept || '—');
+        $('#mpr-view-submitted').text(mprFormatDate(data.created_at));
+        $('#mpr-view-headcount').text(
+            (data.total_headcount ?? 0) + ' across ' + (data.positions || []).length +
+            ((data.positions || []).length === 1 ? ' position' : ' positions')
+        );
 
+        const shown = MP_STATUS_LABEL[data.status] || data.status;
         $('#mpr-view-status')
-            .text(data.status)
-            .attr('class', 'mpv-chip ' + (MP_STATUS_CLASS[data.status] || 'mpv-chip-draft'));
+            .text(shown)
+            .attr('class', 'mpv-chip ' + (MP_STATUS_CLASS[shown] || 'mpv-chip-draft'));
+
+        // Approved but not fully posted: say how far along, and offer the page
+        // where the remaining postings get made.
+        const total = (data.positions || []).length;
+        const postedCount = data.posted_count ?? 0;
+        if (data.status === 'Approved' && total > 0 && postedCount < total) {
+            $('#mpr-view-posting-note-text').text(
+                postedCount + ' of ' + total + ' positions on this request have a job posting.'
+            );
+            $('#mpr-view-posting-note').show();
+        } else {
+            $('#mpr-view-posting-note').hide();
+        }
 
         const change = data.pending_change || null;
         if (change) {
@@ -699,6 +988,15 @@
      * in new Date(), so normalise before formatting and fall back to the raw
      * string rather than printing "Invalid Date".
      */
+    function mprFormatDate(value) {
+        if (!value) { return '—'; }
+        const parsed = new Date(String(value).replace(' ', 'T'));
+        if (isNaN(parsed)) { return value; }
+        return parsed.toLocaleDateString(undefined, {
+            year: 'numeric', month: 'short', day: '2-digit'
+        });
+    }
+
     function mprFormatDateTime(value) {
         const parsed = new Date(String(value).replace(' ', 'T'));
         if (isNaN(parsed)) { return value; }
@@ -708,7 +1006,7 @@
         });
     }
 
-    function load_counts() {
+    function load_counts(onReady) {
         fetch('/recruitment/manpower/counts' + mprMonthQuery())
             .then(res => res.json())
             .then(data => {
@@ -718,6 +1016,12 @@
 
                 // Highlight the Edit/Cancel tab only while something is open.
                 $('#mpr-tabs .mpr-tab-change').toggleClass('has-open', (data['change-pending'] ?? 0) > 0);
+
+                if (typeof onReady === 'function') { onReady(data); }
+            })
+            .catch(() => {
+                // Counts are decoration; never let them block the list.
+                if (typeof onReady === 'function') { onReady({}); }
             });
     }
 
@@ -729,6 +1033,15 @@
             .then(res => res.text())
             .then(html => {
                 $('#manpower-list').html(html);
+
+                // The row is role="button"; Enter and Space must do what a
+                // click does, or the list is mouse-only.
+                $('#manpower-list').off('keydown.mprToggle').on('keydown.mprToggle', '.mpr-card-row', function(e) {
+                    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') { return; }
+                    if ($(e.target).closest('[data-bs-toggle="modal"]').length) { return; }
+                    e.preventDefault();
+                    $(this).trigger('click');
+                });
 
                 // Card expand/collapse — reads from the <template> partial per card.
                 $('#manpower-list').off('click.mprToggle').on('click.mprToggle', '.mpr-card-row', function(e) {
@@ -762,14 +1075,9 @@
                     if (btn) btn.click();
                 });
 
-                // simple client-side filter (search box)
-                $('#mpr-search').off('input').on('input', function() {
-                    const q = $(this).val().toLowerCase();
-                    $('.mpr-card').each(function() {
-                        const text = $(this).text().toLowerCase();
-                        $(this).toggle(text.includes(q));
-                    });
-                });
+                // Re-apply whatever is in the search box to the list that
+                // just arrived, so a stale query can never show a full list.
+                mprApplySearch();
             })
             .catch(err => console.error('Error fetching the list:', err));
     }
@@ -781,7 +1089,7 @@
     </div>
 
     <ul class="mpr-tabs list-unstyled mb-0" id="mpr-tabs">
-        @foreach (['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'declined' => 'Declined', 'cancelled' => 'Cancelled'] as $stat => $label)
+        @foreach (['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'served' => 'Served', 'update' => 'Update', 'declined' => 'Declined', 'cancelled' => 'Cancelled'] as $stat => $label)
             <li class="d-inline-block m-0">
                 <button type="button" class="mpr-tab-link" data-stat="{{ $stat }}"
                     onclick="mprSelectTab('{{ $stat }}');">
@@ -813,7 +1121,17 @@
     </div>
 
     <div class="mpr-toolbar">
-        <input type="search" id="mpr-search" placeholder="Search requestor, MR no, dept…">
+        <span class="mpr-search-summary" id="mpr-search-summary" style="display:none;"></span>
+        <div class="mpr-search-wrap">
+            <input type="search" id="mpr-search" aria-label="Search the listed requests"
+                placeholder="Search MR no, requestor, department, position…">
+            <button type="button" id="mpr-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+        </div>
+    </div>
+
+    <div class="mpr-empty-state" id="mpr-search-empty" style="display:none;">
+        <i class="bi bi-search"></i>
+        No request on this tab matches your search.
     </div>
 
     <div id="manpower-list"></div>
@@ -830,7 +1148,23 @@
             <div class="modal-body">
                 <input type="hidden" id="mpr-view-id" value="">
 
+                {{-- Shown instead of the content when the request cannot be
+                     loaded, so the modal never sits blank. --}}
+                <div class="mpr-view-error" id="mpr-view-error" style="display:none;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <div>
+                        <strong>This request could not be loaded.</strong>
+                        <div>The server did not respond as expected. Nothing has been changed.</div>
+                    </div>
+                    <button type="button" class="mpr-retry-btn" id="mpr-view-retry">Try again</button>
+                </div>
+
+                <div id="mpr-view-content">
                 <div class="mpv-header-card">
+                    <div class="mpv-header-item">
+                        <div class="mpv-label">MR No.</div>
+                        <div class="mpv-value" id="mpr-view-mrno"></div>
+                    </div>
                     <div class="mpv-header-item">
                         <div class="mpv-label">Requestor</div>
                         <div class="mpv-value" id="mpr-view-requestor"></div>
@@ -840,10 +1174,22 @@
                         <div class="mpv-value" id="mpr-view-dept"></div>
                     </div>
                     <div class="mpv-header-item">
-                        <div class="mpv-label">MR No.</div>
-                        <div class="mpv-value" id="mpr-view-mrno"></div>
+                        <div class="mpv-label">Submitted</div>
+                        <div class="mpv-value" id="mpr-view-submitted"></div>
+                    </div>
+                    <div class="mpv-header-item">
+                        <div class="mpv-label">Headcount</div>
+                        <div class="mpv-value" id="mpr-view-headcount"></div>
                     </div>
                     <span id="mpr-view-status" class="mpv-chip"></span>
+                </div>
+
+                {{-- Approved but not fully posted: creating those postings is
+                     HR's next step, so the page for it is one click away. --}}
+                <div class="mpr-posting-note" id="mpr-view-posting-note" style="display:none;">
+                    <i class="bi bi-megaphone"></i>
+                    <span id="mpr-view-posting-note-text"></span>
+                    <a href="{{ url('/recruitment/job-postings') }}">Open Job Postings</a>
                 </div>
 
                 <div class="mpr-change-note" id="mpr-view-change" style="display:none;">
@@ -869,6 +1215,7 @@
                                 <th>Reason</th>
                                 <th>Date Needed</th>
                                 <th>Non-Negotiable</th>
+                                <th>Job posting</th>
                                 <th>Fill</th>
                             </tr>
                         </thead>
@@ -881,6 +1228,7 @@
                     This request is managed in HireFlow. To edit, cancel, or take action on it, please use HireFlow
                     directly.
                 </div>
+                </div>{{-- /#mpr-view-content --}}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

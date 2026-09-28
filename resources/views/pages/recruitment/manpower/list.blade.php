@@ -4,52 +4,77 @@
         @if ($stat === 'change-pending')
             No approved request is waiting on an edit or cancel decision.
         @else
-            No {{ $stat }} manpower requests.
+            @if ($stat === 'served')
+            No approved request has had a job posting created yet.
+        @elseif ($stat === 'approved')
+            No approved request is still waiting for its first job posting.
+        @else
+            No {{ ['update' => 'Update', 'declined' => 'Declined'][$stat] ?? ucfirst($stat) }} manpower requests.
+        @endif
         @endif
     </div>
 @else
 <div class="mpr-card-list">
     @foreach ($data as $v)
         @php
-            $statusClass = match ($v->status) {
-                'Draft' => 'mpv-chip-draft',
+            // Served is its own tab now, so naming it here is unambiguous and
+            // tells HR at a glance that hiring has started on this request.
+            $shownStatus = $v->is_served ? 'Served' : match ($v->status) {
+                'Returned' => 'Update',
+                'Rejected' => 'Declined',
+                default => $v->status,
+            };
+            $statusClass = match ($shownStatus) {
                 'Pending' => 'mpv-chip-pending',
                 'Approved' => 'mpv-chip-approved',
-                'Returned' => 'mpv-chip-returned',
-                'Rejected' => 'mpv-chip-rejected',
+                'Served' => 'mpv-chip-served',
+                'Update' => 'mpv-chip-returned',
+                'Declined' => 'mpv-chip-rejected',
                 'Cancelled' => 'mpv-chip-cancelled',
                 default => 'mpv-chip-draft',
             };
+
+            // What the request is FOR leads the row: HR recognises the job,
+            // not the reference number.
+            $titles = $v->positions->pluck('position_title')->filter()->unique()->values();
+            $lead = $titles->first() ?: 'No positions added yet';
+            $more = max(0, $titles->count() - 1);
+
+            $pendingChange = $v->pendingChange;
         @endphp
-        @php $pendingChange = $v->pendingChange; @endphp
         <div class="mpr-card {{ $pendingChange ? 'mpr-card-flagged' : '' }}" data-id="{{ $v->id }}">
-            <div class="mpr-card-row">
+            <div class="mpr-card-row" role="button" tabindex="0" aria-expanded="false"
+                aria-label="{{ $lead }}{{ $more ? ' and ' . $more . ' more' : '' }}, {{ $v->mr_no }} — {{ $shownStatus }}. Show positions.">
                 <span class="mpr-toggle-btn"><i class="fa fa-chevron-right"></i></span>
 
-                <div>
+                <div class="mpr-ident">
+                    <div class="mpr-subject">
+                        {{ $lead }}@if ($more)<span class="mpr-more">+{{ $more }} more</span>@endif
+                    </div>
                     <div class="mpr-mrno">{{ $v->mr_no }}</div>
-                    <div class="mpr-date">{{ \Illuminate\Support\Carbon::parse($v->created_at)->format('M d, Y') }}</div>
+                    <div class="mpr-meta">
+                        <span>{{ $v->requestor_dept }}</span>
+                        <span>{{ $v->requestor_name }}</span>
+                        <span>{{ $v->position_count }} {{ Str::plural('position', $v->position_count) }}</span>
+                        <span>{{ $v->total_headcount }} headcount</span>
+                        <span>{{ \Illuminate\Support\Carbon::parse($v->created_at)->format('M d') }}</span>
+                    </div>
                 </div>
 
-                <div>
-                    <div class="mpr-requestor">{{ $v->requestor_name }}</div>
-                    <div class="mpr-dept">{{ $v->requestor_dept }}</div>
-                </div>
-
-                <div>
+                <div class="mpr-state">
+                    <span class="mpv-chip {{ $statusClass }}">{{ $shownStatus }}</span>
+                    @if ($v->status === 'Approved' && $v->position_count > 0)
+                        <span class="mpr-post-progress {{ $v->posted_count === $v->position_count ? 'is-complete' : '' }}"
+                            title="{{ $v->posted_count }} of {{ $v->position_count }} positions have a job posting">
+                            {{ $v->posted_count }}/{{ $v->position_count }} posted
+                        </span>
+                    @endif
                     @if ($pendingChange)
                         <span class="mpr-change-chip" title="Asked on {{ \Illuminate\Support\Carbon::parse($pendingChange->created_at)->format('M d, Y h:i A') }}">
                             <i class="fa fa-clock"></i>
                             {{ $pendingChange->change_type === 'cancel' ? 'Cancel requested' : 'Edit requested' }}
                         </span>
                     @endif
-                </div>
-
-                <div><span class="mpv-chip {{ $statusClass }}">{{ $v->status }}</span></div>
-
-                <div class="mpr-positions-count">
-                    {{ $v->position_count }}
-                    <small>{{ Str::plural('position', $v->position_count) }}</small>
                 </div>
             </div>
 
@@ -91,12 +116,14 @@
                     <th>Type</th>
                     <th>Headcount</th>
                     <th>Non-Negotiable</th>
+                    <th>Job posting</th>
                     <th>Filled</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($v->positions as $p)
-                    <tr class="mpr-pos-row" title="View full request details">
+                    <tr class="mpr-pos-row {{ $p->is_posted ? 'is-posted-row' : '' }}"
+                        title="View full request details">
                         <td>
                             <button type="button" class="mpr-subject-btn"
                                 data-bs-toggle="modal" data-bs-target="#modal-mpr-view"
@@ -112,6 +139,11 @@
                         </td>
                         <td>{{ $p->headcount }}</td>
                         <td>{{ $p->nonnegotiable ?: '—' }}</td>
+                        <td>
+                            <span class="mpr-post-chip {{ $p->is_posted ? 'is-posted' : '' }}">
+                                {{ $p->is_posted ? 'Posted' : 'Not posted' }}
+                            </span>
+                        </td>
                         <td>{{ $p->filled ?? 0 }}</td>
                     </tr>
                 @endforeach

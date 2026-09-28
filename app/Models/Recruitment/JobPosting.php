@@ -77,6 +77,12 @@ class JobPosting extends Model
         return $this->belongsTo(HireflowManpowerPosition::class, 'request_position_id', 'id');
     }
 
+    /** Where this posting was advertised, and what came back from each place. */
+    public function channels()
+    {
+        return $this->hasMany(JobPostingChannel::class, 'job_posting_id');
+    }
+
     public function scopePublished($query)
     {
         return $query->where('status', 'Published');

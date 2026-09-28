@@ -46,15 +46,12 @@
     #hf-nav-toggle {
         display: flex;
         align-items: center;
-        gap: 8px;
+        /* expanded: chevron sits at the rail's edge, pointing the way it closes */
+        justify-content: flex-end;
         width: 100%;
         border: 1px solid transparent;
         background: transparent;
         color: var(--zn-ink-3);
-        font-size: var(--zn-fs-sm);
-        font-weight: 700;
-        letter-spacing: .04em;
-        text-transform: uppercase;
         padding: 6px 10px;
         margin-bottom: 4px;
         border-radius: var(--zn-radius-lg);
@@ -75,9 +72,18 @@
     #hf-nav-toggle .hf-toggle-ico {
         flex-shrink: 0;
         width: 30px;
+        height: 30px;
         display: inline-flex;
+        align-items: center;
         justify-content: center;
-        font-size: var(--zn-fs);
+        /* CSS turns the chevron round; no script rewrites an icon class, so
+           Font Awesome's <i> replacement cannot affect it. */
+        transition: transform .18s ease;
+    }
+
+    #hf-nav-toggle .hf-toggle-ico svg {
+        width: 18px;
+        height: 18px;
     }
 
     #page-tabs {
@@ -269,9 +275,12 @@
         }
 
         #hf-shell[data-collapsed="1"] .rc-text,
-        #hf-shell[data-collapsed="1"] .rc-soon,
-        #hf-shell[data-collapsed="1"] #hf-nav-toggle .hf-toggle-text {
+        #hf-shell[data-collapsed="1"] .rc-soon {
             display: none;
+        }
+
+        #hf-shell[data-collapsed="1"] #hf-nav-toggle .hf-toggle-ico {
+            transform: rotate(180deg);
         }
 
         #hf-shell[data-collapsed="1"] .rc-link {
@@ -306,6 +315,11 @@
             justify-content: center;
             padding-left: 6px;
             padding-right: 6px;
+        }
+
+        /* the rail is narrow here, so the tooltip is the only label left */
+        #hf-shell[data-collapsed="1"] #hf-nav-toggle .hf-toggle-ico {
+            width: auto;
         }
     }
 
@@ -374,16 +388,21 @@
 
         function applyTips(collapsed) {
             tipTargets.forEach(clearTip);
-            if (!collapsed) { return; }
 
-            links.forEach(function (link) {
-                link.setAttribute('title', link.dataset.hfLabel);
-            });
-            toggle.setAttribute('title', 'Expand menu');
+            // The toggle is icon-only in both states, so it always needs a name.
+            const toggleLabel = collapsed ? 'Expand menu' : 'Collapse menu';
+            toggle.setAttribute('title', toggleLabel);
+
+            // The rail items only lose their label when the rail is collapsed.
+            if (collapsed) {
+                links.forEach(function (link) {
+                    link.setAttribute('title', link.dataset.hfLabel);
+                });
+            }
 
             if (!hasBootstrapTips) { return; } // native title tooltips still work
 
-            tipTargets.forEach(function (el) {
+            (collapsed ? tipTargets : [toggle]).forEach(function (el) {
                 new bootstrap.Tooltip(el, { placement: 'right', container: 'body' });
             });
         }
@@ -392,21 +411,25 @@
             shell.setAttribute('data-collapsed', collapsed ? '1' : '0');
             toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
             toggle.setAttribute('aria-label', collapsed ? 'Expand menu' : 'Collapse menu');
-            toggle.querySelector('.hf-toggle-ico i').className =
-                collapsed ? 'fa fa-angles-right' : 'fa fa-angles-left';
+            // The chevron is turned by CSS off [data-collapsed]; nothing here
+            // reaches into the icon, so Font Awesome swapping <i> for <svg>
+            // cannot break this.
             applyTips(collapsed);
         }
 
-        // The inline script above already set the attribute; start from it so
-        // the two never disagree.
         let collapsed = shell.getAttribute('data-collapsed') === '1';
-        render(collapsed);
 
+        // Bound before the first render on purpose: if rendering ever throws,
+        // the button must still work rather than being left inert.
         toggle.addEventListener('click', function () {
             collapsed = !collapsed;
-            render(collapsed);
             try { localStorage.setItem(STORE_KEY, collapsed ? '1' : '0'); } catch (e) { /* not fatal */ }
+            render(collapsed);
         });
+
+        // The inline script above already set the attribute; start from it so
+        // the two never disagree.
+        render(collapsed);
     });
 </script>
 
@@ -483,9 +506,15 @@
     <div class="col-md-2" id="hf-rail">
         <ul class="nav flex-column" id="page-tabs">
             <li class="nav-item">
-                <button type="button" id="hf-nav-toggle" aria-controls="page-tabs" aria-expanded="true">
-                    <span class="hf-toggle-ico"><i class="fa fa-angles-left" aria-hidden="true"></i></span>
-                    <span class="hf-toggle-text">Collapse</span>
+                <button type="button" id="hf-nav-toggle" aria-controls="page-tabs"
+                    aria-expanded="true" aria-label="Collapse menu" title="Collapse menu">
+                    <span class="hf-toggle-ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m14 6-6 6 6 6" />
+                            <path d="M19 6v12" />
+                        </svg>
+                    </span>
                 </button>
             </li>
 

@@ -101,6 +101,37 @@ class ApplicantIntakeController extends Controller
      * One entry per applicant (app_id), each carrying its own
      * applications array for the row.child() expansion.
      */
+    /**
+     * People who registered on the Applicants portal but have never applied.
+     *
+     * tblapp_persinfo IS the account (zen-applicants' User model points at it
+     * with app_id as its key), so "registered, no application" is simply a
+     * persinfo row with no application rows. Read over the existing applicant
+     * connection — nothing is copied into portal_db.
+     */
+    private function accountsWithoutApplications()
+    {
+        return DB::connection('applicant')->table('tblapp_persinfo as p')
+            ->leftJoin('tblapp_applications as a', 'a.app_id', '=', 'p.app_id')
+            ->whereNull('a.id')
+            ->select('p.app_id', 'p.app_fname', 'p.app_mname', 'p.app_lname',
+                     'p.app_email', 'p.app_mobile', 'p.app_date')
+            ->orderByDesc('p.app_date')
+            ->get()
+            ->map(fn ($p) => [
+                'app_id' => $p->app_id,
+                'applicant_name' => trim(preg_replace('/\s+/', ' ',
+                    $p->app_fname . ' ' . ($p->app_mname ?? '') . ' ' . $p->app_lname)),
+                'app_email' => $p->app_email,
+                'app_mobile' => $p->app_mobile,
+                'application_count' => 0,
+                'latest_applied_at' => null,
+                'registered_at' => $p->app_date,
+                'documents' => null,
+                'applications' => [],
+            ]);
+    }
+
     public function data()
     {
         $applications = $this->enrichAll(
@@ -117,6 +148,7 @@ class ApplicantIntakeController extends Controller
 
         $grouped = $applications->groupBy('app_id')->map(function ($apps) use ($documentSummaries) {
             $first = $apps->first();
+            $registeredAt = null;
             $docs = $documentSummaries[$first->app_id] ?? null;
 
             return [
@@ -134,6 +166,7 @@ class ApplicantIntakeController extends Controller
                 'app_mobile' => $first->app_mobile,
                 'application_count' => $apps->count(),
                 'latest_applied_at' => $apps->max('applied_at'),
+                'registered_at' => $registeredAt,
                 'applications' => $apps->map(fn ($a) => [
                     'id' => $a->id,
                     'app_id' => $a->app_id,
@@ -153,6 +186,42 @@ class ApplicantIntakeController extends Controller
             ];
         })->values();
 
-        return response()->json(['data' => $grouped]);
+        $rows = $grouped->concat($this->accountsWithoutApplications())
+            ->sortByDesc(fn ($r) => $r['latest_applied_at'] ?? $r['registered_at'] ?? '')
+            ->values();
+
+        return response()->json(['data' => $rows]);
+    }
+
+    /**
+     * The Candidate Pool: applications that closed without the candidate
+     * progressing and are worth revisiting.
+     *
+     * Uses the existing per-application definition from
+     * config/applications.php via ApplicantApplication — there is deliberately
+     * no second pool mechanism, and pool membership is never a property of the
+     * applicant as a whole.
+     */
+    public function candidatePool()
+    {
+        $pooled = ApplicantApplication::candidatePoolStatuses();
+
+        $rows = $this->enrichAll(
+            $this->baseQuery()->whereIn('a.status', $pooled)->orderByDesc('a.closed_at')->get()
+        )->map(fn ($a) => [
+            'app_id' => $a->app_id,
+            'applicant_name' => $a->applicant_name,
+            'app_email' => $a->app_email,
+            'app_mobile' => $a->app_mobile,
+            'posting_title' => $a->posting_title,
+            'mr_no' => $a->mr_no,
+            'status' => $a->status,
+            'applied_at' => $a->applied_at,
+            'closed_at' => $a->closed_at,
+            'closed_note' => $a->closed_note,
+            'reapply_on' => ApplicantApplication::cooldownEndsFor($a->status, $a->closed_at)?->toDateString(),
+        ])->values();
+
+        return response()->json(['data' => $rows]);
     }
 }

@@ -261,10 +261,181 @@
     .ai-table-card {
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
-        overflow: hidden;
+        /* auto, not hidden: below roughly 1000px the last columns were being
+           cut off with no way to scroll to them */
+        overflow-x: auto;
         box-shadow: 0 2px 8px rgba(32, 26, 22,.04);
         background: var(--zn-surface);
         padding: 4px 4px 0;
+    }
+
+    /* Fewer, wider columns now, so it needs less room before scrolling. */
+    #applicant-intake-table { min-width: 720px; }
+
+    /* ===== Applicant cards =====
+       One card per person. The person leads; their applications, documents
+       and status sit with them instead of being spread across nine columns.
+    */
+    .ai-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 4px 0 12px;
+    }
+
+    .ai-result-count { font-size: var(--zn-fs-sm); color: var(--zn-ink-3); margin-right: auto; }
+
+    .ai-search-wrap { position: relative; display: inline-flex; align-items: center; }
+
+    .ai-search-wrap input[type="search"] {
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        padding: 7px 28px 7px 12px;
+        font-size: var(--zn-fs-ui);
+        width: 280px;
+        max-width: 100%;
+    }
+
+    .ai-search-wrap #ai-search-clear {
+        position: absolute;
+        right: 6px;
+        border: none;
+        background: transparent;
+        color: var(--zn-ink-3);
+        font-size: 18px;
+        line-height: 1;
+        padding: 2px 6px;
+        cursor: pointer;
+        border-radius: var(--zn-radius);
+    }
+
+    .ai-search-wrap #ai-search-clear:hover { background: var(--zn-surface-2); color: var(--zn-ink); }
+
+    .ai-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .ai-card {
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface);
+        box-shadow: 0 1px 3px rgba(32, 26, 22, .04);
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .ai-card:hover, .ai-card.is-open { border-color: var(--zn-accent); }
+
+    .ai-card-main {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        cursor: pointer;
+    }
+
+    .ai-card-main:focus-visible { outline: 2px solid var(--zn-accent); outline-offset: -2px; }
+
+    .ai-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent-dark);
+        font-weight: 800;
+        font-size: var(--zn-fs-sm);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ai-card-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .ai-card-name { font-weight: 700; color: var(--zn-ink); }
+
+    .ai-card-sub {
+        display: block;
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-3);
+        overflow-wrap: anywhere;
+    }
+
+    .ai-card-state { display: flex; flex-wrap: wrap; gap: 4px; }
+    .ai-card-docs { display: flex; flex-direction: column; gap: 2px; }
+    .ai-doc-link { text-decoration: none; }
+    .ai-card-go { justify-self: end; }
+
+    .ai-card-detail {
+        border-top: 1px solid var(--zn-line);
+        border-bottom-left-radius: var(--zn-radius-lg);
+        border-bottom-right-radius: var(--zn-radius-lg);
+        background: var(--zn-surface-2);
+        padding: 12px 16px;
+    }
+
+    .ai-loading { padding: 28px; text-align: center; color: var(--zn-ink-3); }
+
+    .ai-card-detail .applicant-intake-child-table { min-width: 640px; }
+
+    @media (max-width: 991.98px) {
+        /* Only now is there too little room for the table: let it scroll
+           rather than squeeze. .is-menu-open lifts the clip while a
+           dropdown inside it is showing. */
+        .ai-card-detail .applicant-intake-child-card { overflow-x: auto; }
+        .ai-card-detail .applicant-intake-child-card.is-menu-open { overflow: visible; }
+
+        .ai-card-main {
+            grid-template-columns: 42px minmax(0, 1fr);
+            row-gap: 10px;
+        }
+
+        .ai-card-state, .ai-card-docs, .ai-card-go {
+            grid-column: 2;
+            justify-self: start;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+    }
+
+    /* ===== Applicant cell: the person, not three columns ===== */
+    .ai-person { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .ai-person-name { font-weight: 700; color: var(--zn-ink); }
+    .ai-person-contact {
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-3);
+        overflow-wrap: anywhere;
+    }
+
+    .ai-activity { display: flex; flex-direction: column; gap: 1px; }
+    .ai-activity-sub { font-size: var(--zn-fs-sm); color: var(--zn-ink-3); }
+    .ai-none { color: var(--zn-ink-3); font-size: var(--zn-fs-sm); }
+
+    /* ===== Narrow screens ===== */
+    @media (max-width: 991.98px) {
+        .ai-filters {
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+
+        .ai-filters .dataTables_filter,
+        .ai-filters input[type="search"] {
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .ai-filter-chips { width: 100%; }
+
+        .ai-filter {
+            flex: 1 1 auto;
+            text-align: center;
+        }
+
+        .ai-page-head {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
     }
 
     #applicant-intake-table {
@@ -355,8 +526,25 @@
     .applicant-intake-child-card {
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
-        overflow: hidden;
         background: var(--zn-surface);
+    }
+
+    .applicant-intake-child-table tr:first-child th:first-child,
+    .applicant-intake-child-table tr:first-child td:first-child {
+        border-top-left-radius: var(--zn-radius-lg);
+    }
+
+    .applicant-intake-child-table tr:first-child th:last-child,
+    .applicant-intake-child-table tr:first-child td:last-child {
+        border-top-right-radius: var(--zn-radius-lg);
+    }
+
+    .applicant-intake-child-table tr:last-child td:first-child {
+        border-bottom-left-radius: var(--zn-radius-lg);
+    }
+
+    .applicant-intake-child-table tr:last-child td:last-child {
+        border-bottom-right-radius: var(--zn-radius-lg);
     }
 
     table.applicant-intake-child-table {
@@ -504,35 +692,35 @@
     <div class="ai-filters" role="group" aria-label="Filter applications">
         <div class="ai-filter-chips">
             <button type="button" class="ai-filter is-on" data-filter="all">All applicants</button>
+            <button type="button" class="ai-filter" data-filter="needs-action">Needs action</button>
             <button type="button" class="ai-filter" data-filter="open">With an open application</button>
             <button type="button" class="ai-filter" data-filter="closed">Closed only</button>
             <button type="button" class="ai-filter" data-filter="pool">In the Candidate Pool</button>
+            {{-- People who registered on the portal but never applied. They
+                 exist in tblapp_persinfo with no application rows. --}}
+            <button type="button" class="ai-filter" data-filter="no-application">Registered, no application</button>
         </div>
         <select id="ai-posting-filter" class="form-select form-select-sm" aria-label="Filter by position">
             <option value="">Every position</option>
         </select>
     </div>
 
-    <div class="ai-table-card">
-        <table id="applicant-intake-table" class="table table-sm table-bordered table-hover table-striped"
-            style="width: 100%;">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>Date Applied (Latest)</th>
-                    <th>Applicant</th>
-                    <th>Email</th>
-                    <th>Contact</th>
-                    <th># Applications</th>
-                    <th>Status</th>
-                    @can('applicant-documents.view')
-                        <th>Documents</th>
-                    @endcan
-                    <th></th>
-                </tr>
-            </thead>
-        </table>
+    <div class="ai-toolbar">
+        <span class="ai-result-count" id="ai-result-count"></span>
+        <div class="ai-search-wrap">
+            <input type="search" id="ai-search" aria-label="Search applicants"
+                placeholder="Search name, email, position, MR no…">
+            <button type="button" id="ai-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+        </div>
     </div>
+
+    {{-- One card per person. The nine-column table scattered a single
+         applicant across the width of the screen; here the person is the
+         unit and their applications sit underneath them. --}}
+    <div id="ai-list" class="ai-list" aria-live="polite"></div>
+
+    <div class="ai-empty" id="ai-empty" style="display:none;"></div>
+
 </div>
 
 @can('applicant-applications.decide')
@@ -701,174 +889,236 @@
         const urlPrefix = document.querySelector('meta[name="url-prefix"]')?.getAttribute('content') || '';
         const baseUrlForDocs = document.querySelector('meta[name="base-url"]').content;
 
-        // Surface load failures in the page instead of a browser alert.
-        // Scoped by the fact that this view renders one table.
-        $.fn.dataTable.ext.errMode = 'none';
-
-        const table = $('#applicant-intake-table').DataTable({
-            ajax: {
-                url: urlPrefix + '/recruitment/applicant-intake/data',
-                dataSrc: 'data'
-            },
-            columns: [{
-                    className: 'dt-control',
-                    orderable: false,
-                    searchable: false,
-                    data: null,
-                    defaultContent: '<span class="ai-chev" aria-hidden="true">' +
-                        '<i class="fa fa-chevron-right"></i></span>'
-                },
-                {
-                    data: 'latest_applied_at',
-                    render: (data) => new Date(data).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: '2-digit'
-                    })
-                },
-                {
-                    data: 'applicant_name'
-                },
-                {
-                    data: 'app_email'
-                },
-                {
-                    data: 'app_mobile'
-                },
-                {
-                    data: 'application_count'
-                },
-                {
-                    // Summarised from the applicant's own applications, so no
-                    // extra query is needed. Counts appear only when an
-                    // applicant has more than one at the same status.
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    render: function (data, type, row) {
-                        const tally = {};
-                        (row.applications || []).forEach(function (app) {
-                            tally[app.status] = (tally[app.status] || 0) + 1;
-                        });
-
-                        const chips = Object.keys(tally).map(function (status) {
-                            const suffix = tally[status] > 1 ? ' \u00D7' + tally[status] : '';
-                            const cls = STATUS_CLASS[status] || 'ai-chip-unknown';
-                            return '<span class="ai-chip ' + cls + '">' + esc(status) + suffix + '</span>';
-                        });
-
-                        return chips.length
-                            ? '<span class="ai-chip-stack">' + chips.join('') + '</span>'
-                            : '—';
-                    }
-                }
-                @can('applicant-documents.view')
-                ,{
-                    // Required documents HR has accepted, and anything waiting.
-                    data: 'documents',
-                    orderable: false,
-                    searchable: false,
-                    render: function (docs, type, row) {
-                        if (!docs) return '—';
-
-                        const cls = docs.complete ? 'ai-chip-approved'
-                            : (docs.rejected ? 'ai-chip-rejected' : 'ai-chip-pending');
-                        let html = '<a class="text-decoration-none" href="' + baseUrlForDocs + '/applicant/info/' +
-                            encodeURIComponent(row.app_id) + '/documents"><span class="ai-chip ' + cls + '">' +
-                            esc(docs.accepted + '/' + docs.required + ' accepted') + '</span></a>';
-
-                        const extra = [];
-                        if (docs.pending) extra.push(docs.pending + ' to check');
-                        if (docs.open_requests) extra.push(docs.open_requests + ' requested');
-                        if (extra.length) html += '<div style="font-size:var(--zn-fs-sm);color:var(--zn-ink-3);margin-top:3px">' + esc(extra.join(' · ')) + '</div>';
-
-                        return html;
-                    }
-                }
-                @endcan
-                ,{
-                    // The profile is the applicant's, not one application's —
-                    // so it belongs on the applicant's row.
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    className: 'text-end',
-                    render: (data, type, row) => '<a class="btn btn-sm btn-outline-primary" href="' + baseUrlForDocs +
-                        '/applicant/info/' + encodeURIComponent(row.app_id) + '">Open profile</a>'
-                }
-            ],
-            processing: true,
-            language: {
-                emptyTable: '<div class="ai-empty"><i class="bi bi-inbox"></i>' +
-                    'No applications yet. Applications appear here once someone applies ' +
-                    'through the Careers portal.</div>',
-                zeroRecords: '<div class="ai-empty"><i class="bi bi-search"></i>' +
-                    'No applicants match your search.</div>',
-                processing: 'Loading applications…'
-            },
-            order: [
-                [1, 'desc']
-            ],
-            scrollY: '55vh',
-            scrollCollapse: true,
-            // DataTables 1.13 does not support the { label, value } object
-            // form introduced in 2.x — it stringifies to "[object Object]".
-            // The paired-array form works on both.
-            lengthMenu: [
-                [50, 100, -1],
-                [50, 100, 'All']
-            ]
-        });
-
-        // Filtering happens on what each applicant's applications say, so it
-        // works the same whether or not their row is expanded.
+        let ALL = [];              // every applicant, as returned by the feed
         let rowFilter = 'all';
         let postingFilter = '';
 
-        $.fn.dataTable.ext.search.push(function (settings, data, index, row) {
-            if (settings.nTable.id !== 'applicant-intake-table') return true;
-            const applications = (row && row.applications) || [];
-            const matchesPosting = !postingFilter || applications.some(a => a.posting_title === postingFilter);
-            if (!matchesPosting) return false;
-            if (rowFilter === 'open') return applications.some(a => !a.is_closed);
-            if (rowFilter === 'closed') return applications.length > 0 && applications.every(a => a.is_closed);
-            if (rowFilter === 'pool') return applications.some(a => a.in_candidate_pool);
-            return true;
-        });
+        // ?posting=<title> arrives from a job posting's panel.
+        const wantedPosting = new URLSearchParams(window.location.search).get('posting');
+
+        function initials(name) {
+            return (name || '?').split(/\s+/).filter(Boolean).slice(0, 2)
+                .map(w => w[0].toUpperCase()).join('');
+        }
+
+        /** Documents, as a chip plus what is outstanding. */
+        function docsCell(row) {
+            const docs = row.documents;
+            if (!docs) { return ''; }
+
+            const cls = docs.complete ? 'ai-chip-approved'
+                : (docs.rejected ? 'ai-chip-rejected' : 'ai-chip-pending');
+            let html = '<a class="ai-doc-link" href="' + baseUrlForDocs + '/applicant/info/' +
+                encodeURIComponent(row.app_id) + '/documents"><span class="ai-chip ' + cls + '">' +
+                esc(docs.accepted + '/' + docs.required + ' documents') + '</span></a>';
+
+            const extra = [];
+            if (docs.pending) { extra.push(docs.pending + ' to check'); }
+            if (docs.open_requests) { extra.push(docs.open_requests + ' requested'); }
+            if (extra.length) { html += '<span class="ai-card-sub">' + esc(extra.join(' · ')) + '</span>'; }
+
+            return html;
+        }
+
+        /** The status chips for a person: one per distinct application status. */
+        function statusCell(row) {
+            const apps = row.applications || [];
+            if (!apps.length) {
+                return '<span class="ai-chip ai-chip-unknown">No application yet</span>';
+            }
+
+            const tally = {};
+            apps.forEach(a => { tally[a.status] = (tally[a.status] || 0) + 1; });
+
+            return Object.keys(tally).map(function (status) {
+                const suffix = tally[status] > 1 ? ' \u00D7' + tally[status] : '';
+                const cls = STATUS_CLASS[status] || 'ai-chip-unknown';
+                return '<span class="ai-chip ' + cls + '">' + esc(status) + suffix + '</span>';
+            }).join('') +
+            (apps.some(a => a.in_candidate_pool)
+                ? '<span class="ai-chip ai-chip-pool">Candidate Pool</span>' : '');
+        }
+
+        function activityLine(row) {
+            if (!row.application_count) {
+                const reg = shortDate(row.registered_at);
+                return reg ? 'Registered ' + esc(reg) : 'Registered';
+            }
+            const last = shortDate(row.latest_applied_at);
+            return row.application_count +
+                (row.application_count === 1 ? ' application' : ' applications') +
+                (last ? ' · last ' + esc(last) : '');
+        }
+
+        function cardHtml(row) {
+            return '' +
+            '<article class="ai-card" data-app-id="' + esc(row.app_id) + '">' +
+              '<div class="ai-card-main" role="button" tabindex="0" aria-expanded="false">' +
+                '<span class="ai-avatar" aria-hidden="true">' + esc(initials(row.applicant_name)) + '</span>' +
+                '<div class="ai-card-who">' +
+                  '<span class="ai-card-name">' + esc(row.applicant_name) + '</span>' +
+                  '<span class="ai-card-sub">' +
+                    [row.app_email, row.app_mobile].filter(Boolean).map(esc).join(' · ') +
+                  '</span>' +
+                  '<span class="ai-card-sub">' + activityLine(row) + '</span>' +
+                '</div>' +
+                '<div class="ai-card-state">' + statusCell(row) + '</div>' +
+                '<div class="ai-card-docs">' + docsCell(row) + '</div>' +
+                '<div class="ai-card-go">' +
+                  '<a class="btn btn-sm btn-outline-primary" href="' + baseUrlForDocs +
+                    '/applicant/info/' + encodeURIComponent(row.app_id) + '">Open profile</a>' +
+                '</div>' +
+              '</div>' +
+              '<div class="ai-card-detail" hidden></div>' +
+            '</article>';
+        }
+
+        /** The filters, applied to one applicant. */
+        function passes(row) {
+            const apps = row.applications || [];
+
+            if (postingFilter && !apps.some(a => a.posting_title === postingFilter)) { return false; }
+
+            switch (rowFilter) {
+                case 'no-application': return apps.length === 0;
+                case 'open':   return apps.some(a => !a.is_closed);
+                case 'closed': return apps.length > 0 && apps.every(a => a.is_closed);
+                case 'pool':   return apps.some(a => a.in_candidate_pool);
+                case 'needs-action': {
+                    const d = row.documents;
+                    return apps.some(a => !a.is_closed)
+                        && !!d && (d.pending > 0 || d.open_requests > 0 || !d.complete);
+                }
+                default: return true;   // "All" keeps registered-only accounts
+            }
+        }
+
+        function matchesSearch(row, q) {
+            if (!q) { return true; }
+            const hay = [row.applicant_name, row.app_email, row.app_mobile]
+                .concat((row.applications || []).map(a => a.posting_title))
+                .concat((row.applications || []).map(a => a.mr_no))
+                .join(' ').toLowerCase();
+            return hay.includes(q);
+        }
+
+        function render() {
+            const q = ($('#ai-search').val() || '').trim().toLowerCase();
+            const rows = ALL.filter(r => passes(r) && matchesSearch(r, q));
+
+            $('#ai-list').html(rows.map(cardHtml).join(''));
+            $('#ai-search-clear').toggle(q !== '');
+            $('#ai-result-count').text(
+                rows.length === ALL.length
+                    ? ALL.length + (ALL.length === 1 ? ' applicant' : ' applicants')
+                    : 'Showing ' + rows.length + ' of ' + ALL.length
+            );
+
+            const $empty = $('#ai-empty');
+            if (rows.length) {
+                $empty.hide();
+            } else {
+                $empty.html('<i class="bi bi-' + (ALL.length ? 'search' : 'inbox') + '"></i>' +
+                    (ALL.length
+                        ? 'No applicant matches this filter or search.'
+                        : 'Nobody here yet. Applicants appear once they register on the Careers portal, ' +
+                          'whether or not they have applied.')).show();
+            }
+        }
+
+        function load() {
+            $('#ai-list').html('<div class="ai-loading">Loading applicants…</div>');
+
+            $.getJSON(urlPrefix + '/recruitment/applicant-intake/data')
+                .done(function (json) {
+                    ALL = json.data || [];
+
+                    // The positions on offer come from the loaded applications.
+                    const titles = [...new Set(ALL.flatMap(r => (r.applications || [])
+                        .map(a => a.posting_title)))].filter(Boolean).sort();
+                    const select = $('#ai-posting-filter');
+                    const current = select.val();
+                    select.find('option:not(:first)').remove();
+                    titles.forEach(t => select.append($('<option>').val(t).text(t)));
+                    if (current) { select.val(current); }
+
+                    if (wantedPosting && titles.includes(wantedPosting)) {
+                        select.val(wantedPosting);
+                        postingFilter = wantedPosting;
+                    }
+
+                    render();
+                })
+                .fail(function (xhr) {
+                    console.error('[applicant-intake]', xhr.status, xhr.responseText);
+                    $('#ai-list').empty();
+                    $('#ai-alert').html(
+                        '<div class="alert alert-danger">Could not load applicants. ' +
+                        'Please refresh the page — if it keeps happening, your session may have expired.</div>'
+                    );
+                });
+        }
 
         $('.ai-filter').on('click', function () {
-            $('.ai-filter').removeClass('is-on');
-            $(this).addClass('is-on');
+            $('.ai-filter').removeClass('is-on').attr('aria-pressed', 'false');
+            $(this).addClass('is-on').attr('aria-pressed', 'true');
             rowFilter = $(this).data('filter');
-            table.draw();
+            render();
         });
 
         $('#ai-posting-filter').on('change', function () {
             postingFilter = this.value;
-            table.draw();
+            render();
         });
 
-        // The positions on offer come from the loaded applications.
-        table.on('xhr.dt', function (e, settings, json) {
-            const titles = [...new Set((json.data || []).flatMap(r => (r.applications || []).map(a => a.posting_title)))].sort();
-            const select = $('#ai-posting-filter');
-            const current = select.val();
-            select.find('option:not(:first)').remove();
-            titles.forEach(t => select.append($('<option>').attr('value', t).text(t)));
-            select.val(titles.includes(current) ? current : '');
+        $('#ai-search').on('input', render);
+        $('#ai-search-clear').on('click', function () {
+            $('#ai-search').val('').trigger('input').focus();
         });
 
-        $('#applicant-intake-table').on('error.dt', function (e, settings, techNote, message) {
-            console.error('[applicant-intake]', message);
-            $('#ai-alert').html(
-                '<div class="alert alert-danger">Could not load applications. ' +
-                'Please refresh the page — if it keeps happening, your session may have expired.</div>'
-            );
+        // Expanding a card shows that person's applications and the decision
+        // menu — the same markup the old child row used.
+        $('#ai-list').on('click', '.ai-card-main', function (e) {
+            if ($(e.target).closest('a, button, .dropdown').length) { return; }
+            const $card = $(this).closest('.ai-card');
+            const $detail = $card.find('.ai-card-detail');
+            const open = !$detail.prop('hidden');
+
+            if (open) {
+                $detail.prop('hidden', true).empty();
+            } else {
+                const row = ALL.find(r => String(r.app_id) === String($card.data('app-id')));
+                $detail.html(row ? formatApplicantChild(row) : '').prop('hidden', false);
+            }
+            $(this).attr('aria-expanded', open ? 'false' : 'true');
+            $card.toggleClass('is-open', !open);
         });
+
+        $('#ai-list').on('keydown', '.ai-card-main', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') { return; }
+            e.preventDefault();
+            $(this).trigger('click');
+        });
+
+        /*
+         | Below 992px the detail table scrolls sideways, and a scroller clips
+         | vertically as well as horizontally — which swallowed this menu.
+         | Lift the clip while the menu is open, then put the scroll position
+         | back so the table does not jump to the start.
+         */
+        $('#ai-list')
+            .on('show.bs.dropdown', '.ai-close-menu', function () {
+                const scroller = $(this).closest('.applicant-intake-child-card');
+                scroller.data('scroll-left', scroller.scrollLeft()).addClass('is-menu-open');
+            })
+            .on('hidden.bs.dropdown', '.ai-close-menu', function () {
+                const scroller = $(this).closest('.applicant-intake-child-card');
+                scroller.removeClass('is-menu-open').scrollLeft(scroller.data('scroll-left') || 0);
+            });
 
         // One dialog for both decisions, filled from the button pressed, so the
         // application being decided is always named in it.
-        $('#applicant-intake-table').on('click', '.js-decide', function () {
+        $('#ai-list').on('click', '.js-decide', function () {
             const btn = $(this);
             const action = btn.data('action');
             const notSelected = action === 'notSelected';
@@ -887,17 +1137,6 @@
             bootstrap.Modal.getOrCreateInstance(document.getElementById('aiDecideModal')).show();
         });
 
-        $('#applicant-intake-table tbody').on('click', 'td.dt-control', function() {
-            const tr = $(this).closest('tr');
-            const row = table.row(tr);
-
-            if (row.child.isShown()) {
-                row.child.hide();
-                tr.removeClass('shown');
-            } else {
-                row.child(formatApplicantChild(row.data())).show();
-                tr.addClass('shown');
-            }
-        });
+        load();
     });
 </script>

@@ -247,9 +247,316 @@
     .jp-table-card {
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
-        overflow: hidden;
+        /* auto, not hidden: the table now has a column more, and a clipped
+           column on a narrow screen cannot be scrolled to */
+        overflow-x: auto;
         box-shadow: 0 2px 8px rgba(32, 26, 22,.04);
         background: var(--zn-surface);
+    }
+
+    table.jp-list-table { min-width: 720px; }
+
+    /* ===== Toolbar: search, status filter, result count ===== */
+    .jp-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 14px 0 12px;
+    }
+
+    .jp-result-count {
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-3);
+        margin-right: auto;
+    }
+
+    .jp-toolbar select,
+    .jp-toolbar input[type="search"] {
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        padding: 7px 12px;
+        font-size: var(--zn-fs-ui);
+        color: var(--zn-ink-2);
+        background: var(--zn-surface);
+    }
+
+    .jp-search-wrap { position: relative; display: inline-flex; align-items: center; }
+    .jp-search-wrap input[type="search"] { width: 240px; max-width: 100%; padding-right: 28px; }
+
+    .jp-search-wrap #jp-search-clear {
+        position: absolute;
+        right: 6px;
+        border: none;
+        background: transparent;
+        color: var(--zn-ink-3);
+        font-size: 18px;
+        line-height: 1;
+        padding: 2px 6px;
+        cursor: pointer;
+        border-radius: var(--zn-radius);
+    }
+
+    .jp-search-wrap #jp-search-clear:hover { background: var(--zn-surface-2); color: var(--zn-ink); }
+
+    /* ===== Sortable headers ===== */
+    table.jp-list-table th[data-sort] {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+    table.jp-list-table th[data-sort]:hover { color: var(--zn-accent-dark); }
+
+    table.jp-list-table th[data-sort]::after {
+        content: '';
+        display: inline-block;
+        width: 0;
+        height: 0;
+        margin-left: 6px;
+        vertical-align: middle;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        opacity: .35;
+        border-top: 5px solid currentColor;
+    }
+
+    table.jp-list-table th.is-sorted-asc::after {
+        opacity: 1;
+        border-top: none;
+        border-bottom: 5px solid currentColor;
+    }
+
+    table.jp-list-table th.is-sorted-desc::after { opacity: 1; }
+
+    /* the manpower request a posting came from */
+    .jp-mr-link { font-weight: 600; white-space: nowrap; }
+
+    /* ===== Page metrics ===== */
+    .jp-stats {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+        margin: 14px 0 18px;
+    }
+
+    .jp-stat {
+        display: block;
+        padding: 10px 14px;
+        border: 1px solid var(--zn-line);
+        border-left-width: 3px;
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface);
+        color: inherit;
+        text-decoration: none;
+        min-width: 0;
+    }
+
+    a.jp-stat:hover, .jp-stat[data-status]:hover {
+        border-color: var(--zn-accent);
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .jp-stat-value { display: block; font-size: 20px; font-weight: 800; color: var(--zn-ink); line-height: 1.2; }
+    .jp-stat-label { display: block; font-size: var(--zn-fs-xs); color: var(--zn-ink-3); }
+
+    /* one colour, one meaning — matching the dashboard */
+    .jp-stat.tone-attention { border-left-color: var(--hf-attention); }
+    .jp-stat.tone-overdue   { border-left-color: var(--hf-overdue); }
+    .jp-stat.tone-progress  { border-left-color: var(--hf-progress); }
+    .jp-stat.tone-done      { border-left-color: var(--hf-done); }
+    .jp-stat.tone-inactive  { border-left-color: var(--zn-line-2); }
+
+    /* ===== Which ad template was used ===== */
+    .jp-template {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 10px;
+        padding: 9px 12px;
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-accent-soft);
+        color: var(--zn-ink-2);
+        font-size: var(--zn-fs-sm);
+    }
+
+    .jp-template { flex-direction: column; }
+    .jp-template-head { display: flex; gap: 10px; align-items: flex-start; }
+    .jp-template-head i { color: var(--zn-accent); margin-top: 2px; }
+    .jp-template-reason { color: var(--zn-ink-3); font-size: var(--zn-fs-xs); }
+
+    /* ===== Posting channels ===== */
+    .jp-channels { display: flex; flex-direction: column; gap: 6px; }
+
+    .jp-channel {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius);
+        background: var(--zn-surface);
+    }
+
+    /* the places HR actually posts to stand out from the counted-only ones */
+    .jp-channel.is-on { border-color: var(--zn-accent); background: var(--zn-accent-soft); }
+    .jp-channel.is-passive { background: var(--zn-surface-2); }
+
+    .jp-channel-name { font-weight: 600; color: var(--zn-ink); }
+
+    .jp-channel-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        font-size: var(--zn-fs-xs);
+        color: var(--zn-ink-3);
+    }
+
+    .jp-channel-actions { display: flex; gap: 6px; align-items: center; }
+
+    .jp-channel-link {
+        border: 1px solid var(--zn-line-2);
+        background: var(--zn-surface);
+        color: var(--zn-ink-2);
+        border-radius: var(--zn-radius);
+        padding: 3px 9px;
+        font-size: var(--zn-fs-xs);
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .jp-channel-link:hover:not(:disabled) { border-color: var(--zn-accent); color: var(--zn-accent-dark); }
+    .jp-channel-link:disabled { opacity: .5; cursor: not-allowed; }
+
+    .jp-channel-count { font-variant-numeric: tabular-nums; }
+
+    /* PLATFORM(S) on the postings list */
+    .jp-platforms { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .jp-platform-chip {
+        font-size: var(--zn-fs-xs);
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 20px;
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-3);
+        white-space: nowrap;
+    }
+
+    .jp-platform-chip.is-posted { background: var(--hf-done-soft); color: var(--hf-done); }
+
+    @media (max-width: 575.98px) {
+        .jp-channel { grid-template-columns: auto minmax(0, 1fr); }
+        .jp-channel-actions { grid-column: 2; justify-content: flex-start; }
+    }
+
+    .jp-template-picker {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--zn-line);
+        width: 100%;
+    }
+
+    .jp-template-btn {
+        border: 1px solid var(--zn-line-2);
+        background: var(--zn-surface);
+        color: var(--zn-ink-2);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .jp-template-btn:hover:not(:disabled) { border-color: var(--zn-accent); color: var(--zn-accent-dark); }
+    .jp-template-btn:disabled { opacity: .55; cursor: default; }
+
+    /* the one currently in the box */
+    .jp-template-btn.is-on {
+        background: var(--zn-accent);
+        border-color: var(--zn-accent);
+        color: var(--zn-on-accent);
+    }
+
+    @media (max-width: 1200px) {
+        .jp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+        .jp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    /* step 3 for this posting */
+    .jp-panel-jump {
+        display: inline-block;
+        margin-top: 4px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+    }
+
+    /* ===== Expand/shrink icon: turned by CSS, never rewritten by script ===== */
+    #jp-panel-expand-btn .jp-expand-ico {
+        display: inline-flex;
+        transition: transform .18s ease;
+    }
+
+    #jp-panel-expand-btn .jp-expand-ico svg { width: 15px; height: 15px; }
+    #jp-panel-expand-btn.is-wide .jp-expand-ico { transform: rotate(180deg); }
+
+    /* ===== Confirm dialog (replaces window.confirm on this page) ===== */
+    .jp-confirm-back {
+        position: fixed;
+        inset: 0;
+        background: rgba(32, 26, 22,.45);
+        z-index: 1080;
+    }
+
+    .jp-confirm {
+        position: fixed;
+        z-index: 1081;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(420px, calc(100vw - 32px));
+        background: var(--zn-surface);
+        border-radius: var(--zn-radius-lg);
+        box-shadow: 0 18px 48px rgba(32, 26, 22,.28);
+        padding: 20px;
+    }
+
+    .jp-confirm p {
+        margin: 0 0 16px;
+        font-size: var(--zn-fs);
+        color: var(--zn-ink);
+    }
+
+    .jp-confirm-row { display: flex; justify-content: flex-end; gap: 8px; }
+
+    .jp-confirm-row button {
+        border-radius: var(--zn-radius-lg);
+        padding: 7px 16px;
+        font-size: var(--zn-fs-ui);
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .jp-confirm-cancel {
+        border: 1px solid var(--zn-line);
+        background: var(--zn-surface);
+        color: var(--zn-ink-2);
+    }
+
+    .jp-confirm-ok {
+        border: 1px solid var(--zn-warn);
+        background: var(--zn-warn);
+        color: var(--zn-surface);
     }
 
     table.jp-list-table {
@@ -764,11 +1071,46 @@
         <h5>Job Postings</h5>
     </div>
 
+    {{-- This page's own figures. Each states its meaning in words; the colour
+         only reinforces it. --}}
+    <div class="jp-stats">
+        <a class="jp-stat tone-attention" href="#jp-eligible">
+            <span class="jp-stat-value">{{ $postingStats['waiting'] }}</span>
+            <span class="jp-stat-label">Waiting to be posted</span>
+        </a>
+        <span class="jp-stat tone-progress" data-status="Draft">
+            <span class="jp-stat-value">{{ $postingStats['draft'] }}</span>
+            <span class="jp-stat-label">Draft</span>
+        </span>
+        <span class="jp-stat tone-done" data-status="Published">
+            <span class="jp-stat-value">{{ $postingStats['published'] }}</span>
+            <span class="jp-stat-label">Published</span>
+        </span>
+        <span class="jp-stat tone-overdue" data-status="Published">
+            <span class="jp-stat-value">{{ $postingStats['no_applicants'] }}</span>
+            <span class="jp-stat-label">Published, no applicants</span>
+        </span>
+        <span class="jp-stat tone-inactive" data-status="Closed">
+            <span class="jp-stat-value">{{ $postingStats['closed'] }}</span>
+            <span class="jp-stat-label">Closed</span>
+        </span>
+        <span class="jp-stat tone-inactive">
+            <span class="jp-stat-value">{{ $postingStats['oldest_open_days'] ?? '—' }}</span>
+            <span class="jp-stat-label">
+                @if ($postingStats['oldest_open_days'] === null)
+                    No open posting
+                @else
+                    Days, oldest open posting
+                @endif
+            </span>
+        </span>
+    </div>
+
     <div id="alert-box"></div>
 
     @forelse ($eligibleRequests as $request)
         @if ($loop->first)
-            <div class="jp-eligible-card">
+            <div class="jp-eligible-card" id="jp-eligible">
                 <div class="jp-eligible-grid">
         @endif
 
@@ -812,6 +1154,23 @@
 
 <div class="jp-section-divider"><span class="dot"></span> Existing Postings</div>
 
+@if (!$postings->isEmpty())
+    <div class="jp-toolbar">
+        <span class="jp-result-count" id="jp-result-count"></span>
+        <select id="jp-status-filter" aria-label="Filter postings by status">
+            <option value="">All statuses</option>
+            <option value="Draft">Draft</option>
+            <option value="Published">Published</option>
+            <option value="Closed">Closed</option>
+        </select>
+        <div class="jp-search-wrap">
+            <input type="search" id="jp-search" aria-label="Search postings"
+                placeholder="Search title or MR no…">
+            <button type="button" id="jp-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+        </div>
+    </div>
+@endif
+
 @if ($postings->isEmpty())
     <div class="jp-empty-state">
         <i class="bi bi-file-earmark-post"></i>
@@ -822,11 +1181,13 @@
         <table class="jp-list-table">
             <thead>
                 <tr>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Posted</th>
-                    <th>Closed</th>
-                    <th>Created</th>
+                    <th data-sort="title">Title</th>
+                    <th data-sort="mrno">MR No.</th>
+                    <th>Channels</th>
+                    <th data-sort="status">Status</th>
+                    <th data-sort="posted">Posted</th>
+                    <th data-sort="closed">Closed</th>
+                    <th data-sort="created">Created</th>
                     <th></th>
                 </tr>
             </thead>
@@ -840,8 +1201,38 @@
                             default => 'jp-status-draft',
                         };
                     @endphp
-                    <tr class="jp-row-link" tabindex="0" data-posting-id="{{ $posting->id }}">
+                    @php $mrNo = $posting->hireflowPosition?->request?->mr_no; @endphp
+                    <tr class="jp-row-link" tabindex="0" data-posting-id="{{ $posting->id }}"
+                        data-status="{{ $posting->status }}"
+                        data-mrno="{{ $mrNo ?? '' }}"
+                        data-title="{{ $posting->posting_title }}"
+                        data-posted="{{ $posting->posted_at?->format('Y-m-d') ?? '' }}"
+                        data-closed="{{ $posting->closed_at?->format('Y-m-d') ?? '' }}"
+                        data-created="{{ $posting->created_at->format('Y-m-d') }}">
                         <td>{{ $posting->posting_title }}</td>
+                        <td>
+                            @if ($mrNo)
+                                {{-- The request this posting came from; opens it in Manpower Requests. --}}
+                                <a class="jp-mr-link" href="{{ url('/recruitment/manpower') }}?stat=approved"
+                                    title="Open this manpower request">{{ $mrNo }}</a>
+                            @else
+                                <span class="text-muted">&mdash;</span>
+                            @endif
+                        </td>
+                        <td>
+                            {{-- Where HR said they posted this. Highlighted ones
+                                 are up; the rest are planned but not posted yet. --}}
+                            @php $posted = $posting->channels->where('state', 'Posted'); @endphp
+                            @if ($posted->isNotEmpty())
+                                <div class="jp-platforms">
+                                    @foreach ($posted as $channel)
+                                        <span class="jp-platform-chip is-posted">{{ $channel->label() }}</span>
+                                    @endforeach
+                                </div>
+                            @else
+                                <span class="text-muted" title="Not recorded as posted anywhere yet">Careers only</span>
+                            @endif
+                        </td>
                         <td><span class="jp-status-chip {{ $statusClass }}">{{ $posting->status }}</span></td>
                         <td>{{ $posting->posted_at?->format('M d, Y') ?? '—' }}</td>
                         <td>{{ $posting->closed_at?->format('M d, Y') ?? '—' }}</td>
@@ -851,6 +1242,11 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+
+    <div class="jp-empty-state" id="jp-no-results" style="display:none;">
+        <i class="bi bi-search"></i>
+        No posting matches your search or filter.
     </div>
 @endif
 </div>
@@ -910,8 +1306,15 @@
             <span id="jpp-status" class="jp-status-chip jp-status-draft">—</span>
         </div>
         <div class="jp-panel-head-actions">
-            <button type="button" class="jp-panel-close" id="jp-panel-expand-btn" title="Expand panel">
-                <i class="fa fa-expand-alt"></i>
+            <button type="button" class="jp-panel-close" id="jp-panel-expand-btn"
+                title="Expand panel" aria-label="Expand panel" aria-pressed="false">
+                <span class="jp-expand-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h6v6" /><path d="M9 21H3v-6" />
+                        <path d="M21 3l-7 7" /><path d="M3 21l7-7" />
+                    </svg>
+                </span>
             </button>
             <button type="button" class="jp-panel-close" id="jp-panel-close-btn" title="Dismiss panel">
                 <i class="fa fa-times"></i>
@@ -923,11 +1326,16 @@
         <div id="jp-panel-content" class="d-none">
             <div class="jp-panel-field">
                 <div class="jp-panel-label"><i class="fa fa-briefcase"></i> Position</div>
+                {{-- Filled when HR composes an ad, so the choice of template
+                     is never a black box. --}}
                 <div class="jp-panel-value" id="jpp-position">—</div>
             </div>
             <div class="jp-panel-field">
                 <div class="jp-panel-label"><i class="fa fa-file-alt"></i> Request</div>
                 <div class="jp-panel-value" id="jpp-mrno">—</div>
+                {{-- Straight through to step 3 for this posting. --}}
+                <a class="jp-panel-jump" id="jpp-applicants-link"
+                    href="{{ url('/recruitment/applicant-intake') }}">See applicants for this posting &rarr;</a>
             </div>
             <div class="jp-panel-field">
                 <div class="jp-panel-label"><i class="fa fa-user"></i> Created By</div>
@@ -962,6 +1370,22 @@
                     placeholder="Write the ad applicants will read. Emoji and Taglish are fine — this is the copy that goes live."></textarea>
                 <div class="jp-desc-hint" id="jpp-desc-hint">Click <strong>Save Description</strong> below. Saving
                     does not change the posting status.</div>
+                {{-- Three ways to write the same Job Specification. The rule
+                     recommends one; HR can try the others and keep whichever
+                     reads best. Switching only rewrites the draft in the box —
+                     nothing is saved until Save Description. --}}
+                <div class="jp-template" id="jpp-template" style="display:none;">
+                    <div class="jp-template-head">
+                        <i class="fa fa-wand-magic-sparkles" aria-hidden="true"></i>
+                        <span>
+                            Template: <strong class="jp-template-name"></strong>
+                            <span class="jp-template-reason d-block"></span>
+                        </span>
+                    </div>
+                    <div class="jp-template-picker" id="jpp-template-picker" role="group"
+                        aria-label="Rewrite this ad with another template"></div>
+                </div>
+
                 <div class="jp-public-warning d-none" id="jpp-public-warning">
                     <i class="fa fa-exclamation-triangle"></i> No public ad written. The careers page will fall back
                     to the internal jobspec, which exposes age, sex and headcount publicly.
@@ -979,6 +1403,24 @@
                     placeholder="Two or three plain sentences about the job, for job boards, social posts and the careers list."></textarea>
                 <div class="jp-desc-hint"><span id="jpp-short-count">0</span> / {{ \App\Services\Recruitment\Ad\JobShortDescription::MAX }}
                     characters · saved with <strong>Save Description</strong>.</div>
+            </div>
+            {{-- Where HR advertises this posting.
+
+                 HireFlow cannot publish to LinkedIn or JobStreet — no API —
+                 so ticking a channel does not post anything. It records that
+                 HR is putting the job there and hands back a tagged link to
+                 paste, which is what makes the traffic countable. --}}
+            <div class="jp-panel-field">
+                <div class="jp-panel-label"><i class="fa fa-share-nodes"></i> Posting Channels
+                    <span class="jp-field-tag">Manual posting</span>
+                </div>
+                <div class="jp-channels" id="jpp-channels"></div>
+                <div class="jp-desc-hint">
+                    Tick where you are posting this job, then copy that channel's link and paste it there.
+                    HireFlow counts visits and applications arriving through each link — these are
+                    <strong>Careers page</strong> figures, not the job board's own view counts,
+                    which those sites do not share with us.
+                </div>
             </div>
             <div class="jp-panel-field">
                 <div class="jp-panel-label"><i class="fa fa-images"></i> Photos
@@ -1000,6 +1442,16 @@
         let currentPositionId = null;
         let currentPostingId = null;
         let panelTrigger = null;
+
+        /**
+         * Escapes a value for dropping into hand-built HTML.
+         *
+         * Same helper the Applicant Intake list uses. Blade escapes what it
+         * renders; markup assembled in JavaScript is on its own.
+         */
+        function esc(value) {
+            return $('<div>').text(value == null ? '' : value).html();
+        }
 
         // One place to write and clear the banner, so a stale error cannot
         // survive a later successful action.
@@ -1154,12 +1606,324 @@
             $('#jpp-desc-hint').toggle(editable);
         }
 
+        /*
+         | ===== Posting channels =====
+         |
+         | Where HR advertises this posting. HireFlow has no API to LinkedIn,
+         | JobStreet or PhilJobNet, so nothing here publishes anything: HR
+         | ticks where they are posting, copies that channel's tagged link,
+         | and pastes it there by hand.
+         |
+         | The counts are ours alone — visits to the Careers page that arrived
+         | through each link, and the applications that followed. They are not
+         | the job board's impressions, and the wording never implies they are.
+         */
+        let jpChannels = [];         // this posting's rows, as the server sees them
+        let jpChannelsAvailable = []; // everything HR could tick
+        let jpChannelsReady = false;  // is CAREERS_URL configured?
+
+        function jpChannelRow(channel, available) {
+            const on = channel && channel.state === 'Posted';
+            const passive = !available.external;
+
+            // Counted-only buckets (direct traffic, walk-ins) have no tick and
+            // no link: nobody posts to them.
+            const tick = passive
+                ? '<span class="jp-channel-count" title="Counted, not posted to">' +
+                  '<i class="fa fa-chart-simple text-muted"></i></span>'
+                : '<input type="checkbox" class="form-check-input js-channel-tick" ' +
+                  'data-key="' + esc(available.key) + '"' + (on ? ' checked' : '') +
+                  ' aria-label="Posted on ' + esc(available.name) + '">';
+
+            const visits = channel ? channel.visits : 0;
+            const applications = channel ? channel.applications : 0;
+
+            const meta = [];
+            if (channel && channel.posted_at && on) { meta.push('Posted ' + esc(channel.posted_at)); }
+            meta.push('<span class="jp-channel-count">' + visits + ' careers ' +
+                (visits === 1 ? 'visit' : 'visits') + '</span>');
+            meta.push('<span class="jp-channel-count">' + applications + ' ' +
+                (applications === 1 ? 'application' : 'applications') + '</span>');
+            if (channel && channel.conversion !== null && channel.conversion !== undefined) {
+                meta.push(channel.conversion + '% applied');
+            }
+
+            let actions = '';
+            if (!passive) {
+                actions = jpChannelsReady
+                    ? '<button type="button" class="jp-channel-link js-channel-copy" ' +
+                      'data-link="' + esc((channel && channel.link) || '') + '">' +
+                      '<i class="fa fa-copy"></i> Copy link</button>'
+                    : '<button type="button" class="jp-channel-link" disabled ' +
+                      'title="Set CAREERS_URL so HireFlow knows the public Careers address">' +
+                      'Link unavailable</button>';
+            }
+
+            return '<div class="jp-channel' + (on ? ' is-on' : '') + (passive ? ' is-passive' : '') + '">' +
+                tick +
+                '<div><div class="jp-channel-name">' + esc(available.name) + '</div>' +
+                '<div class="jp-channel-meta">' + meta.join('<span>·</span>') + '</div></div>' +
+                '<div class="jp-channel-actions">' + actions + '</div>' +
+            '</div>';
+        }
+
+        function jpRenderChannels(payload) {
+            jpChannels = payload.channels || [];
+            if (payload.available) { jpChannelsAvailable = payload.available; }
+            if ('links_ready' in payload) { jpChannelsReady = !!payload.links_ready; }
+
+            const byKey = {};
+            jpChannels.forEach(c => { byKey[c.key] = c; });
+
+            $('#jpp-channels').html(
+                jpChannelsAvailable.map(a => jpChannelRow(byKey[a.key], a)).join('')
+            );
+        }
+
+        async function jpLoadChannels(postingId) {
+            $('#jpp-channels').html('<div class="jp-desc-hint">Loading channels…</div>');
+
+            let payload;
+
+            // Fetching and rendering are caught separately: lumping them
+            // together once reported a rendering bug as a failed request,
+            // which pointed the debugging at the wrong end of the wire.
+            try {
+                payload = await GET('recruitment/job-postings/' + postingId + '/channels');
+            } catch (err) {
+                console.error('[posting-channels] request failed', err);
+                $('#jpp-channels').html('<div class="jp-desc-hint">Could not load posting channels: '
+                    + esc(err.message) + '</div>');
+                return;
+            }
+
+            try {
+                jpRenderChannels(payload);
+            } catch (err) {
+                console.error('[posting-channels] render failed', err, payload);
+                $('#jpp-channels').html('<div class="jp-desc-hint">Posting channels loaded but could not be '
+                    + 'displayed: ' + esc(err.message) + '</div>');
+            }
+        }
+
+        /** Saves the ticks as soon as one changes — there is no separate Save here. */
+        async function jpSaveChannels() {
+            const selections = {};
+            $('#jpp-channels .js-channel-tick').each(function () {
+                selections[$(this).data('key')] = {
+                    state: this.checked ? 'Posted' : 'Not Posted',
+                };
+            });
+
+            try {
+                const data = await PUT('recruitment/job-postings/' + currentPostingId + '/channels',
+                    { channels: selections });
+                jpRenderChannels({ channels: data.channels });
+
+                // A channel with traffic behind it is kept rather than deleted,
+                // so say so — otherwise it looks like the untick did not take.
+                if ((data.retained || []).length) {
+                    showAlert('info', 'Kept ' + data.retained.length +
+                        ' channel(s) that already have visits or applications recorded. ' +
+                        'They are marked Not Posted rather than removed, so the figures survive.');
+                }
+            } catch (err) {
+                showAlert('danger', 'Could not save posting channels: ' + err.message);
+                jpLoadChannels(currentPostingId);
+            }
+        }
+
+        $(document).on('change', '.js-channel-tick', jpSaveChannels);
+
+        $(document).on('click', '.js-channel-copy', async function () {
+            const link = $(this).data('link');
+            if (!link) { return; }
+            const $btn = $(this);
+            try {
+                await navigator.clipboard.writeText(link);
+                const original = $btn.html();
+                $btn.html('<i class="fa fa-check"></i> Copied');
+                setTimeout(() => $btn.html(original), 1500);
+            } catch (err) {
+                // Clipboard is blocked outside HTTPS in some browsers; show the
+                // link so it can still be copied by hand rather than failing.
+                window.prompt('Copy this link:', link);
+            }
+        });
+
+        /**
+         * Names the template that composed the ad, and offers the others.
+         *
+         * Generating used to produce one ad with no alternative; the choice
+         * was invisible and unchangeable.
+         */
+        function jpShowTemplate(template, templates) {
+            const $box = $('#jpp-template');
+            if (!template) { $box.hide(); return; }
+
+            $box.find('.jp-template-name').text(template.name);
+            $box.find('.jp-template-reason').text(template.reason || '');
+
+            const $picker = $('#jpp-template-picker').empty();
+            (templates || []).forEach(function (t) {
+                $('<button type="button" class="jp-template-btn"></button>')
+                    .text(t.name)
+                    .attr('title', t.description)
+                    .attr('aria-pressed', t.key === template.key ? 'true' : 'false')
+                    .toggleClass('is-on', t.key === template.key)
+                    .on('click', function () { jpGenerateAd(t.key); })
+                    .appendTo($picker);
+            });
+
+            $box.show();
+        }
+
+        /**
+         * Composes the public ad, optionally with a chosen template.
+         * Only the draft in the box changes; nothing is stored until save.
+         */
+        async function jpGenerateAd(templateKey) {
+            const $btn = $('#jpp-generate-btn');
+            const original = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Composing…');
+            $('.jp-template-btn').prop('disabled', true);
+
+            try {
+                const query = templateKey ? ('?template=' + encodeURIComponent(templateKey)) : '';
+                const data = await GET('recruitment/job-postings/' + currentPostingId + '/suggest-ad' + query);
+                $('#jpp-public-input').val(data.public_description || '');
+                $('#jpp-public-warning').addClass('d-none');
+                jpShowTemplate(data.template, data.templates);
+                showAlert('info', data.template
+                    ? (data.template.chosen_by_hr
+                        ? 'Ad rewritten with the ' + data.template.name + ' template. Review it, then click Save Description.'
+                        : 'Ad composed using the ' + data.template.name + ' template. Try another below, or click Save Description.')
+                    : 'Ad composed from the Job Specification. Review it, then click Save Description.');
+            } catch (err) {
+                showAlert('danger', 'Ad not composed: ' + err.message);
+            } finally {
+                $btn.prop('disabled', false).html(original);
+                $('.jp-template-btn').prop('disabled', false);
+            }
+        }
+
+        /**
+         * Search + status filter + column sort over the postings table.
+         *
+         * The list previously had none of these: every posting ever created
+         * was shown, newest first, with no way to narrow it.
+         */
+        function jpApplyTableFilters() {
+            const q = ($('#jp-search').val() || '').trim().toLowerCase();
+            const status = $('#jp-status-filter').val();
+            const $rows = $('.jp-list-table tbody tr');
+            let shown = 0;
+
+            $rows.each(function () {
+                const r = $(this);
+                const hitText = q === ''
+                    || (r.data('title') || '').toString().toLowerCase().includes(q)
+                    || (r.data('mrno') || '').toString().toLowerCase().includes(q);
+                const hitStatus = status === '' || r.data('status') === status;
+                const hit = hitText && hitStatus;
+                r.toggle(hit);
+                if (hit) { shown++; }
+            });
+
+            $('#jp-search-clear').toggle(q !== '');
+            $('#jp-no-results').toggle(shown === 0);
+            $('#jp-result-count').text(
+                (q === '' && status === '') ? '' : 'Showing ' + shown + ' of ' + $rows.length
+            );
+        }
+
+        let jpSort = { key: null, dir: 1 };
+
+        function jpSortTable(key) {
+            jpSort = { key: key, dir: jpSort.key === key ? -jpSort.dir : 1 };
+
+            const $body = $('.jp-list-table tbody');
+            const rows = $body.children('tr').get();
+
+            rows.sort(function (a, b) {
+                const av = ($(a).data(key) || '').toString().toLowerCase();
+                const bv = ($(b).data(key) || '').toString().toLowerCase();
+                if (av === bv) { return 0; }
+                // Blanks ("—" dates) always sort last, whichever way we are going.
+                if (av === '') { return 1; }
+                if (bv === '') { return -1; }
+                return av > bv ? jpSort.dir : -jpSort.dir;
+            });
+
+            $body.append(rows);
+            $('.jp-list-table th[data-sort]')
+                .removeClass('is-sorted-asc is-sorted-desc')
+                .filter('[data-sort="' + key + '"]')
+                .addClass(jpSort.dir === 1 ? 'is-sorted-asc' : 'is-sorted-desc');
+        }
+
+        $('#jp-search').on('input', jpApplyTableFilters);
+        $('#jp-status-filter').on('change', jpApplyTableFilters);
+        $('#jp-search-clear').on('click', function () {
+            $('#jp-search').val('').trigger('input').focus();
+        });
+        $('.jp-list-table th[data-sort]').on('click', function () {
+            jpSortTable($(this).data('sort'));
+        });
+
+        // A figure you can act on: clicking one filters the list to it.
+        $('.jp-stat[data-status]').on('click', function () {
+            $('#jp-status-filter').val($(this).data('status')).trigger('change');
+            document.querySelector('.jp-list-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }).css('cursor', 'pointer');
+
+        /**
+         * Replaces window.confirm for the destructive actions on this page.
+         * Those are the most consequential things HR can do here — replacing a
+         * hand-written ad, deleting a photo from every posting, closing a live
+         * posting — and they were getting the browser's bare dialog.
+         */
+        function jpConfirm(message, okLabel) {
+          return new Promise(function (resolve) {
+            const $back = $('<div class="jp-confirm-back"></div>');
+            const $box = $(
+                '<div class="jp-confirm" role="alertdialog" aria-modal="true">' +
+                '<p></p><div class="jp-confirm-row">' +
+                '<button type="button" class="jp-confirm-cancel">Cancel</button>' +
+                '<button type="button" class="jp-confirm-ok"></button>' +
+                '</div></div>'
+            );
+            $box.find('p').text(message);
+            $box.find('.jp-confirm-ok').text(okLabel);
+
+            function close(answer) {
+                $back.remove();
+                $box.remove();
+                $(document).off('keydown.jpConfirm');
+                resolve(answer);
+            }
+
+            $box.find('.jp-confirm-cancel').on('click', function () { close(false); });
+            $box.find('.jp-confirm-ok').on('click', function () { close(true); });
+            $back.on('click', function () { close(false); });
+            $(document).on('keydown.jpConfirm', function (e) { if (e.key === 'Escape') { close(false); } });
+
+            $('body').append($back).append($box);
+            $box.find('.jp-confirm-ok').trigger('focus');
+          });
+        }
+
         // ===== Expand / shrink panel (resets every time the panel closes) =====
         function setPanelWide(wide) {
             $('#jp-panel').toggleClass('jp-panel-wide', wide);
+            // State lives on the button; CSS turns the arrows round. Nothing
+            // here touches the icon element, so Font Awesome's <i> to <svg>
+            // replacement cannot leave the icon stuck.
             $('#jp-panel-expand-btn')
+                .toggleClass('is-wide', wide)
                 .attr('title', wide ? 'Shrink panel' : 'Expand panel')
-                .find('i').attr('class', wide ? 'fa fa-compress-alt' : 'fa fa-expand-alt');
+                .attr('aria-label', wide ? 'Shrink panel' : 'Expand panel')
+                .attr('aria-pressed', wide ? 'true' : 'false');
         }
 
         $('#jp-panel-expand-btn').on('click', function() {
@@ -1185,26 +1949,16 @@
         // Fills the textarea only — nothing is stored until Save.
         $(document).on('click', '#jpp-generate-btn', async function() {
             clearAlert();
-            const $btn = $(this);
             const current = $('#jpp-public-input').val().trim();
 
-            if (current && !confirm('Replace the current public ad with a freshly composed one? Your edits will be lost.')) {
+            if (current && !await jpConfirm(
+                    'Replace the current public ad with a freshly composed one? Your edits will be lost.',
+                    'Replace ad')) {
                 return;
             }
 
-            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Composing…');
-
-            try {
-                const data = await GET('recruitment/job-postings/' + currentPostingId + '/suggest-ad');
-                $('#jpp-public-input').val(data.public_description || '');
-                $('#jpp-public-warning').addClass('d-none');
-                showAlert('info', 'Ad composed from the Job Specification. Review it, then click Save Description.');
-            } catch (err) {
-                console.error(err);
-                showAlert('danger', 'Could not compose an ad for this posting.');
-            } finally {
-                $btn.prop('disabled', false).html('<i class="fa fa-wand-magic-sparkles"></i> Generate');
-            }
+            // null = use the recommended template; the picker passes a key.
+            await jpGenerateAd(null);
         });
 
         // ===== Short description: counter, and a fresh draft on request =====
@@ -1219,7 +1973,9 @@
             const $btn = $(this);
 
             if ($('#jpp-short-input').val().trim() &&
-                !confirm('Replace the current short description with a fresh draft? Your edits will be lost.')) {
+                !await jpConfirm(
+                    'Replace the current short description with a fresh draft? Your edits will be lost.',
+                    'Replace description')) {
                 return;
             }
 
@@ -1296,7 +2052,7 @@
         });
 
         $(document).on('click', '.jp-photo-remove', async function() {
-            if (!confirm('Remove this photo from every posting of this position?')) return;
+            if (!await jpConfirm('Remove this photo from every posting of this position?', 'Remove photo')) { return; }
             clearAlert();
             try {
                 renderPhotos(await photoRequest('DELETE', 'recruitment/job-postings/' + currentPostingId + '/photos/' +
@@ -1357,6 +2113,11 @@
                 const data = await GET('recruitment/job-postings/' + id + '/json');
 
                 $('#jpp-title').text(data.posting_title);
+                $('#jpp-template').hide();
+                $('#jpp-applicants-link').attr(
+                    'href',
+                    BASE + '/recruitment/applicant-intake?posting=' + encodeURIComponent(data.posting_title || '')
+                );
                 $('#jpp-status').text(data.status).attr('class', 'jp-status-chip ' + (STATUS_CLASS[data
                     .status] || 'jp-status-draft'));
                 $('#jpp-position').text(data.position_title);
@@ -1374,6 +2135,7 @@
                 renderFooter(data.status);
                 photosEditable = data.status !== 'Closed';
                 loadPhotos();
+                jpLoadChannels(id);
 
                 $('#jp-panel-loading').addClass('d-none');
                 $('#jp-panel-content').removeClass('d-none');
@@ -1410,7 +2172,9 @@
             const posting_description = $('#jpp-description-input').val();
 
             if (status === 'Closed' &&
-                !confirm('Close this job posting? It will stop accepting applicants. This does not close the panel.')) {
+                !await jpConfirm(
+                    'Close this job posting? It will stop accepting applicants. This does not close the panel.',
+                    'Close posting')) {
                 return;
             }
 

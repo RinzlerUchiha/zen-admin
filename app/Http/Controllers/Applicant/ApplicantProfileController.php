@@ -127,13 +127,23 @@ class ApplicantProfileController extends Controller
 
             // The overview header: what this applicant applied for, where
             // their documents stand, and how far the assessments have got.
-            $params['profileApplications'] = \App\Models\Applicant\ApplicantApplication::where('app_id', $applicant->app_id)
+            $applications = \App\Models\Applicant\ApplicantApplication::where('app_id', $applicant->app_id)
                 ->orderByDesc('applied_at')
-                ->get()
-                ->each(fn ($application) => $application->setAttribute(
-                    'posting_title',
-                    \Illuminate\Support\Facades\DB::table('tbl_job_posting')->where('id', $application->job_posting_id)->value('posting_title')
-                ));
+                ->get();
+
+            $postings = $applications->isEmpty() ? collect() : collect(
+                DB::table('tbl_job_posting as jp')
+                    ->leftJoin('tbl_manpower_request_position as pos', 'pos.id', '=', 'jp.request_position_id')
+                    ->leftJoin('tbl_manpower_request as mr', 'mr.id', '=', 'pos.request_id')
+                    ->whereIn('jp.id', $applications->pluck('job_posting_id')->filter()->unique()->all())
+                    ->get(['jp.id', 'jp.posting_title', 'mr.mr_no'])
+            )->keyBy('id');
+
+            $params['profileApplications'] = $applications->each(function ($application) use ($postings) {
+                $posting = $postings->get($application->job_posting_id);
+                $application->setAttribute('posting_title', $posting->posting_title ?? null);
+                $application->setAttribute('mr_no', $posting->mr_no ?? null);
+            });
             $params['profileDocuments'] = \App\Services\Recruitment\ApplicantDocumentReview::summary((int) $applicant->app_id);
         }
 

@@ -100,6 +100,165 @@
         margin-top: 1px;
     }
 
+    #hf-dash .hf-dash-asof {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 2px 9px;
+        border-radius: 20px;
+        background: var(--zn-surface-2);
+        font-size: var(--zn-fs-xs);
+        white-space: nowrap;
+    }
+
+    #hf-dash .hf-group-label {
+        font-size: var(--zn-fs-xs);
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--zn-ink-3);
+        margin-bottom: 8px;
+    }
+
+    #hf-dash .hf-tiles-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #hf-dash .hf-tiles-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    /* ===== Hiring progress ===== */
+    #hf-dash .hf-hiring {
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface);
+        padding: 14px 16px;
+        margin-bottom: 22px;
+    }
+
+    #hf-dash .hf-hiring-head {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
+        font-size: var(--zn-fs-ui);
+        color: var(--zn-ink-2);
+        margin-bottom: 8px;
+    }
+
+    #hf-dash .hf-hiring-bar {
+        height: 10px;
+        border-radius: 20px;
+        background: var(--hf-inactive-soft);
+        overflow: hidden;
+    }
+
+    #hf-dash .hf-hiring-bar span {
+        display: block;
+        height: 100%;
+        background: var(--hf-done);
+    }
+
+    /* progress, not a to-do: same shape, quieter */
+    #hf-dash .hf-tile-quiet { background: var(--zn-surface-2); }
+    #hf-dash .hf-tile-quiet .hf-tile-ico { background: var(--zn-surface); }
+
+    /* Applicant Intake: navigation only — no figures are read for it */
+    #hf-dash .hf-jumpcard {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        margin-bottom: 22px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface);
+        color: inherit;
+        text-decoration: none;
+        font-size: var(--zn-fs-ui);
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    #hf-dash .hf-jumpcard:hover {
+        border-color: var(--zn-accent);
+        box-shadow: 0 4px 12px rgba(32, 26, 22, .08);
+        color: inherit;
+        text-decoration: none;
+    }
+
+    #hf-dash .hf-jumpcard span.d-block {
+        font-size: var(--zn-fs-xs);
+        color: var(--zn-ink-3);
+    }
+
+    #hf-dash .hf-jumpcard-ico {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface-2);
+        color: var(--zn-ink-3);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #hf-dash .hf-jumpcard-go {
+        margin-left: auto;
+        color: var(--zn-accent);
+        font-size: 18px;
+    }
+
+    /*
+       One colour, one meaning — the palette previously reused the same green
+       for Approved, Served and Posted, and one grey for Draft and Cancelled.
+       The value and label carry the meaning in words regardless.
+    */
+    #hf-dash .hf-tile.tone-overdue.is-open .hf-tile-ico { background: var(--hf-overdue-soft); color: var(--hf-overdue); }
+    #hf-dash .hf-tile.tone-overdue.is-open { border-color: var(--hf-overdue); }
+    #hf-dash .hf-tile.tone-attention.is-open .hf-tile-ico { background: var(--hf-attention-soft); color: var(--hf-attention-ink); }
+    #hf-dash .hf-tile.tone-progress.is-open .hf-tile-ico { background: var(--hf-progress-soft); color: var(--hf-progress); }
+    #hf-dash .hf-tile.tone-done.is-open .hf-tile-ico { background: var(--hf-done-soft); color: var(--hf-done); }
+    #hf-dash .hf-tile.is-zero .hf-tile-ico { background: var(--hf-inactive-soft); color: var(--hf-inactive); }
+
+    /* ===== Timing strip ===== */
+    #hf-dash .hf-timings {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    #hf-dash .hf-timing {
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface);
+        padding: 12px 16px;
+    }
+
+    #hf-dash .hf-timing-value {
+        display: block;
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--zn-ink);
+        line-height: 1.2;
+    }
+
+    #hf-dash .hf-timing-unit {
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+        color: var(--zn-ink-3);
+        margin-left: 4px;
+    }
+
+    #hf-dash .hf-timing-label {
+        display: block;
+        font-size: var(--zn-fs-ui);
+        color: var(--zn-ink-2);
+        margin-top: 2px;
+    }
+
+    #hf-dash .hf-timing-none {
+        display: block;
+        font-size: var(--zn-fs-xs);
+        color: var(--zn-ink-3);
+    }
+
     /* ===== Chart cards ===== */
     #hf-dash .hf-charts {
         display: grid;
@@ -160,11 +319,20 @@
     }
 
     @media (max-width: 1200px) {
-        #hf-dash .hf-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        #hf-dash .hf-tiles,
+        #hf-dash .hf-tiles-3,
+        #hf-dash .hf-tiles-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 991.98px) {
+        #hf-dash .hf-timings { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
-        #hf-dash .hf-tiles { grid-template-columns: 1fr; }
+        #hf-dash .hf-tiles,
+        #hf-dash .hf-tiles-3,
+        #hf-dash .hf-tiles-4 { grid-template-columns: 1fr; }
+        #hf-dash .hf-dash-asof { margin-left: 0; }
         #hf-dash .hf-charts { grid-template-columns: 1fr; }
         #hf-dash .hf-card-wide { grid-column: span 1; }
     }
@@ -173,13 +341,21 @@
 <div class="container-fluid" id="hf-dash">
     <div class="hf-dash-head">
         <h5>HireFlow Dashboard</h5>
-        <span class="hf-dash-sub">Everything below opens the records behind it.</span>
+        <span class="hf-dash-sub">
+            Everything below opens the records behind it.
+            <span class="hf-dash-asof" title="{{ $generatedAt->format('M d, Y h:i:s A') }}">
+                Figures as of {{ $generatedAt->format('M d, Y h:i A') }}
+            </span>
+        </span>
     </div>
 
-    {{-- Needs attention. Rendered server-side: no JavaScript required. --}}
+    {{-- Rendered server-side: the actionable numbers survive JavaScript or
+         the chart CDN failing. --}}
+    <div class="hf-group-label">Needs attention</div>
     <div class="hf-tiles">
-        @foreach ($tiles as $tile)
-            <a class="hf-tile {{ $tile['value'] > 0 ? 'is-open' : 'is-zero' }}" href="{{ $tile['url'] }}">
+        @foreach ($actionTiles as $tile)
+            <a class="hf-tile tone-{{ $tile['tone'] ?? 'attention' }} {{ $tile['value'] > 0 ? 'is-open' : 'is-zero' }}"
+                href="{{ $tile['url'] }}">
                 <span class="hf-tile-ico"><i class="fa {{ $tile['icon'] }}" aria-hidden="true"></i></span>
                 <span>
                     <span class="hf-tile-value">{{ $tile['value'] }}</span>
@@ -188,6 +364,67 @@
                 </span>
             </a>
         @endforeach
+    </div>
+
+    <div class="hf-group-label">Approved work</div>
+    <div class="hf-tiles hf-tiles-3">
+        @foreach ($progressTiles as $tile)
+            <a class="hf-tile hf-tile-quiet tone-{{ $tile['tone'] ?? 'progress' }} is-open" href="{{ $tile['url'] }}">
+                <span class="hf-tile-ico"><i class="fa {{ $tile['icon'] }}" aria-hidden="true"></i></span>
+                <span>
+                    <span class="hf-tile-value">{{ $tile['value'] }}</span>
+                    <span class="hf-tile-label d-block">{{ $tile['label'] }}</span>
+                    <span class="hf-tile-hint d-block">{{ $tile['hint'] }}</span>
+                </span>
+            </a>
+        @endforeach
+    </div>
+
+    {{-- Trends, not queues. A median with nothing behind it prints a dash
+         rather than a misleading zero. --}}
+    <div class="hf-timings">
+        @foreach ($timings as $t)
+            <div class="hf-timing">
+                <span class="hf-timing-value">
+                    {{ $t['value'] === null ? '—' : $t['value'] }}
+                    @if ($t['value'] !== null)<span class="hf-timing-unit">{{ $t['unit'] }}</span>@endif
+                </span>
+                <span class="hf-timing-label">{{ $t['label'] }}</span>
+                @if ($t['value'] === null)
+                    <span class="hf-timing-none">not enough data yet</span>
+                @endif
+            </div>
+        @endforeach
+    </div>
+
+    {{-- Steps 3 onward. Read over the existing applicant connection; nothing
+         is copied into portal_db. --}}
+    <div class="hf-group-label">Applicants &amp; Candidate Pool</div>
+    <div class="hf-tiles hf-tiles-4">
+        @foreach ($intakeTiles as $tile)
+            <a class="hf-tile tone-{{ $tile['tone'] }} {{ $tile['value'] > 0 ? 'is-open' : 'is-zero' }}"
+                href="{{ $tile['url'] }}">
+                <span class="hf-tile-ico"><i class="fa {{ $tile['icon'] }}" aria-hidden="true"></i></span>
+                <span>
+                    <span class="hf-tile-value">{{ $tile['value'] }}</span>
+                    <span class="hf-tile-label d-block">{{ $tile['label'] }}</span>
+                    <span class="hf-tile-hint d-block">{{ $tile['hint'] }}</span>
+                </span>
+            </a>
+        @endforeach
+    </div>
+
+    {{-- Hiring progress, stated in words as well as a bar. --}}
+    <div class="hf-hiring">
+        <div class="hf-hiring-head">
+            <strong>Hiring progress</strong>
+            <span>{{ $hiring['filled'] }} filled of {{ $hiring['filled'] + $hiring['open'] }} approved headcount</span>
+        </div>
+        @php $total = max(1, $hiring['filled'] + $hiring['open']); @endphp
+        <div class="hf-hiring-bar" role="img"
+            aria-label="{{ $hiring['filled'] }} of {{ $hiring['filled'] + $hiring['open'] }} headcount filled">
+            <span style="width: {{ round($hiring['filled'] / $total * 100) }}%"></span>
+        </div>
     </div>
 
     <div class="hf-charts">
@@ -207,7 +444,7 @@
 
         <div class="hf-card hf-card-wide">
             <div class="hf-card-title">Approved headcount by department</div>
-            <div class="hf-card-hint">Filled against still open. Click a bar to open the approved requests.</div>
+            <div class="hf-card-hint">Filled against still open, across all approved requests including served ones.</div>
             <div class="hf-canvas-wrap"><canvas id="hf-chart-headcount"></canvas></div>
             <div class="hf-card-foot"><a href="{{ url('/recruitment/manpower') }}?stat=approved">Open approved requests</a></div>
         </div>
@@ -288,8 +525,11 @@
         }
 
         // ---------------------------------------------------- requests by status
-        const statusSlugs = ['draft', 'pending', 'approved', 'update', 'cancelled', 'declined'];
-        const statusLabels = ['Draft', 'Pending', 'Approved', 'Returned', 'Cancelled', 'Declined'];
+        // Slugs, labels and colours follow the Manpower tabs exactly, so a
+        // slice always opens a tab holding that many rows. "Returned" is
+        // labelled "Update" here for the same reason.
+        const statusSlugs = ['draft', 'pending', 'approved', 'served', 'update', 'cancelled', 'declined'];
+        const statusLabels = ['Draft', 'Pending', 'Approved', 'Served', 'Update', 'Cancelled', 'Declined'];
         const statusValues = statusSlugs.map(function (s) { return DATA.status[s] || 0; });
 
         if (!emptyIfBlank('hf-chart-status', statusValues, 'No manpower requests yet.')) {
@@ -299,7 +539,7 @@
                     labels: statusLabels,
                     datasets: [{
                         data: statusValues,
-                        backgroundColor: [SURFACE_2, ACCENT, OK, ACCENT_DARK, INK_3, WARN],
+                        backgroundColor: [SURFACE_2, ACCENT, token('--zn-ok-soft', '#e8f3ec'), OK, ACCENT_DARK, INK_3, WARN],
                         borderColor: token('--zn-surface', '#fff'),
                         borderWidth: 2
                     }]
