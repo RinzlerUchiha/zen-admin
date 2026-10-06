@@ -59,6 +59,24 @@
 
     .apx-card.is-open { border-left-color: var(--hf-progress, var(--zn-ink-2)); }
     .apx-card.is-closed { border-left-color: var(--zn-line-2); }
+
+    /* The recommendation link. Quieter than the status chips: it is context
+       about where the applicant went, not the application's own outcome. */
+    .apx-rec {
+        margin-top: 6px;
+        font-size: .9em;
+        color: var(--zn-ink-2);
+    }
+
+    .apx-rec i { opacity: .7; }
+
+    .apx-rec-reason,
+    .apx-rec-count {
+        color: var(--zn-ink-3, var(--zn-ink-2));
+        font-style: italic;
+    }
+
+    .apx-rec-reason::before { content: '— '; }
     .apx-card.is-pooled { border-left-color: var(--hf-done, var(--zn-ok)); }
 
     .apx-top {
@@ -169,6 +187,36 @@
 
             @if (trim((string) $a->closed_note) !== '')
                 <div class="apx-note">{{ $a->closed_note }}</div>
+            @endif
+
+            {{-- Where this application came from, and what came of it.
+
+                 Named by job post, because that is what HR recognises. The two
+                 applications stay entirely separate: this says the applicant
+                 was moved between posts, never that any interview or exam
+                 carried across with them. --}}
+            @if ($a->recommended_from)
+                <div class="apx-rec">
+                    <i class="bi bi-arrow-down-right" aria-hidden="true"></i>
+                    Recommended from <b>{{ $a->recommended_from['posting_title'] }}</b>
+                    @if ($a->recommended_from['recommended_at'])
+                        · {{ \Illuminate\Support\Carbon::parse($a->recommended_from['recommended_at'])->format('M d, Y') }}
+                    @endif
+                    @if (trim((string) ($a->recommended_from['reason'] ?? '')) !== '')
+                        <span class="apx-rec-reason">{{ $a->recommended_from['reason'] }}</span>
+                    @endif
+                </div>
+            @endif
+
+            @if (!empty($a->recommended_to))
+                <div class="apx-rec">
+                    <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+                    Recommended to
+                    <b>{{ collect($a->recommended_to)->pluck('posting_title')->implode(', ') }}</b>
+                    @if (count($a->recommended_to) > 1)
+                        <span class="apx-rec-count">({{ count($a->recommended_to) }} posts)</span>
+                    @endif
+                </div>
             @endif
         </div>
     @empty

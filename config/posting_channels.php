@@ -94,18 +94,61 @@ return [
             'description' => 'Posted by hand on Indeed.',
         ],
 
-        // Not a link anyone clicks. This is how HR records that someone came
-        // in through a job fair, a referral or off the street, so that
-        // "where do our applicants come from" answers include them. Walk-in
-        // intake is not built yet; the channel is here so that when it is,
-        // it writes to the same field as everything else.
+        /*
+        | Intake channels: people who reach us through a person or a place
+        | rather than through an advert.
+        |
+        | `intake => true` marks them as always taggable. Nobody "posts" to
+        | them, so a posting has no row for one until somebody actually
+        | arrives that way — the row is created on demand, exactly as `direct`
+        | is. Without that, the office-PC link below would fall back to
+        | `direct` and walk-ins would be invisible.
+        |
+        | They are kept apart because they behave differently. A walk-in sits
+        | at the office PC and registers themselves; a job-fair or referral
+        | candidate is recorded by HR because they are not here to do it.
+        */
         'walk_in' => [
-            'name' => 'Walk-in / Referral / Job fair',
+            'name' => 'Walk-in',
             'external' => false,
+            'intake' => true,
             'api' => false,
-            'description' => 'Recorded by HR at intake rather than arriving through a link.',
+            'description' => 'Came to the office and applied on the office PC.',
+        ],
+
+        'job_fair' => [
+            'name' => 'Job fair',
+            'external' => false,
+            'intake' => true,
+            'api' => false,
+            'description' => 'Met at a job fair or campus event and recorded by HR.',
+        ],
+
+        'referral' => [
+            'name' => 'Referral',
+            'external' => false,
+            'intake' => true,
+            'api' => false,
+            'description' => 'Referred by an employee or contact, recorded by HR.',
+        ],
+
+        'other' => [
+            'name' => 'Other',
+            'external' => false,
+            'intake' => true,
+            'api' => false,
+            'description' => 'Somewhere the list does not cover yet.',
         ],
     ],
+
+    /*
+    | The link HR bookmarks on the office PC. A walk-in applicant registers
+    | and applies through the ordinary Careers Portal — the tag is the only
+    | thing that records they did it from the office, so no separate walk-in
+    | application flow exists or is needed.
+    |
+    |     <careers_url>/careers/{posting}?src=walk_in
+    */
 
     /*
     | The channel an application is credited to when it arrived with no tag.

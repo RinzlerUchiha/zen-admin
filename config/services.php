@@ -21,6 +21,17 @@ return [
         'scheme' => 'https',
     ],
 
+    /*
+    | The secret Zen-Hub signs interviewer requests with.
+    |
+    | Server-to-server only: Zen-Hub signs before the response leaves its own
+    | PHP, so the browser never holds it. Absent, the interviewer API refuses
+    | every request rather than accepting unsigned ones.
+    */
+    'hireflow' => [
+        'secret' => env('HIREFLOW_API_SECRET'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

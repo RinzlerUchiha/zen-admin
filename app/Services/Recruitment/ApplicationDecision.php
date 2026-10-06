@@ -42,6 +42,22 @@ class ApplicationDecision
         return self::decide($applicationId, ApplicantApplication::NOT_SELECTED, ApplicantDocumentProcess::NOT_SELECTED, $empno, $note);
     }
 
+    /**
+     * HR closes an application because the applicant was recommended onward.
+     *
+     * Called only after a recommendation has successfully produced the other
+     * application, and only when HR chooses to — a recommendation does not
+     * close the original on its own, because HR normally discusses the options
+     * with the applicant first and they may still prefer this one.
+     *
+     * Not a rejection: the status carries no cooldown, so the applicant may
+     * apply to this posting again.
+     */
+    public static function recommended(int $applicationId, string $empno, ?string $note): ApplicantApplication
+    {
+        return self::decide($applicationId, ApplicantApplication::RECOMMENDED, ApplicantDocumentProcess::RECOMMENDED, $empno, $note);
+    }
+
     private static function decide(
         int $applicationId,
         string $status,

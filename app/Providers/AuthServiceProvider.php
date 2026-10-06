@@ -82,5 +82,20 @@ class AuthServiceProvider extends ServiceProvider
         */
         Gate::define('applicant.interview-details.save', fn (User $user) => $user->userAccess('eappprofile', 'view')
             && ($user->userAccess('eappprofile', 'directedit') || $user->userAccess('eappprofile', 'hire')));
+
+        /*
+        | Reading the Phase 3 interview workspace: schedules, who is conducting
+        | them, and what interviewers concluded.
+        |
+        | Its own right rather than the legacy save permission above, which
+        | grants the ability to WRITE interview details — using it as a view
+        | check would quietly give read access to a narrower group than
+        | intended, and tie the new system to an implementation being retired.
+        |
+        | Everything that changes an interview stays behind
+        | applicant-applications.decide, and only an assigned interviewer may
+        | record an evaluation, which the service checks against the record.
+        */
+        Gate::define('applicant-interviews.view', fn (User $user) => $user->userAccess('eappprofile', 'view'));
     }
 }

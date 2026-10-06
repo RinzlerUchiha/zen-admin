@@ -556,12 +556,12 @@
             </li>
 
             <li class="nav-item rc-item">
-                <span class="rc-link rc-disabled">
+                <a href="{{ url('/recruitment/screening') }}"
+                    class="rc-link {{ $maincat == 'screening' ? 'active' : '' }}">
                     <span class="rc-step">4</span>
                     <span class="rc-ico"><svg><use href="#ri-screening" /></svg></span>
                     <span class="rc-text">Screening</span>
-                    <span class="rc-soon">Soon</span>
-                </span>
+                </a>
             </li>
 
             <li class="nav-item rc-item">
@@ -590,6 +590,7 @@
                     <span class="rc-soon">Soon</span>
                 </span>
             </li>
+
         </ul>
     </div>
 

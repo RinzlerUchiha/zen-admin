@@ -53,6 +53,10 @@ class Kernel extends HttpKernel
      * @var array<string, class-string|string>
      */
     protected $middlewareAliases = [
+        /* Proves a request came from Zen-Hub on behalf of a real interviewer.
+           Identity only — what they may see is decided per request from their
+           interview assignments. */
+        'hireflow.signed' => \App\Http\Middleware\VerifyHireflowRequest::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,

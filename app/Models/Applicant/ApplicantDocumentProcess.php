@@ -38,6 +38,18 @@ class ApplicantDocumentProcess extends Model
     public const WITHDRAWN = 'withdrawn';
     public const NOT_SELECTED = 'not_selected';
 
+    /*
+    | The application closed because HR recommended the applicant to a different
+    | job post, and an application was created there.
+    |
+    | Its own value rather than reusing 'withdrawn' or 'not_selected': the
+    | document process ended, but the applicant neither pulled out nor was
+    | turned down, and a record that said either would be false. The documents
+    | already collected remain on the applicant, and the new application
+    | collects whatever it needs for that posting.
+    */
+    public const RECOMMENDED = 'recommended';
+
     protected $casts = [
         'deadline_at' => 'datetime',
         'started_at' => 'datetime',

@@ -139,10 +139,25 @@ class ApplicantProfileController extends Controller
                     ->get(['jp.id', 'jp.posting_title', 'mr.mr_no'])
             )->keyBy('id');
 
-            $params['profileApplications'] = $applications->each(function ($application) use ($postings) {
+            /*
+            | Where each application came from, and what came of it.
+            |
+            | Two queries for the whole set, from the same service the Intake
+            | screen reads, so the two screens cannot drift into telling HR
+            | different stories about the same applicant.
+            */
+            $recommendationLinks = \App\Services\Recruitment\ApplicationRecommendationService::linksFor(
+                $applications->pluck('id')
+            );
+
+            $params['profileApplications'] = $applications->each(function ($application) use ($postings, $recommendationLinks) {
                 $posting = $postings->get($application->job_posting_id);
                 $application->setAttribute('posting_title', $posting->posting_title ?? null);
                 $application->setAttribute('mr_no', $posting->mr_no ?? null);
+
+                $link = $recommendationLinks[$application->id] ?? null;
+                $application->setAttribute('recommended_from', $link['from'] ?? null);
+                $application->setAttribute('recommended_to', $link['to'] ?? []);
             });
             $params['profileDocuments'] = \App\Services\Recruitment\ApplicantDocumentReview::summary((int) $applicant->app_id);
         }
@@ -454,6 +469,47 @@ class ApplicantProfileController extends Controller
                 ->where('jrec_status', 'Primary')
                 ->whereNotNull('jrec_department')->where('jrec_department', '!=', '')
                 ->distinct()->orderBy('jrec_department')->pluck('jrec_department');
+
+            /*
+            | The Phase 3 interview workspace.
+            |
+            | The profile is about a PERSON, but an interview belongs to one
+            | APPLICATION — somebody applying for two roles is interviewed twice
+            | for two different jobs, and merging those is the failing of the
+            | screen this replaces. So the tab lists the applicant's
+            | applications and gives each its own interview history, the same
+            | way the Documents tab already handles them.
+            */
+            $interviewApplications = \App\Models\Applicant\ApplicantApplication::where('app_id', $id)
+                ->orderByDesc('applied_at')
+                ->get();
+
+            $postingTitles = $interviewApplications->isEmpty() ? collect() : DB::table('tbl_job_posting')
+                ->whereIn('id', $interviewApplications->pluck('job_posting_id')->filter()->unique()->all())
+                ->pluck('posting_title', 'id');
+
+            $params['interviewApplications'] = $interviewApplications->map(fn ($a) => [
+                'id' => (int) $a->id,
+                'posting_title' => $postingTitles[$a->job_posting_id] ?? 'Posting no longer available',
+                'status' => $a->status,
+                'is_closed' => (bool) $a->is_closed,
+                'applied_at' => $a->applied_at,
+                'rounds' => \App\Services\Recruitment\InterviewWorkflow::summary((int) $a->id),
+                'next_action' => \App\Services\Recruitment\InterviewWorkflow::nextAction((int) $a->id),
+            ])->values();
+
+            /*
+            | Assessment results are the APPLICANT's — one DISC profile per
+            | person, however many jobs they apply for — so they are fetched
+            | once and shown read-only against every application's Exams round.
+            | Nothing here writes to the assessment system.
+            */
+            $params['interviewAssessments'] = \App\Services\Recruitment\AssessmentResults::summaries((int) $id)
+                ->map(fn ($a) => [
+                    'label' => $a->label,
+                    'hasResult' => $a->hasResult,
+                    'takenOn' => $a->takenOn?->format('M d, Y'),
+                ])->values();
         }
 
         if ($tab == 'documents') {

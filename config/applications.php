@@ -54,7 +54,39 @@ return [
         ],
 
         // HR decided not to proceed with this application.
+        /*
+        | Acquired. The hiring decision is made, but the application stays
+        | OPEN: documents may still be missing, a position may still require
+        | an exam, and onboarding has not happened. Hired is an OUTCOME, not
+        | a finish line — closing it here would hide exactly the work HR
+        | still has to chase.
+        |
+        | It closes after the 201 handoff. Never a Candidate Pool member: a
+        | hire is not someone to revisit for another role.
+        */
+        'Hired' => [
+            'closed' => false,
+            'candidate_pool' => false,
+            'label' => 'Hired',
+            'hint' => 'Hiring decided. Open until requirements and onboarding are done and the 201 handoff is complete.',
+        ],
+
         'Not Selected' => [
+            'closed' => true,
+            'candidate_pool' => true,
+        ],
+
+        /*
+        | HR judged the applicant a better fit for a different job post, and a
+        | recommendation produced an application there.
+        |
+        | This application ended, but nothing was refused: the work continues on
+        | the application created for the other posting. It is NOT a rejection,
+        | so it carries no cooldown — the applicant is free to apply here again.
+        | Retained in the Candidate Pool, since someone recommended elsewhere is
+        | exactly the kind of candidate worth revisiting.
+        */
+        'Recommended' => [
             'closed' => true,
             'candidate_pool' => true,
         ],

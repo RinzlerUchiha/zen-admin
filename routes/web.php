@@ -337,10 +337,119 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{jobPosting}/photos/{name}', [JobPostingPhotoController::class, 'destroy'])->name('photos.destroy');
     });
 
+    /*
+    | The Phase 3 interview workspace, for ONE application.
+    |
+    | Every route carries the application, and every service call pairs it with
+    | the record id before acting: an interview belongs to a workflow step,
+    | which belongs to one application, and no route here can reach across to
+    | another of the same applicant's applications.
+    |
+    | Reading and changing are separate rights. The legacy Interview Details
+    | page and its own permission are untouched and keep working.
+    */
+    Route::prefix('recruitment/applications/{application}/interviews')
+        ->whereNumber('application')
+        ->name('recruitment.interviews.')
+        ->group(function () {
+            Route::middleware('can:applicant-interviews.view')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Recruitment\InterviewController::class, 'workspace'])->name('index');
+                Route::get('/data', [\App\Http\Controllers\Recruitment\InterviewController::class, 'data'])->name('data');
+                Route::get('/{interview}/evaluations', [\App\Http\Controllers\Recruitment\InterviewController::class, 'evaluations'])
+                    ->whereNumber('interview')->name('evaluations');
+                Route::get('/{interview}/evaluations/{empno}/history', [\App\Http\Controllers\Recruitment\InterviewController::class, 'evaluationHistory'])
+                    ->whereNumber('interview')->name('evaluations.history');
+                Route::get('/{interview}/notes', [\App\Http\Controllers\Recruitment\InterviewController::class, 'notes'])
+                    ->whereNumber('interview')->name('notes');
+
+                /* Writing a note sits behind the VIEW right, not the decide
+                   right: an assigned interviewer must be able to record what
+                   they saw without being able to act on the application. The
+                   service decides who may actually write. */
+                Route::post('/{interview}/notes', [\App\Http\Controllers\Recruitment\InterviewController::class, 'addNote'])
+                    ->whereNumber('interview')->name('notes.add');
+                Route::patch('/notes/{note}', [\App\Http\Controllers\Recruitment\InterviewController::class, 'editNote'])
+                    ->whereNumber('note')->name('notes.edit');
+            });
+
+            Route::middleware('can:applicant-applications.decide')->group(function () {
+                // Arranging
+                Route::post('/steps/{step}', [\App\Http\Controllers\Recruitment\InterviewController::class, 'store'])
+                    ->whereNumber('step')->name('store');
+                Route::patch('/{interview}/schedule', [\App\Http\Controllers\Recruitment\InterviewController::class, 'schedule'])
+                    ->whereNumber('interview')->name('schedule');
+                Route::post('/{interview}/reschedule', [\App\Http\Controllers\Recruitment\InterviewController::class, 'reschedule'])
+                    ->whereNumber('interview')->name('reschedule');
+
+                // Who conducts it
+                Route::post('/{interview}/interviewers', [\App\Http\Controllers\Recruitment\InterviewController::class, 'assignInterviewer'])
+                    ->whereNumber('interview')->name('interviewers.assign');
+                Route::delete('/{interview}/interviewers/{empno}', [\App\Http\Controllers\Recruitment\InterviewController::class, 'unassignInterviewer'])
+                    ->whereNumber('interview')->name('interviewers.unassign');
+
+                // What happened
+                Route::post('/{interview}/held', [\App\Http\Controllers\Recruitment\InterviewController::class, 'markHeld'])
+                    ->whereNumber('interview')->name('held');
+                Route::post('/{interview}/cancel', [\App\Http\Controllers\Recruitment\InterviewController::class, 'cancel'])
+                    ->whereNumber('interview')->name('cancel');
+                Route::post('/{interview}/no-show', [\App\Http\Controllers\Recruitment\InterviewController::class, 'markNoShow'])
+                    ->whereNumber('interview')->name('no-show');
+
+                // Evaluating
+                Route::post('/{interview}/evaluations/draft', [\App\Http\Controllers\Recruitment\InterviewController::class, 'saveDraft'])
+                    ->whereNumber('interview')->name('evaluations.draft');
+                Route::post('/{interview}/evaluations', [\App\Http\Controllers\Recruitment\InterviewController::class, 'submitEvaluation'])
+                    ->whereNumber('interview')->name('evaluations.submit');
+                Route::post('/evaluations/{evaluation}/correct', [\App\Http\Controllers\Recruitment\InterviewController::class, 'correctEvaluation'])
+                    ->whereNumber('evaluation')->name('evaluations.correct');
+
+                // Rounds and stage
+                Route::post('/steps', [\App\Http\Controllers\Recruitment\InterviewController::class, 'addStep'])->name('steps.add');
+                Route::delete('/steps/{step}', [\App\Http\Controllers\Recruitment\InterviewController::class, 'removeStep'])
+                    ->whereNumber('step')->name('steps.remove');
+                Route::post('/steps/{step}/complete', [\App\Http\Controllers\Recruitment\InterviewController::class, 'completeStep'])
+                    ->whereNumber('step')->name('steps.complete');
+                Route::post('/advance', [\App\Http\Controllers\Recruitment\InterviewController::class, 'advance'])->name('advance');
+            });
+        });
+
+    // The screening work queue: what HR should act on next. A view over state
+    // that already exists — it changes no application's status or stage.
+    Route::prefix('recruitment/screening')->name('recruitment.screening.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Recruitment\ScreeningQueueController::class, 'index'])->name('index');
+        Route::get('/data', [\App\Http\Controllers\Recruitment\ScreeningQueueController::class, 'data'])->name('data');
+    });
+
     Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'index'])->name('index');
         Route::get('/data', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'data'])->name('data');
         Route::get('/candidate-pool', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'candidatePool'])->name('candidate-pool');
+
+        // Applicants HR acquired in person — a job fair, a referral. Walk-ins
+        // do NOT come through here: they register themselves at the office PC
+        // through the Careers Portal, tagged ?src=walk_in.
+        Route::get('/open-postings', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'openPostings'])->name('open-postings');
+        Route::get('/intake-sources', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'intakeSources'])->name('intake-sources');
+        Route::post('/acquired', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'storeAcquired'])
+            ->middleware('can:applicant-applications.decide')->name('acquired');
+
+        /*
+        | Controlled entry points: the office kiosk and job-fair events.
+        |
+        | Source tracking only — these decide what an application's source is
+        | recorded as, nothing about its stage or outcome. Changing one is an
+        | HR action, so the writes carry the same right as HR's other decisions.
+        */
+        Route::prefix('entry-points')->name('entry-points.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Recruitment\IntakeEntryController::class, 'index'])->name('index');
+
+            Route::middleware('can:applicant-applications.decide')->group(function () {
+                Route::post('/walk-in', [\App\Http\Controllers\Recruitment\IntakeEntryController::class, 'activateWalkIn'])->name('walk-in');
+                Route::post('/job-fair', [\App\Http\Controllers\Recruitment\IntakeEntryController::class, 'activateJobFair'])->name('job-fair');
+                Route::post('/{id}/deactivate', [\App\Http\Controllers\Recruitment\IntakeEntryController::class, 'deactivate'])->whereNumber('id')->name('deactivate');
+                Route::post('/{id}/reactivate', [\App\Http\Controllers\Recruitment\IntakeEntryController::class, 'reactivate'])->whereNumber('id')->name('reactivate');
+            });
+        });
 
         // Decisions on ONE application (HireFlow 2.5 · M3). Each closes only the
         // application in the URL.
@@ -350,6 +459,20 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/applications/{application}/not-selected', [\App\Http\Controllers\Applicant\ApplicantApplicationController::class, 'notSelected'])
             ->whereNumber('application')
             ->middleware('can:applicant-applications.decide')->name('not-selected');
+
+        // Recommending an applicant onward to another job post (Phase 3).
+        // Creating the recommendation and closing this application as
+        // Recommended are separate actions: HR talks the options over with the
+        // applicant first, who may still prefer this post.
+        Route::prefix('/applications/{application}/recommendation')
+            ->whereNumber('application')
+            ->middleware('can:applicant-applications.decide')
+            ->name('recommendation.')
+            ->group(function () {
+                Route::get('/targets', [\App\Http\Controllers\Recruitment\ApplicationRecommendationController::class, 'targets'])->name('targets');
+                Route::post('/', [\App\Http\Controllers\Recruitment\ApplicationRecommendationController::class, 'store'])->name('store');
+                Route::post('/close', [\App\Http\Controllers\Recruitment\ApplicationRecommendationController::class, 'close'])->name('close');
+            });
     });
 
     Route::get('/manpower', [ManpowerRequestController::class, 'index']);

@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantApplication;
+use App\Services\Recruitment\AcquiredApplicantIntake;
+use App\Services\Recruitment\ApplicationRecommendationService;
 use App\Services\Recruitment\ApplicantDocumentReview;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class ApplicantIntakeController extends Controller
@@ -146,7 +150,20 @@ class ApplicantIntakeController extends Controller
             ? ApplicantDocumentReview::summaries($applications->pluck('app_id'))
             : null;
 
-        $grouped = $applications->groupBy('app_id')->map(function ($apps) use ($documentSummaries) {
+        /*
+        | How many recommendations each application has produced, and which
+        | applications a recommendation created.
+        |
+        | One query each for the whole set, not one per row — the same batching
+        | the rest of this screen uses.
+        |
+        | The count decides whether HR is offered the Recommended closure: that
+        | status means "ended because the applicant went forward for another
+        | post", which is only true if a recommendation actually happened.
+        */
+        $recommendationLinks = ApplicationRecommendationService::linksFor($applications->pluck('id'));
+
+        $grouped = $applications->groupBy('app_id')->map(function ($apps) use ($documentSummaries, $recommendationLinks) {
             $first = $apps->first();
             $registeredAt = null;
             $docs = $documentSummaries[$first->app_id] ?? null;
@@ -182,6 +199,13 @@ class ApplicantIntakeController extends Controller
                     'closed_by' => $a->closed_by,
                     'closed_note' => $a->closed_note,
                     'reapply_on' => ApplicantApplication::cooldownEndsFor($a->status, $a->closed_at)?->toDateString(),
+
+                    // Where this application came from, and what came of it.
+                    // One hop each way: following it repeatedly walks a chain
+                    // without holding the whole graph.
+                    'recommended_from' => $recommendationLinks[$a->id]['from'] ?? null,
+                    'recommended_to' => $recommendationLinks[$a->id]['to'] ?? [],
+                    'recommended_count' => count($recommendationLinks[$a->id]['to'] ?? []),
                 ])->values(),
             ];
         })->values();
@@ -202,6 +226,91 @@ class ApplicantIntakeController extends Controller
      * no second pool mechanism, and pool membership is never a property of the
      * applicant as a whole.
      */
+    /**
+     * The postings HR can record a walk-in against.
+     *
+     * Published only — the same rule the careers portal applies. Entering
+     * someone by hand is not a reason to attach them to a closed posting.
+     */
+    public function openPostings()
+    {
+        $postings = DB::connection('mysql')->table('tbl_job_posting as jp')
+            ->leftJoin('tbl_manpower_request_position as pos', 'pos.id', '=', 'jp.request_position_id')
+            ->leftJoin('tbl_manpower_request as r', 'r.id', '=', 'pos.request_id')
+            ->where('jp.status', 'Published')
+            ->orderBy('jp.posting_title')
+            ->get(['jp.id', 'jp.posting_title', 'r.mr_no']);
+
+        return response()->json(['data' => $postings]);
+    }
+
+    /**
+     * Record an applicant HR acquired in person.
+     *
+     * Not for walk-ins: those register themselves at the office PC through
+     * the Careers Portal, and the bookmarked link's ?src=walk_in is what
+     * records the office as their origin. This is for people who are not at a
+     * keyboard — met at a job fair, referred by someone.
+     *
+     * Source, outcome and current work stay separate: a job-fair hire is
+     * source=job_fair AND outcome=Hired AND still missing documents.
+     */
+    public function storeAcquired(Request $request)
+    {
+        $validated = $request->validate([
+            'app_lname' => 'required|string|max:100',
+            'app_fname' => 'required|string|max:100',
+            'app_mname' => 'nullable|string|max:100',
+            'app_email' => 'required_without:app_mobile|nullable|email|max:150',
+            'app_mobile' => 'required_without:app_email|nullable|string|max:50',
+            // HR sets this and tells the applicant, who signs in with it
+            // later. Never generated here, never echoed back.
+            'app_code' => 'required|string|min:8|max:100',
+            'job_posting_id' => 'required|integer',
+            'source_channel' => 'required|string|max:40',
+            // Only meaningful for a job fair; the service ignores it otherwise.
+            'outcome' => 'nullable|string|in:hired,not_selected,processing',
+        ], [
+            'app_email.required_without' => 'Give an email address or a mobile number — the applicant signs in with one of them.',
+            'app_mobile.required_without' => 'Give an email address or a mobile number — the applicant signs in with one of them.',
+            'app_code.min' => 'The sign-in code must be at least 8 characters.',
+            'source_channel.required' => 'Choose where this applicant came from.',
+        ]);
+
+        $result = AcquiredApplicantIntake::create($validated, Auth::user()->Emp_No ?? null);
+
+        return response()->json([
+            'success' => true,
+            'app_id' => $result['app_id'],
+            'application_id' => $result['application_id'],
+            'status' => $result['status'],
+            'message' => $this->acquiredMessage($result),
+        ]);
+    }
+
+    /** What HR needs to know happened, in one sentence. */
+    private function acquiredMessage(array $result): string
+    {
+        $account = $result['reused_account']
+            ? 'This person already had an account — the application was added to it.'
+            : 'Account created.';
+
+        return $account . ' ' . match ($result['status']) {
+            // Said explicitly, because "hired" usually implies "finished" and
+            // here it does not.
+            'Hired' => 'Recorded as hired. The application stays open until '
+                . 'requirements, any remaining exams and onboarding are done.',
+            'Not Selected' => 'Closed as not selected and added to the Candidate Pool.',
+            default => 'The application is open and follows the normal process.',
+        };
+    }
+
+    /** The sources HR may record by hand, and whether each asks for an outcome. */
+    public function intakeSources()
+    {
+        return response()->json(['data' => AcquiredApplicantIntake::sources()]);
+    }
+
     public function candidatePool()
     {
         $pooled = ApplicantApplication::candidatePoolStatuses();

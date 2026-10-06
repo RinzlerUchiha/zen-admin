@@ -80,6 +80,24 @@
         color: var(--zn-caution);
     }
 
+    /* Recommended is not a rejection — it reads as informational, not as a
+       warning, so it must not borrow Not Selected's colour. */
+    .ai-chip-recommended {
+        background: var(--zn-info-soft, var(--zn-surface-2));
+        color: var(--zn-info, var(--zn-ink-2));
+    }
+
+    /* A posting HR cannot pick, shown with the reason rather than hidden: an
+       option that silently vanishes reads as a broken screen. */
+    .ai-rec-option-blocked {
+        color: var(--zn-ink-3, #888);
+    }
+
+    .ai-rec-provenance {
+        font-size: .85em;
+        color: var(--zn-ink-2);
+    }
+
     .ai-chip-notselected {
         background: var(--zn-warn-soft);
         color: var(--zn-warn);
@@ -276,6 +294,29 @@
        One card per person. The person leads; their applications, documents
        and status sit with them instead of being spread across nine columns.
     */
+    /* Collapsed by default: HR opens this when they set up a fair, not every
+       time they work the applicant list. */
+    .ai-entry-points {
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface-2);
+    }
+
+    .ai-entry-points > summary {
+        cursor: pointer;
+        padding: 10px 14px;
+        font-weight: 600;
+        color: var(--zn-ink);
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .ai-entry-points > summary::marker { color: var(--zn-ink-3); }
+    .ai-ep-hint { font-weight: 400; font-size: var(--zn-fs-sm); color: var(--zn-ink-3); }
+    .ai-ep-body { padding: 0 14px 14px; }
+
     .ai-toolbar {
         display: flex;
         align-items: center;
@@ -705,8 +746,29 @@
         </select>
     </div>
 
+    {{-- Controlled entry points. Source tracking only: these decide what an
+         application's source is recorded as, nothing about its progress. --}}
+    <details class="ai-entry-points mb-3" id="ai-entry-points">
+        <summary>
+            <span>Application entry points</span>
+            <span class="ai-ep-hint">Walk-in Mode &amp; Job Fair events</span>
+        </summary>
+        <div class="ai-ep-body">
+            @include('pages.recruitment.applicant-intake.entry-points')
+        </div>
+    </details>
+
     <div class="ai-toolbar">
         <span class="ai-result-count" id="ai-result-count"></span>
+        @can('applicant-applications.decide')
+            {{-- Walk-ins, referrals and job-fair candidates. HR opens the
+                 account here; the applicant signs in at the desk and fills in
+                 their own details, so there is no second intake workflow. --}}
+            <button type="button" class="btn btn-sm btn-primary" id="ai-add-btn"
+                data-bs-toggle="modal" data-bs-target="#aiWalkInModal">
+                <i class="bi bi-person-plus"></i> Record applicant
+            </button>
+        @endcan
         <div class="ai-search-wrap">
             <input type="search" id="ai-search" aria-label="Search applicants"
                 placeholder="Search name, email, position, MR no…">
@@ -724,6 +786,107 @@
 </div>
 
 @can('applicant-applications.decide')
+    {{-- Recording someone HR met in person.
+
+         Not walk-ins: those register themselves at the office PC through the
+         Careers Portal, and the bookmarked ?src=walk_in link is what records
+         the office as their origin. This is for people who are not at a
+         keyboard — met at a job fair, referred by someone.
+
+         Only what HR can know when they meet someone: who they are, how to
+         reach them, where they came from, the posting, and a sign-in code.
+         Everything else the applicant fills in themselves. --}}
+    <div class="modal fade" id="aiWalkInModal" tabindex="-1" aria-labelledby="aiWalkInTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h6 class="modal-title" id="aiWalkInTitle">Record an applicant</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="aiWalkInForm" autocomplete="off">
+                    <div class="modal-body">
+                        <div class="alert alert-info py-2 small">
+                            For applicants you met in person. This opens a portal account — hand them the
+                            sign-in details so they can log in and complete their own application,
+                            documents and assessments.
+                            <div class="mt-1">
+                                <strong>Walk-ins do not belong here.</strong> Let them register on the office PC
+                                using the Careers link bookmarked there; it records them as a walk-in by itself.
+                            </div>
+                        </div>
+
+                        <div id="aiWalkInError" class="alert alert-danger py-2 small d-none"></div>
+
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <label class="form-label small" for="wi-lname">Last name <span class="text-danger">*</span></label>
+                                <input class="form-control form-control-sm" id="wi-lname" name="app_lname" maxlength="100" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small" for="wi-fname">First name <span class="text-danger">*</span></label>
+                                <input class="form-control form-control-sm" id="wi-fname" name="app_fname" maxlength="100" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small" for="wi-mname">Middle name</label>
+                                <input class="form-control form-control-sm" id="wi-mname" name="app_mname" maxlength="100">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small" for="wi-email">Email</label>
+                                <input type="email" class="form-control form-control-sm" id="wi-email" name="app_email" maxlength="150">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small" for="wi-mobile">Mobile</label>
+                                <input class="form-control form-control-sm" id="wi-mobile" name="app_mobile" maxlength="50">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-text">They sign in with the email or the mobile number — at least one is needed.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small" for="wi-code">Sign-in code <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="wi-code" name="app_code"
+                                    minlength="8" maxlength="100" required autocomplete="off">
+                                <div class="form-text">At least 8 characters. Tell the applicant this so they can sign in;
+                                    they can change it once they are in.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small" for="wi-posting">Applying for <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="wi-posting" name="job_posting_id" required>
+                                    <option value="">Loading open postings…</option>
+                                </select>
+                                <div class="form-text">This is what tags the applicant to the manpower request.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label small" for="wi-source">Where they came from <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="wi-source" name="source_channel" required>
+                                    <option value="">Loading…</option>
+                                </select>
+                                <div class="form-text">Recorded on the application. It says where they came from —
+                                    it does not decide where they are in the process.</div>
+                            </div>
+
+                            {{-- Only a job fair decides hiring on the spot, so this
+                                 appears only for one source. --}}
+                            <div class="col-12 d-none" id="wi-outcome-wrap">
+                                <label class="form-label small" for="wi-outcome">What happened at the event <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-sm" id="wi-outcome" name="outcome">
+                                    <option value="hired">Acquired — hired on the spot</option>
+                                    <option value="processing">For further processing</option>
+                                    <option value="not_selected">Not selected</option>
+                                </select>
+                                <div class="form-text" id="wi-outcome-help"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-primary" id="aiWalkInSubmit">Add applicant</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     {{-- HR's decisions on ONE application. Each closes only the application named
          here; the applicant's other applications, profile and documents carry on. --}}
     <div class="modal fade" id="aiDecideModal" tabindex="-1" aria-labelledby="aiDecideTitle" aria-hidden="true">
@@ -747,6 +910,11 @@
                         starts a <b>{{ (int) (config('applications.cooldowns')['Not Selected']['months'] ?? 0) }}-month waiting period before they can apply to this same posting again</b>.
                         Their other applications, and other postings, are not affected.
                     </p>
+                    <p class="text-muted mb-3" id="aiDecideRecommendedHelp" hidden>
+                        The applicant is going forward for another job post instead. This closes
+                        <b>this</b> application only — the one created for the other post carries on with its own
+                        interviews and exams. <b>No waiting period applies</b>, so they may apply here again.
+                    </p>
 
                     <label class="form-label" for="aiDecideNote">Note <span class="text-muted">(optional, kept with the application)</span></label>
                     <textarea class="form-control form-control-sm" name="note" id="aiDecideNote" rows="3" maxlength="1000"></textarea>
@@ -754,6 +922,48 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-sm btn-secondary" id="aiDecideSubmit">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Recommending the applicant onward to a different job post.
+
+         This creates a SEPARATE application with its own workflow — the
+         applicant starts the other post's process from the beginning, because
+         passing a warehouse interview is not passing a logistics one. It does
+         not close this application: HR normally talks the options over with the
+         applicant, who may still prefer this post. --}}
+    <div class="modal fade" id="aiRecModal" tabindex="-1" aria-labelledby="aiRecTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="POST" class="modal-content" id="aiRecForm">
+                @csrf
+                <div class="modal-header">
+                    <h1 class="modal-title fs-6" id="aiRecTitle">Recommend to another job post</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="font-size:var(--zn-fs)">
+                    <p class="mb-2 fw-semibold" id="aiRecWho"></p>
+
+                    <p class="text-muted mb-3">
+                        This creates a <b>new application</b> for the post you choose, with its own interviews
+                        and exams starting from the beginning. This application stays open and keeps its own
+                        history — close it separately once the applicant has decided.
+                    </p>
+
+                    <label class="form-label" for="aiRecTarget">Recommend to</label>
+                    <select class="form-select form-select-sm" name="target_job_posting_id" id="aiRecTarget" required>
+                        <option value="">Loading job posts…</option>
+                    </select>
+                    <div class="form-text" id="aiRecTargetHelp">Only published job posts can be chosen.</div>
+
+                    <label class="form-label mt-3" for="aiRecReason">Reason <span class="text-muted">(optional, kept with the recommendation)</span></label>
+                    <textarea class="form-control form-control-sm" name="reason" id="aiRecReason" rows="3" maxlength="1000"
+                        placeholder="e.g. Stronger fit for logistics work"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary" id="aiRecSubmit" disabled>Recommend</button>
                 </div>
             </form>
         </div>
@@ -768,7 +978,8 @@
         'Documents Complete': 'ai-chip-docs-complete',
         'Withdrawn': 'ai-chip-withdrawn',
         'Non-Responsive': 'ai-chip-nonresponsive',
-        'Not Selected': 'ai-chip-notselected'
+        'Not Selected': 'ai-chip-notselected',
+        'Recommended': 'ai-chip-recommended'
     };
 
     // HR may withdraw an application for the applicant, or mark it Not
@@ -778,8 +989,21 @@
     const COOLDOWN_MONTHS = @json((int) (config('applications.cooldowns')['Not Selected']['months'] ?? 0));
     const DECIDE_URL = {
         withdraw: @json(route('recruitment.applicant-intake.withdraw', ['application' => '__ID__'])),
-        notSelected: @json(route('recruitment.applicant-intake.not-selected', ['application' => '__ID__']))
+        notSelected: @json(route('recruitment.applicant-intake.not-selected', ['application' => '__ID__'])),
+        recommended: @json(route('recruitment.applicant-intake.recommendation.close', ['application' => '__ID__']))
     };
+
+    // Recommending onward: the eligible postings are fetched per application,
+    // because what is eligible depends on this applicant's other applications.
+    const RECOMMEND_URL = {
+        targets: @json(route('recruitment.applicant-intake.recommendation.targets', ['application' => '__ID__'])),
+        store: @json(route('recruitment.applicant-intake.recommendation.store', ['application' => '__ID__']))
+    };
+
+    // The interview workspace belongs to the APPLICATION, so it is reached from
+    // the application's own row rather than from the applicant.
+    const INTERVIEWS_URL = @json(route('applicant.show', ['id' => '__APPID__', 'tab' => 'interview-details']));
+    const CAN_VIEW_INTERVIEWS = @json(Gate::allows('applicant-interviews.view'));
 
     function shortDate(value) {
         return value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) : '';
@@ -817,12 +1041,34 @@
     // spelling out what it does, because the difference between them is the
     // waiting period and not the wording "withdraw" vs "not selected".
     function decisionButtons(app) {
-        if (!CAN_DECIDE || app.is_closed) return '';
+        if (!CAN_DECIDE) return '';
 
         const data = ' data-id="' + esc(app.id) + '" data-title="' + esc(app.posting_title) +
             '" data-mr="' + esc(app.mr_no) + '" data-name="' + esc(app.applicant_name) + '"';
 
-        return '<div class="dropdown ai-close-menu">' +
+        // Recommending stays available on a CLOSED application. Closing ends
+        // that application, not the company's interest in the person — HR often
+        // realises afterwards that someone suits another post, and the record
+        // of where that came from belongs on the application it came from.
+        const recommend = '<button type="button" class="btn btn-sm btn-outline-primary js-recommend"' + data + '>' +
+            'Recommend to another post</button>';
+
+        // Interviews stay readable whatever the application's outcome: the
+        // record of what was asked and concluded does not stop mattering when
+        // the application closes.
+        // The applicant's profile is where interviews are managed; the tab
+        // shows each of their applications separately.
+        const interviews = CAN_VIEW_INTERVIEWS
+            ? '<a class="btn btn-sm btn-outline-secondary" href="' +
+              INTERVIEWS_URL.replace('__APPID__', encodeURIComponent(app.app_id)) + '">Interviews</a> '
+            : '';
+
+        // A closed application has already reached its outcome, so only the
+        // recommend action remains.
+        if (app.is_closed) return interviews + recommend;
+
+        return interviews + recommend + ' ' +
+            '<div class="dropdown ai-close-menu">' +
             '<button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">' +
             'Close application</button>' +
             '<ul class="dropdown-menu dropdown-menu-end">' +
@@ -830,6 +1076,10 @@
             '<b>Applicant withdrew</b><small>They asked to stop this application. No waiting period.</small></button></li>' +
             '<li><button type="button" class="dropdown-item js-decide" data-action="notSelected"' + data + '>' +
             '<b>Not Selected</b><small>Our decision. ' + COOLDOWN_MONTHS + '-month wait before they can apply to this posting again.</small></button></li>' +
+            (app.recommended_count > 0
+                ? '<li><button type="button" class="dropdown-item js-decide" data-action="recommended"' + data + '>' +
+                  '<b>Recommended</b><small>They are going forward for another post instead. No waiting period.</small></button></li>'
+                : '') +
             '</ul></div>';
     }
 
@@ -848,6 +1098,36 @@
         return '<span class="ai-chip ' + cls + '">' + esc(status) + '</span>';
     }
 
+    // The link between two applications, in both directions.
+    //
+    // Named by JOB POST rather than application number: HR recognises "Warehouse
+    // Supervisor", not "#1871". The two applications stay entirely separate —
+    // this says where someone came from, never what happened to them there.
+    function recommendationLines(app) {
+        let html = '';
+
+        if (app.recommended_from) {
+            html += '<div class="ai-rec-provenance"><i class="bi bi-arrow-down-right"></i> ' +
+                'Recommended from <b>' + esc(app.recommended_from.posting_title) + '</b>' +
+                (app.recommended_from.recommended_at ? ' · ' + shortDate(app.recommended_from.recommended_at) : '') +
+                '</div>';
+        }
+
+        const to = app.recommended_to || [];
+        if (to.length) {
+            // Naming them is more useful than counting them, until there are
+            // enough that the list stops being readable.
+            const posts = to.map(t => esc(t.posting_title)).join(', ');
+            html += '<div class="ai-rec-provenance"><i class="bi bi-arrow-up-right"></i> ' +
+                (to.length <= 2
+                    ? 'Recommended to <b>' + posts + '</b>'
+                    : 'Recommended to <b>' + to.length + ' other posts</b> · ' + posts) +
+                '</div>';
+        }
+
+        return html;
+    }
+
     function formatApplicantChild(applicant) {
         const baseUrl = document.querySelector('meta[name="base-url"]').content;
 
@@ -860,6 +1140,7 @@
                     ${statusChip(app.status)}
                     ${app.in_candidate_pool ? '<span class="ai-chip ai-chip-pool" title="Retained for this application">Candidate Pool</span>' : ''}
                     ${closureLine(app)}
+                    ${recommendationLines(app)}
                 </td>
                 <td class="text-end text-nowrap">
                     ${decisionButtons(Object.assign({ applicant_name: applicant.applicant_name }, app))}
@@ -1116,25 +1397,256 @@
                 scroller.removeClass('is-menu-open').scrollLeft(scroller.data('scroll-left') || 0);
             });
 
+        /*
+         | ===== Walk-in intake =====
+         |
+         | HR opens the account and attaches the first application. Everything
+         | after — details, documents, assessments, the offer — happens on the
+         | portal under that same account, so nothing else here is special.
+         */
+        let walkInPostingsLoaded = false;
+        let intakeSources = [];
+
+        // What each job-fair outcome actually does, said before HR commits.
+        const OUTCOME_HELP = {
+            hired: 'Recorded as hired. The application stays OPEN — requirements, any remaining '
+                 + 'exams and onboarding are still ahead, and they are not sent back through interviews.',
+            processing: 'Joins the normal process from the beginning.',
+            not_selected: 'Closed as not selected and added to the Candidate Pool.'
+        };
+
+        function syncOutcomeVisibility() {
+            const source = intakeSources.find(s => s.key === $('#wi-source').val());
+            const offers = !!(source && source.offers_outcomes);
+
+            $('#wi-outcome-wrap').toggleClass('d-none', !offers);
+            $('#wi-outcome').prop('disabled', !offers);
+            $('#wi-outcome-help').text(offers ? (OUTCOME_HELP[$('#wi-outcome').val()] || '') : '');
+        }
+
+        $('#aiWalkInModal').on('show.bs.modal', function () {
+            $('#aiWalkInError').addClass('d-none').text('');
+
+            if (!intakeSources.length) {
+                $.getJSON(urlPrefix + '/recruitment/applicant-intake/intake-sources')
+                    .done(function (json) {
+                        intakeSources = json.data || [];
+                        const select = $('#wi-source').empty()
+                            .append($('<option>').val('').text('Choose…'));
+
+                        intakeSources.forEach(function (source) {
+                            select.append($('<option>').val(source.key)
+                                .text(source.name).attr('title', source.description));
+                        });
+
+                        syncOutcomeVisibility();
+                    })
+                    .fail(function () {
+                        $('#wi-source').empty().append($('<option>').val('').text('Could not load sources'));
+                    });
+            }
+
+            if (walkInPostingsLoaded) { return; }
+
+            $.getJSON(urlPrefix + '/recruitment/applicant-intake/open-postings')
+                .done(function (json) {
+                    const select = $('#wi-posting').empty()
+                        .append($('<option>').val('').text('Choose a posting…'));
+
+                    (json.data || []).forEach(function (posting) {
+                        // The MR No. is what makes two same-titled postings
+                        // from different departments tellable apart.
+                        const label = posting.posting_title
+                            + (posting.mr_no ? ' · ' + posting.mr_no : '');
+                        select.append($('<option>').val(posting.id).text(label));
+                    });
+
+                    if (!(json.data || []).length) {
+                        select.empty().append($('<option>').val('')
+                            .text('No published postings — publish one first'));
+                    }
+
+                    walkInPostingsLoaded = true;
+                })
+                .fail(function () {
+                    $('#wi-posting').empty().append($('<option>').val('').text('Could not load postings'));
+                });
+        });
+
+        $('#wi-source').on('change', syncOutcomeVisibility);
+        $('#wi-outcome').on('change', function () {
+            $('#wi-outcome-help').text(OUTCOME_HELP[this.value] || '');
+        });
+
+        $('#aiWalkInForm').on('submit', async function (e) {
+            e.preventDefault();
+
+            const $btn = $('#aiWalkInSubmit');
+            const original = $btn.text();
+            $btn.prop('disabled', true).text('Adding…');
+            $('#aiWalkInError').addClass('d-none').text('');
+
+            const payload = {};
+            $(this).serializeArray().forEach(f => { payload[f.name] = f.value; });
+
+            try {
+                const res = await fetch(urlPrefix + '/recruitment/applicant-intake/acquired', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    // Validation comes back as {errors: {field: [msg]}}.
+                    const messages = data.errors
+                        ? Object.values(data.errors).flat()
+                        : [data.message || 'The applicant could not be added.'];
+                    $('#aiWalkInError').text(messages.join(' ')).removeClass('d-none');
+                    return;
+                }
+
+                bootstrap.Modal.getInstance(document.getElementById('aiWalkInModal')).hide();
+                $('#aiWalkInForm')[0].reset();
+                $('#ai-alert').html(
+                    '<div class="alert alert-success alert-dismissible fade show">' + esc(data.message) +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'
+                );
+                load();
+            } catch (err) {
+                $('#aiWalkInError').text('The applicant could not be added: ' + err.message).removeClass('d-none');
+            } finally {
+                $btn.prop('disabled', false).text(original);
+            }
+        });
+
         // One dialog for both decisions, filled from the button pressed, so the
         // application being decided is always named in it.
+        const DECIDE_WORDING = {
+            withdraw: {
+                title: 'Withdraw application — ',
+                submit: 'Withdraw application',
+                help: '#aiDecideWithdrawHelp',
+                danger: false
+            },
+            notSelected: {
+                title: 'Mark Not Selected — ',
+                submit: 'Mark Not Selected',
+                help: '#aiDecideNotSelectedHelp',
+                danger: true
+            },
+            recommended: {
+                title: 'Close as Recommended — ',
+                submit: 'Close as Recommended',
+                help: '#aiDecideRecommendedHelp',
+                // Not a rejection, so it does not get the destructive styling.
+                danger: false
+            }
+        };
+
         $('#ai-list').on('click', '.js-decide', function () {
             const btn = $(this);
             const action = btn.data('action');
-            const notSelected = action === 'notSelected';
+            const wording = DECIDE_WORDING[action];
+
+            // An unknown action would otherwise be given another outcome's
+            // wording, which is how HR ends up confirming the wrong thing.
+            if (!wording) return;
 
             $('#aiDecideForm').attr('action', DECIDE_URL[action].replace('__ID__', encodeURIComponent(btn.data('id'))));
-            $('#aiDecideTitle').text((notSelected ? 'Mark Not Selected — ' : 'Withdraw application — ') + btn.data('title'));
+            $('#aiDecideTitle').text(wording.title + btn.data('title'));
             $('#aiDecideWho').text(btn.data('name') + ' · ' + btn.data('title') + ' · ' + btn.data('mr'));
-            $('#aiDecideWithdrawHelp').prop('hidden', notSelected);
-            $('#aiDecideNotSelectedHelp').prop('hidden', !notSelected);
+
+            Object.values(DECIDE_WORDING).forEach(w => $(w.help).prop('hidden', true));
+            $(wording.help).prop('hidden', false);
+
             $('#aiDecideSubmit')
-                .text(notSelected ? 'Mark Not Selected' : 'Withdraw application')
-                .toggleClass('btn-danger', notSelected)
-                .toggleClass('btn-secondary', !notSelected);
+                .text(wording.submit)
+                .toggleClass('btn-danger', wording.danger)
+                .toggleClass('btn-secondary', !wording.danger);
             $('#aiDecideNote').val('');
 
             bootstrap.Modal.getOrCreateInstance(document.getElementById('aiDecideModal')).show();
+        });
+
+        // Recommending onward. The eligible postings are fetched per
+        // application, because eligibility depends on this applicant's other
+        // applications — so the list cannot be built once and reused.
+        $('#ai-list').on('click', '.js-recommend', function () {
+            const btn = $(this);
+            const id = encodeURIComponent(btn.data('id'));
+
+            $('#aiRecForm').attr('action', RECOMMEND_URL.store.replace('__ID__', id));
+            $('#aiRecTitle').text('Recommend to another job post');
+            $('#aiRecWho').text(btn.data('name') + ' · currently ' + btn.data('title'));
+            $('#aiRecReason').val('');
+            $('#aiRecSubmit').prop('disabled', true);
+            $('#aiRecTarget').html('<option value="">Loading job posts…</option>');
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('aiRecModal')).show();
+
+            $.getJSON(RECOMMEND_URL.targets.replace('__ID__', id))
+                .done(function (data) {
+                    const targets = (data && data.targets) || [];
+                    const eligible = targets.filter(t => t.eligible);
+
+                    if (!targets.length) {
+                        $('#aiRecTarget').html('<option value="">No published job posts</option>');
+                        $('#aiRecTargetHelp').text('There are no published job posts to recommend to.');
+                        return;
+                    }
+
+                    let html = '<option value="">Choose a job post…</option>';
+                    let lastDept = null;
+                    let open = false;
+
+                    targets.forEach(function (t) {
+                        // Grouped by department: position titles repeat across
+                        // departments, and HR needs to tell them apart.
+                        const dept = t.department || 'Other';
+                        if (dept !== lastDept) {
+                            if (open) html += '</optgroup>';
+                            html += '<optgroup label="' + esc(dept) + '">';
+                            lastDept = dept;
+                            open = true;
+                        }
+
+                        // Ineligible posts are shown disabled WITH the reason.
+                        // One that simply vanished would read as a broken list.
+                        // The MR number distinguishes two openings that carry
+                        // the same title — without it they are identical lines
+                        // and HR is guessing which one they are choosing.
+                        html += '<option value="' + esc(t.id) + '"' +
+                            (t.eligible ? '' : ' disabled class="ai-rec-option-blocked"') + '>' +
+                            esc(t.title) +
+                            (t.mr_no ? ' — ' + esc(t.mr_no) : '') +
+                            (t.eligible ? '' : ' · ' + esc(t.reason)) +
+                            '</option>';
+                    });
+                    if (open) html += '</optgroup>';
+
+                    $('#aiRecTarget').html(html);
+                    $('#aiRecTargetHelp').text(
+                        eligible.length
+                            ? eligible.length + ' job post' + (eligible.length === 1 ? '' : 's') + ' available.'
+                            : 'No job post here can be chosen for this applicant right now.'
+                    );
+                })
+                .fail(function () {
+                    $('#aiRecTarget').html('<option value="">Could not load job posts</option>');
+                    $('#aiRecTargetHelp').text('The job posts could not be loaded. Close this and try again.');
+                });
+        });
+
+        // Only enable the button once a real post is chosen, so the form cannot
+        // be submitted empty and bounced back by the server.
+        $('#aiRecTarget').on('change', function () {
+            $('#aiRecSubmit').prop('disabled', !$(this).val());
         });
 
         load();

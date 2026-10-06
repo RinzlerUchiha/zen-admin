@@ -29,6 +29,10 @@ class ApplicantApplication extends Model
     public const NON_RESPONSIVE = 'Non-Responsive';
     public const NOT_SELECTED = 'Not Selected';
 
+    /* Closed because HR recommended the applicant to another job post and an
+       application was created there. Not a rejection; carries no cooldown. */
+    public const RECOMMENDED = 'Recommended';
+
     protected $casts = [
         'applied_at' => 'datetime',
         'closed_at' => 'datetime',
