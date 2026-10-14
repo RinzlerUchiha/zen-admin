@@ -253,7 +253,10 @@
                                     @if ($request->kind === 'missing' && $request->status === 'open')
                                         <form method="POST" class="d-inline"
                                               action="{{ route('applicant.documents.request.cancel', ['id' => $applicant->app_id, 'request' => $request->id]) }}"
-                                              onsubmit="return confirm('Cancel this request?');">
+                                              data-hf-confirm="Cancel this request?"
+                                              data-hf-message="The applicant will no longer be asked for this document."
+                                              data-hf-detail="Anything they have already sent is unaffected. You can ask again later."
+                                              data-hf-ok="Cancel request" data-hf-tone="warn">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel request</button>
                                         </form>

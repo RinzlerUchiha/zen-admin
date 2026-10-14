@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
+use App\Models\Recruitment\HireflowManpowerPosition;
 use App\Models\Recruitment\JobPosting;
 use App\Services\Recruitment\JobSpecPhotos;
 use Illuminate\Http\Request;
@@ -11,6 +12,20 @@ use Illuminate\Http\Request;
  * The photos shown beside a job posting on the careers page. They are the
  * posting's Job Specification's photos (App\Services\Recruitment\JobSpecPhotos),
  * managed here from the posting HR has open.
+ *
+ * TWO WAYS IN, ONE SET OF PHOTOS
+ *
+ * From a posting HR already has open, and from the Create Job Posting form,
+ * where the posting does not exist yet. That is not a special case: a photo
+ * belongs to the Job Specification, never to a posting, so the position HR is
+ * creating the posting FOR already identifies the right folder. Pictures can
+ * therefore be chosen while writing the ad instead of after saving it, which
+ * is when HR has them to hand.
+ *
+ * Both doors reach the same folder and the same four-photo limit. A photo
+ * added from the create form and then abandoned without saving stays on the
+ * Job Specification -- which is correct, and the same thing that happens when
+ * HR adds one from a posting and later closes it.
  */
 class JobPostingPhotoController extends Controller
 {
@@ -21,8 +36,50 @@ class JobPostingPhotoController extends Controller
 
     public function store(Request $request, JobPosting $jobPosting)
     {
-        $specId = $this->specId($jobPosting);
+        $refused = $this->accept($request, $this->specId($jobPosting));
 
+        return $refused ?? response()->json($this->payload($jobPosting));
+    }
+
+    /* ------------------------------------------------------------------
+     | The same four, addressed by position, for the Create Posting form.
+     | No posting exists yet; the Job Specification the photos belong to
+     | does, and the position names it.
+     ------------------------------------------------------------------ */
+
+    public function draftIndex(HireflowManpowerPosition $position)
+    {
+        return response()->json($this->draftPayload($position));
+    }
+
+    public function draftStore(Request $request, HireflowManpowerPosition $position)
+    {
+        $refused = $this->accept($request, $this->positionSpecId($position));
+
+        return $refused ?? response()->json($this->draftPayload($position));
+    }
+
+    public function draftDestroy(HireflowManpowerPosition $position, string $name)
+    {
+        abort_unless(JobSpecPhotos::delete($this->positionSpecId($position), $name), 404);
+
+        return response()->json($this->draftPayload($position));
+    }
+
+    public function draftShow(HireflowManpowerPosition $position, string $name)
+    {
+        return $this->stream($this->positionSpecId($position), $name);
+    }
+
+    /**
+     * Validate and store one photo against a Job Specification.
+     *
+     * Returns null when it was stored, or the response explaining why it was
+     * not — so both doors refuse a 6 MB bitmap, a PDF renamed .jpg, and a
+     * fifth photo in exactly the same words.
+     */
+    private function accept(Request $request, int $specId)
+    {
         $request->validate(
             ['photo' => 'required|file|mimes:jpg,jpeg,png|max:5120'],
             [
@@ -44,7 +101,7 @@ class JobPostingPhotoController extends Controller
             return response()->json(['message' => 'That photo could not be saved. Please try another file.'], 500);
         }
 
-        return response()->json($this->payload($jobPosting));
+        return null;
     }
 
     public function destroy(JobPosting $jobPosting, string $name)
@@ -57,7 +114,12 @@ class JobPostingPhotoController extends Controller
     /** Streams one photo for HR's preview. */
     public function show(JobPosting $jobPosting, string $name)
     {
-        $path = JobSpecPhotos::path($this->specId($jobPosting), $name);
+        return $this->stream($this->specId($jobPosting), $name);
+    }
+
+    private function stream(int $specId, string $name)
+    {
+        $path = JobSpecPhotos::path($specId, $name);
         $disk = JobSpecPhotos::disk();
         abort_unless($path && $disk->exists($path), 404);
 
@@ -75,15 +137,37 @@ class JobPostingPhotoController extends Controller
         return (int) $jobPosting->jobspec_id;
     }
 
+    /** The same question asked of a position, for the create form. */
+    private function positionSpecId(HireflowManpowerPosition $position): int
+    {
+        abort_unless($position->jobspec_id, 422, 'This position is not linked to a Job Specification.');
+
+        return (int) $position->jobspec_id;
+    }
+
     private function payload(JobPosting $jobPosting): array
     {
-        $specId = $this->specId($jobPosting);
+        return $this->listing(
+            $this->specId($jobPosting),
+            fn ($name) => route('recruitment.job-postings.photos.show', [$jobPosting, $name])
+        );
+    }
 
+    private function draftPayload(HireflowManpowerPosition $position): array
+    {
+        return $this->listing(
+            $this->positionSpecId($position),
+            fn ($name) => route('recruitment.job-postings.draft.photos.show', [$position, $name])
+        );
+    }
+
+    private function listing(int $specId, callable $url): array
+    {
         return [
             'max' => JobSpecPhotos::MAX,
             'photos' => collect(JobSpecPhotos::list($specId))->map(fn ($name) => [
                 'name' => $name,
-                'url' => route('recruitment.job-postings.photos.show', [$jobPosting, $name]),
+                'url' => $url($name),
             ])->all(),
         ];
     }

@@ -517,6 +517,23 @@
     .iv-att-cancelled { background: var(--zn-lock-soft); color: var(--zn-lock); }
     .iv-att-no_show { background: var(--zn-warn-soft); color: var(--zn-warn); }
 
+    /* Waiting on somebody, not wrong -- the same attention colour the rest of
+       HireFlow uses for "this needs you", not the warning red. */
+    .iv-att-due { background: var(--zn-caution-soft); color: var(--zn-caution); }
+
+    /* Shown first, but not open yet: quieter than the rounds around it, so
+       its position in the list does not read as its turn. */
+    .iv-step.is-locked { opacity: .62; }
+
+    .iv-note-locked {
+        margin-top: 10px;
+        padding: 9px 12px;
+        border-radius: var(--zn-radius);
+        background: var(--zn-lock-soft);
+        color: var(--zn-ink-2);
+        font-size: var(--zn-fs-sm);
+    }
+
     /*
     | Narrow screens.
     |
@@ -629,10 +646,64 @@
     const ROOT = @json(rtrim(url('/recruitment/applications'), '/'));
     const CSRF = @json(csrf_token());
     const ASSESSMENTS = @json($assessments);
+
+    /*
+    | Can the applicant actually sit the examinations yet?
+    |
+    | Worked out from the rounds already on the page: the prerequisite is the
+    | Initial Interview being COMPLETED, which is the same thing
+    | AssessmentEligibility::PREREQUISITE_STAGE asks the database. Nothing new
+    | is fetched and nothing about the rule is re-decided here -- the page
+    | only needs to be able to say so.
+    |
+    | This matters because Examinations is now shown FIRST. Showing it first
+    | without saying it is still waiting would imply the exams come before the
+    | interview, which is the opposite of how the process runs and would have
+    | HR handing out access codes that the server then refuses.
+    */
+    function examsUnlocked(appId) {
+        const rounds = ((STATE[appId] || {}).rounds) || [];
+        const initial = rounds.find(r => r.stage_key === 'initial');
+
+        return !!initial && initial.state === 'completed';
+    }
     const ASSESSMENTS_DONE = @json($assessmentsDone);
 
     const OUTCOME_LABEL = { proceed: 'Proceed', do_not_proceed: 'Do Not Proceed', hold: 'Hold' };
     const ATTENDANCE_LABEL = { scheduled: 'Scheduled', held: 'Held', cancelled: 'Cancelled', no_show: 'No show' };
+
+    /*
+    | Who may record what happened at an interview.
+    |
+    | Not the same question as "who may decide this application". The person
+    | who knows whether an interview took place is the one who was in it, and
+    | they are usually not an HR decision-maker -- which is why they used to
+    | have to go to Zen-Hub to say so while this page showed them the round.
+    |
+    | HR keeps the right as well: somebody has to be able to tidy up a round
+    | whose interviewer has left, and HR always could.
+    |
+    | This mirrors InterviewScheduling::guardAttendanceActor() exactly. It
+    | hides nothing the server would allow and offers nothing the server
+    | would refuse.
+    */
+    function canAttend(iv) {
+        return CAN_DECIDE || (iv && (iv.interviewers || []).some(p => p.empno === ME));
+    }
+
+    /*
+    | A scheduled interview whose time has passed.
+    |
+    | The server derives this; the page only repeats it. Deliberately shown
+    | as a separate chip beside "Scheduled" rather than as a fifth status,
+    | because the interview IS still scheduled -- it is the answer that is
+    | overdue, not the booking that has changed.
+    */
+    function dueChip(iv) {
+        return iv && iv.due
+            ? ' <span class="hf-chip iv-att-due" title="Its time has passed. Confirm whether it took place.">Due</span>'
+            : '';
+    }
 
     // Keyed by application, so one application's rounds can never be drawn into
     // another's panel.
@@ -767,13 +838,16 @@
         let question, detail, button = '', extra = '';
 
         if (next.action === 'held') {
-            question = 'Did the ' + next.label + ' take place?';
-            detail = longWhen(live && live.scheduled_at);
-            if (CAN_DECIDE) {
+            /* Overdue is worth saying out loud at the top of the page: it is
+               the difference between "coming up" and "nobody has told us". */
+            question = (live && live.due ? 'Did the ' + next.label + ' take place?' : 'Is the ' + next.label + ' still to come?');
+            detail = longWhen(live && live.scheduled_at)
+                + (live && live.due ? ' — this has passed. Confirm whether it took place.' : '');
+            if (canAttend(live)) {
                 button = '<button type="button" class="btn btn-sm btn-primary js-iv-held-next" data-app="' + appId + '" data-step="' + esc(next.step_id) + '">Mark held</button>';
-                if (live) {
-                    extra = '<button type="button" class="btn btn-sm btn-outline-secondary js-iv-reschedule" data-app="' + appId + '" data-interview="' + esc(live.id) + '">Reschedule</button>';
-                }
+            }
+            if (CAN_DECIDE && live) {
+                extra = '<button type="button" class="btn btn-sm btn-outline-secondary js-iv-reschedule" data-app="' + appId + '" data-interview="' + esc(live.id) + '">Reschedule</button>';
             }
         } else if (next.action === 'arrange') {
             question = 'Arrange the ' + next.label;
@@ -827,14 +901,30 @@
 
         if (ASSESSMENTS.length) {
             const ex = examsProgress();
-            const examsCls = ex.all ? 'is-done' : (ex.partial ? 'is-partial' : '');
+            const unlocked = examsUnlocked(appId);
+            const examsCls = ex.all ? 'is-done' : (ex.partial ? 'is-partial' : (unlocked ? '' : 'is-locked'));
 
-            // Exams sits after the first round, which is where the process puts it.
-            parts.splice(1, 0,
+            /*
+            | Examinations is shown FIRST.
+            |
+            | A presentation change only, asked for so the row HR looks at
+            | most sits at the top. The workflow underneath is untouched: the
+            | stage catalogue still orders Initial (10), Exams (20), Final
+            | (90), the steps still carry those positions, progression still
+            | follows them, and nothing here reorders a single stored row.
+            |
+            | Because the display and the sequence now disagree, the row has
+            | to say which one it is. Until the Initial Interview is
+            | completed the exams are not open, and the sub-label says so
+            | rather than leaving the position to imply otherwise.
+            */
+            parts.unshift(
                 '<button type="button" class="iv-step ' + examsCls + ' js-iv-exams" data-app="' + appId + '">' +
                 '<span class="iv-step-bar"></span>' +
                 '<span class="iv-step-name">Examinations</span>' +
-                '<span class="iv-step-sub">' + esc(ex.label) + '</span></button>');
+                '<span class="iv-step-sub">' +
+                    esc(unlocked ? ex.label : 'After the Initial Interview') +
+                '</span></button>');
         }
 
         return '<div class="iv-rail">' + parts.join('') + '</div>';
@@ -892,7 +982,23 @@
     | with several it belongs to each one.
     */
     function interviewMenu(iv, appId) {
-        if (!CAN_DECIDE) return '';
+        /*
+        | Two audiences, different menus.
+        |
+        | An assigned interviewer gets the one thing they are entitled to say
+        | -- that the candidate did not turn up. Rescheduling, cancelling and
+        | changing the panel are HR's, and the server refuses them to anyone
+        | else, so offering them here would only produce a 403.
+        */
+        if (!CAN_DECIDE) {
+            if (iv.attendance !== 'scheduled' || !canAttend(iv)) return '';
+
+            return '<div class="dropdown d-inline"><button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-label="More actions for this interview">⋯</button>' +
+                '<ul class="dropdown-menu dropdown-menu-end">' +
+                '<li><button type="button" class="dropdown-item js-iv-noshow" data-app="' + appId +
+                '" data-interview="' + esc(iv.id) + '">Candidate did not attend</button></li>' +
+                '</ul></div>';
+        }
 
         let menu = [];
         if (iv.attendance === 'scheduled') {
@@ -929,7 +1035,7 @@
         | Interview, one on the row and one loose underneath it.
         */
         let primary = '';
-        if (CAN_DECIDE) {
+        if (canAttend(iv)) {
             if (iv.attendance === 'scheduled' && !hideHeld) {
                 primary = '<button type="button" class="btn btn-sm btn-primary js-iv-held" data-app="' + appId + '" data-interview="' + esc(iv.id) + '">Mark held</button>';
             }
@@ -941,7 +1047,8 @@
            anything still left to press. */
         const extras = [
             (soleLive ? '' : '<span><b>' + esc(dayWhen(iv.scheduled_at)) + '</b></span>' +
-                '<span class="hf-chip iv-att-' + esc(iv.attendance) + '">' + esc(ATTENDANCE_LABEL[iv.attendance]) + '</span>'),
+                '<span class="hf-chip iv-att-' + esc(iv.attendance) + '">' + esc(ATTENDANCE_LABEL[iv.attendance]) + '</span>' +
+                dueChip(iv)),
             (iv.venue ? '<span class="iv-muted">' + esc(iv.venue) + '</span>' : ''),
             (iv.meeting_link ? '<a href="' + esc(iv.meeting_link) + '" target="_blank" rel="noopener">Meeting link</a>' : ''),
             (primary || menuHtml ? '<span class="iv-primary">' + primary + ' ' + menuHtml + '</span>' : '')
@@ -1143,14 +1250,17 @@
         */
         let rowAction = '';
         let rowKind = '';
-        if (CAN_DECIDE && round.state !== 'completed' && round.state !== 'not_applicable') {
-            if (scheduled && !suppressHeld) {
+        /* Marking held is open to the interviewer as well; everything else on
+           this row stays an HR decision, so each branch asks its own
+           question rather than the whole block sharing one. */
+        if ((CAN_DECIDE || canAttend(scheduled)) && round.state !== 'completed' && round.state !== 'not_applicable') {
+            if (scheduled && !suppressHeld && canAttend(scheduled)) {
                 rowKind = 'held';
                 rowAction = '<button type="button" class="btn btn-sm btn-primary js-iv-held" data-app="' + appId + '" data-interview="' + esc(scheduled.id) + '">Mark held</button>';
-            } else if (lastHeld && !(isNextStep && next.action === 'complete')) {
+            } else if (CAN_DECIDE && lastHeld && !(isNextStep && next.action === 'complete')) {
                 rowKind = 'complete';
                 rowAction = '<button type="button" class="btn btn-sm btn-primary js-iv-complete" data-app="' + appId + '" data-step="' + esc(round.step_id) + '" data-label="' + esc(round.display_label) + '">Record outcome</button>';
-            } else if (!scheduled && !lastHeld && !(isNextStep && next.action === 'arrange')) {
+            } else if (CAN_DECIDE && !scheduled && !lastHeld && !(isNextStep && next.action === 'arrange')) {
                 /*
                 | Nothing live on this round, so it needs arranging — whether it
                 | has never been scheduled at all, or its only attempts were
@@ -1179,6 +1289,7 @@
                 past.map(iv =>
                     '<div class="iv-row"><span>' + esc(dayWhen(iv.scheduled_at)) + '</span>' +
                     '<span class="hf-chip iv-att-' + esc(iv.attendance) + '">' + esc(ATTENDANCE_LABEL[iv.attendance]) + '</span>' +
+                    dueChip(iv) +
                     (iv.cancel_reason ? '<span class="iv-muted iv-xs">' + esc(iv.cancel_reason) + '</span>' : '') + '</div>'
                 ).join('') + '</div></details>';
         }
@@ -1232,11 +1343,21 @@
         const ex = examsProgress();
 
         // Partial must not look finished — the chip follows the rail's rule.
+        const unlocked = examsUnlocked(appId);
+
+        /*
+        | "Not started" and "cannot start yet" are different facts, and only
+        | one of them is anybody's fault. Before the Initial Interview is
+        | completed the assessments are not merely untouched -- they are
+        | closed, and AssessmentAccessCodes refuses to issue a code for them.
+        */
         const chip = ex.all
             ? '<span class="hf-chip hf-chip-ok">All taken</span>'
             : (ex.partial
                 ? '<span class="hf-chip hf-chip-pool">In progress</span>'
-                : '<span class="hf-chip">Not started</span>');
+                : (unlocked
+                    ? '<span class="hf-chip">Not started</span>'
+                    : '<span class="hf-chip hf-chip-lock">Not open yet</span>'));
 
         const dot = ex.all ? 'is-done' : (ex.partial ? 'is-wait' : '');
 
@@ -1244,7 +1365,8 @@
         return '<details class="iv-round" id="iv-exams-' + esc(appId) + '"><summary>' +
             '<span class="iv-dot ' + dot + '"></span>' +
             '<span class="iv-round-name">Examinations</span>' +
-            '<span class="iv-round-when">' + esc(ex.label) + '</span>' +
+            '<span class="iv-round-when">' +
+                esc(unlocked ? ex.label : 'Opens after the Initial Interview') + '</span>' +
             chip +
             '<span class="iv-round-who">assessment system</span>' +
             '<span class="iv-round-act">' +
@@ -1255,6 +1377,9 @@
             ASSESSMENTS.map(a => '<div class="iv-row"><span>' + esc(a.label) + '</span>' +
                 '<span class="iv-primary ' + (a.hasResult ? '' : 'iv-muted') + '">' +
                 esc(a.hasResult ? (a.takenOn || 'Completed') : 'Not taken') + '</span></div>').join('') +
+            (unlocked ? '' :
+                '<div class="iv-note-locked">Shown first for convenience, but the examinations only open ' +
+                'once the Initial Interview is completed. An access code cannot be issued before then.</div>') +
             '<div class="iv-muted iv-xs mt-2">Results belong to the applicant and are shown for reference. ' +
             'They are recorded in the assessment system, not here.</div></div></details>';
     }
@@ -1311,7 +1436,10 @@
         const rows = rounds.map(r => roundBlock(r, appId, r.step_id === data.currentStepId, data.next));
         const exams = examsBlock(appId);
         if (exams) {
-            rows.splice(1, 0, exams);
+            /* First in the list, as asked. See the note in progressRail():
+               the order shown and the order run are now deliberately
+               different, and the row says which. */
+            rows.unshift(exams);
         }
 
         html += '<div class="iv-rounds">' + rows.join('') + '</div>';
@@ -1505,7 +1633,13 @@
             }
 
             if (btn.classList.contains('js-iv-noshow')) {
-                if (!confirm('Record the candidate as not having attended? This is kept permanently.')) return;
+                if (!await hfConfirm({
+                    title: 'Record a no-show?',
+                    message: 'The candidate will be recorded as not having attended this interview.',
+                    detail: 'This is kept permanently and cannot be undone. If they simply need a new time, reschedule instead.',
+                    confirmLabel: 'Record no-show',
+                    tone: 'warn'
+                })) return;
                 await api(app, '/' + btn.dataset.interview + '/no-show', 'POST');
                 await load(app);
             }
@@ -1524,13 +1658,14 @@
                 | assignment goes, their access to this interview with it, and
                 | everything they already wrote stays.
                 */
-                const warning = 'Remove ' + (btn.dataset.name || 'this interviewer') + ' from this interview?'
-                    + String.fromCharCode(10, 10)
-                    + 'They lose access to it and cannot file a new evaluation for it. '
-                    + 'Any notes and evaluations they have already recorded remain on the record, '
-                    + 'and any other interview they are assigned to is unaffected.';
-
-                if (!confirm(warning)) return;
+                if (!await hfConfirm({
+                    title: 'Remove ' + (btn.dataset.name || 'this interviewer') + ' from this interview?',
+                    message: 'They lose access to it and cannot file a new evaluation for it.',
+                    detail: 'Any notes and evaluations they have already recorded remain on the record, '
+                        + 'and any other interview they are assigned to is unaffected.',
+                    confirmLabel: 'Remove interviewer',
+                    tone: 'warn'
+                })) return;
 
                 await api(app, '/' + btn.dataset.interview + '/interviewers/' +
                     encodeURIComponent(btn.dataset.empno), 'DELETE');
@@ -1598,7 +1733,13 @@
             }
 
             if (btn.classList.contains('js-iv-remove')) {
-                if (!confirm('Remove this round? Only possible while nothing has happened on it.')) return;
+                if (!await hfConfirm({
+                    title: 'Remove this round?',
+                    message: 'It is taken out of this application\'s sequence.',
+                    detail: 'Only possible while nothing has happened on it. A round with an interview or an evaluation on it cannot be removed.',
+                    confirmLabel: 'Remove round',
+                    tone: 'warn'
+                })) return;
                 await api(app, '/steps/' + btn.dataset.step, 'DELETE');
                 await load(app);
             }
@@ -1622,7 +1763,12 @@
             }
 
             if (btn.classList.contains('js-iv-advance')) {
-                if (!confirm('Move this application to its next outstanding step?')) return;
+                if (!await hfConfirm({
+                    title: 'Move to the next step?',
+                    message: 'The application moves to its next outstanding step.',
+                    detail: 'Its stage history records the move. Nothing about the current round is changed.',
+                    confirmLabel: 'Move on'
+                })) return;
                 const res = await api(app, '/advance', 'POST', {});
                 await load(app);
                 alertBox('Moved to ' + (res.moved_to ? res.moved_to.label : 'the next step') + '.', 'success');
@@ -1731,10 +1877,22 @@
             if (evalCtx.evaluationId) {
                 payload.correction_reason = document.getElementById('ivCorrectionReason').value;
                 if (!payload.correction_reason.trim()) { alertBox('Please say why you are correcting this evaluation.'); return; }
-                if (!confirm('Submit this correction? It replaces your previous evaluation and cannot be edited afterwards.')) return;
+                if (!await hfConfirm({
+                    title: 'Submit this correction?',
+                    message: 'It replaces your previous evaluation as the one in force.',
+                    detail: 'Your original stays on the record and remains readable. A submitted correction cannot be edited.',
+                    confirmLabel: 'Submit correction',
+                    tone: 'warn'
+                })) return;
                 await api(evalCtx.app, '/evaluations/' + evalCtx.evaluationId + '/correct', 'POST', payload);
             } else if (submit) {
-                if (!confirm('Submit this evaluation? It cannot be edited afterwards — you would need to file a correction.')) return;
+                if (!await hfConfirm({
+                    title: 'Submit this evaluation?',
+                    message: 'It becomes part of the applicant\'s record.',
+                    detail: 'It cannot be edited afterwards — you would have to file a correction, which is kept alongside it.',
+                    confirmLabel: 'Submit evaluation',
+                    tone: 'warn'
+                })) return;
                 await api(evalCtx.app, '/' + evalCtx.interviewId + '/evaluations', 'POST', payload);
             } else {
                 await api(evalCtx.app, '/' + evalCtx.interviewId + '/evaluations/draft', 'POST', payload);

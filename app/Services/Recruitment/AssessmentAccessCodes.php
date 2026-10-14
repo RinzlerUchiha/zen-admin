@@ -4,6 +4,7 @@ namespace App\Services\Recruitment;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 /**
  * HR's one-time assessment access codes (tblapp_assessment_access).
@@ -19,14 +20,47 @@ use Illuminate\Support\Facades\Hash;
  */
 class AssessmentAccessCodes
 {
-    /** Issue a new code and return it in plain text (the only time it is shown). */
-    public static function issue(int $appId, string $empno): array
+    /**
+     * Issue a new code and return it in plain text (the only time it is shown).
+     *
+     * Refused unless the applicant has completed an Initial Interview, which is
+     * the prerequisite for being assessed at all. HR may still proceed by
+     * giving $overrideReason -- there are legitimate cases and a hard refusal
+     * would leave HR stuck -- and that reason is stored on the row beside
+     * issued_by and issued_at, so the decision stays answerable.
+     *
+     * This is eligibility, not authentication. The code is still required in
+     * every case; nothing here weakens it.
+     *
+     * @throws ValidationException when the prerequisite is unmet and no reason is given
+     */
+    public static function issue(int $appId, string $empno, ?string $overrideReason = null): array
     {
+        $overrideReason = $overrideReason !== null ? trim($overrideReason) : null;
+
+        if ($overrideReason === '') {
+            $overrideReason = null;
+        }
+
+        $status = AssessmentEligibility::status($appId);
+
+        if (!$status['met'] && $overrideReason === null) {
+            throw ValidationException::withMessages([
+                'prerequisite' => $status['reason']
+                    . ' Assessments come after the Initial Interview. To issue a code anyway, give a reason.',
+            ]);
+        }
+
+        // Met normally: nothing to explain, so nothing is recorded as an override.
+        if ($status['met']) {
+            $overrideReason = null;
+        }
+
         $length = config('applicant_assessments.code_length');
         $code = str_pad((string) random_int(0, 10 ** $length - 1), $length, '0', STR_PAD_LEFT);
         $expires = now()->addMinutes(config('applicant_assessments.code_minutes'));
 
-        DB::connection('applicant')->transaction(function () use ($appId, $empno, $code, $expires) {
+        DB::connection('applicant')->transaction(function () use ($appId, $empno, $code, $expires, $overrideReason) {
             $db = DB::connection('applicant');
 
             // Same serialization point zen-applicants uses for this applicant.
@@ -43,6 +77,7 @@ class AssessmentAccessCodes
                 'code_hash' => Hash::make($code),
                 'issued_by' => $empno,
                 'issued_at' => now(),
+                'prerequisite_override_reason' => $overrideReason,
                 'expires_at' => $expires,
                 'failed_attempts' => 0,
             ]);
@@ -54,7 +89,11 @@ class AssessmentAccessCodes
                 ->update(['resolved_at' => now(), 'resolved_by' => $empno]);
         });
 
-        return ['code' => $code, 'expires_at' => $expires];
+        return [
+            'code' => $code,
+            'expires_at' => $expires,
+            'overridden' => $overrideReason !== null,
+        ];
     }
 
     /** The applicant's open request for a new code, if any. */

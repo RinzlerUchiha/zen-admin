@@ -88,6 +88,63 @@
 
     #hf-dash .hf-tile.is-zero .hf-tile-value { color: var(--zn-ink-3); }
 
+    /*
+    | Zero-value tiles.
+    |
+    | A dashboard of mostly noughts reads as noise and buries the few figures
+    | that want doing something about. They are hidden by default and brought
+    | back by the control in the header -- nothing is removed, and the toggle
+    | says how many are hidden so their absence is never a surprise.
+    |
+    | Hiding is driven by a class this page's own script adds, not by the
+    | stylesheet alone: if the script does not run, every tile shows, which is
+    | how the dashboard behaved before. A toggle that cannot be reached must
+    | never be able to hide anything.
+    */
+    #hf-dash.hf-zeros-hidden .hf-tile.is-zero { display: none; }
+    #hf-dash.hf-zeros-hidden .hf-tiles:empty,
+    #hf-dash.hf-zeros-hidden .hf-group-label.is-empty { display: none; }
+
+    #hf-dash .hf-zero-toggle {
+        display: none;                 /* shown by the script, once it knows the count */
+        align-items: center;
+        gap: 6px;
+        margin-left: 10px;
+        padding: 3px 11px;
+        border: 1px solid var(--zn-line);
+        border-radius: 20px;
+        background: var(--zn-surface);
+        color: var(--zn-ink-2);
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    #hf-dash .hf-zero-toggle:hover {
+        background: var(--zn-surface-2);
+        border-color: var(--zn-ink-3);
+        color: var(--zn-ink);
+    }
+    #hf-dash .hf-zero-toggle:focus-visible {
+        outline: 2px solid var(--zn-accent);
+        outline-offset: 2px;
+    }
+    #hf-dash .hf-zero-toggle.is-shown {
+        background: var(--zn-accent-soft);
+        border-color: var(--zn-accent);
+        color: var(--zn-accent-dark);
+    }
+
+    /* An all-clear line where a whole group is hidden, so the section does not
+       simply vanish and leave HR wondering whether it failed to load. */
+    #hf-dash .hf-group-allclear {
+        display: none;
+        color: var(--zn-ink-3);
+        font-size: var(--zn-fs-sm);
+        padding: 2px 0 10px;
+    }
+    #hf-dash.hf-zeros-hidden .hf-group-allclear.is-on { display: block; }
+
     #hf-dash .hf-tile-label {
         font-size: var(--zn-fs-ui);
         font-weight: 700;
@@ -346,6 +403,9 @@
             <span class="hf-dash-asof" title="{{ $generatedAt->format('M d, Y h:i:s A') }}">
                 Figures as of {{ $generatedAt->format('M d, Y h:i A') }}
             </span>
+            {{-- Written by the script once it has counted them. --}}
+            <button type="button" class="hf-zero-toggle" id="hf-zero-toggle"
+                    aria-pressed="false" hidden></button>
         </span>
     </div>
 
@@ -464,6 +524,79 @@
         </div>
     </div>
 </div>
+
+{{--
+    Zero-value tiles.
+
+    Runs before the charts and independently of them, because the tiles are
+    server-rendered and must not depend on a CDN. The class that does the
+    hiding is added here rather than sitting in the stylesheet, so a page
+    where this does not run shows every tile exactly as it always did.
+--}}
+<script type="text/javascript">
+(function () {
+    var dash = document.getElementById('hf-dash');
+    var toggle = document.getElementById('hf-zero-toggle');
+    if (!dash || !toggle) { return; }
+
+    var zeros = dash.querySelectorAll('.hf-tile.is-zero');
+    if (!zeros.length) { return; }   // nothing to hide; leave the control away
+
+    var KEY = 'hf-dash-show-zeros';
+
+    function stored() {
+        try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+    }
+    function remember(on) {
+        try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* private window */ }
+    }
+
+    /* A group whose tiles are now all hidden gets a line saying so, rather
+       than collapsing to a bare heading with nothing under it. */
+    var groups = [];
+    dash.querySelectorAll('.hf-tiles').forEach(function (row) {
+        var tiles = row.querySelectorAll('.hf-tile');
+        if (!tiles.length) { return; }
+        var allZero = row.querySelectorAll('.hf-tile.is-zero').length === tiles.length;
+        if (!allZero) { return; }
+
+        var label = row.previousElementSibling;
+        var note = document.createElement('div');
+        note.className = 'hf-group-allclear';
+        note.textContent = (label && label.classList.contains('hf-group-label'))
+            ? 'Nothing under ' + label.textContent.trim().toLowerCase() + ' right now.'
+            : 'Nothing here right now.';
+        row.parentNode.insertBefore(note, row.nextSibling);
+
+        groups.push({ row: row, note: note });
+    });
+
+    function apply(show) {
+        dash.classList.toggle('hf-zeros-hidden', !show);
+        toggle.classList.toggle('is-shown', show);
+        toggle.setAttribute('aria-pressed', show ? 'true' : 'false');
+        toggle.textContent = show
+            ? 'Hide ' + zeros.length + ' zero ' + (zeros.length === 1 ? 'figure' : 'figures')
+            : 'Show ' + zeros.length + ' zero ' + (zeros.length === 1 ? 'figure' : 'figures');
+
+        groups.forEach(function (g) {
+            g.row.style.display = show ? '' : 'none';
+            g.note.classList.toggle('is-on', !show);
+        });
+    }
+
+    toggle.hidden = false;
+    toggle.style.display = 'inline-flex';
+    toggle.addEventListener('click', function () {
+        /* Hidden now means the next state is shown. */
+        var next = dash.classList.contains('hf-zeros-hidden');
+        remember(next);
+        apply(next);
+    });
+
+    apply(stored());
+})();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="text/javascript">

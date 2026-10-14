@@ -109,6 +109,44 @@
         border-radius: var(--zn-radius-lg);
     }
 
+    /*
+    | The Job Postings step.
+    |
+    | Given slightly more presence than its neighbours and a count of what is
+    | waiting, because it is the step with work queued behind it; the others
+    | are places you go, this is a place with a number attached. Deliberately
+    | the only change to the sidebar -- the pipeline's shape is unaltered.
+    */
+    .rc-count {
+        margin-left: auto;
+        min-width: 20px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        background: var(--zn-accent);
+        color: var(--zn-on-accent);
+        font-size: var(--zn-fs-xs);
+        font-weight: 800;
+        line-height: 1.5;
+        text-align: center;
+        flex: none;
+    }
+
+    .rc-link.active .rc-count {
+        background: var(--zn-on-accent);
+        color: var(--zn-accent-dark);
+    }
+
+    /* Collapsed rail: the number still shows, as a dot on the icon. */
+    #hf-shell[data-collapsed="1"] .rc-count {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        min-width: 16px;
+        padding: 0 4px;
+        font-size: 10px;
+    }
+    #hf-shell[data-collapsed="1"] .rc-link { position: relative; }
+
     .rc-group {
         font-size: var(--zn-fs-xs);
         font-weight: 700;
@@ -145,6 +183,37 @@
     .rc-item:last-of-type::before {
         bottom: 50%;
     }
+
+    /*
+    | The three places under Applicants.
+    |
+    | Indented to clear the pipeline rail rather than to decorate: the rail
+    | runs at 18px and these sit to the right of it, so the group reads as
+    | belonging to step 3 instead of as four separate steps.
+    */
+    .rc-sub {
+        list-style: none;
+        margin: 2px 0 6px;
+        padding: 0 0 0 38px;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .rc-sublink {
+        display: block;
+        padding: 5px 10px;
+        border-radius: var(--zn-radius);
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+        color: var(--zn-ink-3);
+        text-decoration: none;
+        transition: background .15s ease, color .15s ease;
+    }
+
+    .rc-sublink:hover { background: var(--zn-surface-2); color: var(--zn-ink); }
+    .rc-sublink.is-on { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
+    .rc-sublink:focus-visible { outline: 2px solid var(--zn-accent); outline-offset: 2px; }
 
     .rc-link {
         position: relative;
@@ -276,6 +345,12 @@
 
         #hf-shell[data-collapsed="1"] .rc-text,
         #hf-shell[data-collapsed="1"] .rc-soon {
+            display: none;
+        }
+
+        /* Collapsed there is nothing but icons, and these have none: the
+           parent icon stays and still opens the register. */
+        #hf-shell[data-collapsed="1"] .rc-sub {
             display: none;
         }
 
@@ -464,7 +539,7 @@
         <path d="M4 14h4l1.2 2h5.6l1.2-2h4" />
         <path d="M4 14 6.2 6.6A1 1 0 0 1 7.2 6h9.6a1 1 0 0 1 .95.6L20 14v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-4Z" />
     </symbol>
-    <symbol id="ri-screening" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    <symbol id="ri-work-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
         stroke-linecap="round" stroke-linejoin="round">
         <circle cx="10" cy="8" r="3" />
         <path d="M4.5 19c0-3 2.5-5 5.5-5 .9 0 1.8.2 2.5.5" />
@@ -475,6 +550,14 @@
         stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 6a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H6l-3 2.5V6Z" />
         <path d="M11 13h9a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4l-3 2.5V19h-2a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1Z" />
+    </symbol>
+    {{-- An offer: a document with terms on it, and a signature line. --}}
+    <symbol id="ri-offer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7z" />
+        <path d="M14 3v4h4" />
+        <path d="M9 12h6" />
+        <path d="M9 16.5c1.5-1 3-1 4.5 0s2 .5 2 .5" />
     </symbol>
     <symbol id="ri-onboarding" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
         stroke-linecap="round" stroke-linejoin="round">
@@ -543,48 +626,130 @@
                     <span class="rc-step">2</span>
                     <span class="rc-ico"><svg><use href="#ri-job-postings" /></svg></span>
                     <span class="rc-text">Job Postings</span>
+                    @if (($rcWaitingToPost ?? 0) > 0)
+                        {{-- How many jobs are waiting to be posted: the thing
+                             this step is for. Counted by job, so one position
+                             wanted by two requests is one item here. --}}
+                        <span class="rc-count"
+                              title="{{ $rcWaitingToPost }} {{ \Illuminate\Support\Str::plural('job', $rcWaitingToPost) }} waiting to be posted">{{ $rcWaitingToPost }}</span>
+                    @endif
                 </a>
             </li>
 
+            {{--
+                Applicants: the people, in one place.
+
+                Step 3 was "Applicant Intake", which named one of the three
+                things HR does with applicants and hid the other two. The
+                register was reachable only from outside the pipeline and the
+                Candidate Pool only as a filter chip, so "who have we got?"
+                and "who have we already met?" had no home.
+
+                Intake is unchanged — same page, same filters, same acquisition
+                form and entry points. It has simply stopped being the only
+                door.
+            --}}
             <li class="nav-item rc-item">
-                <a href="{{ url('/recruitment/applicant-intake') }}"
-                    class="rc-link {{ $maincat == 'applicant-intake' ? 'active' : '' }}">
+                <a href="{{ url('/applicant/list') }}"
+                    class="rc-link {{ in_array($maincat ?? '', ['applicants', 'applicant-intake', 'candidate-pool'], true) ? 'active' : '' }}">
                     <span class="rc-step">3</span>
                     <span class="rc-ico"><svg><use href="#ri-applicant-intake" /></svg></span>
-                    <span class="rc-text">Applicant Intake</span>
+                    <span class="rc-text">Applicants</span>
                 </a>
+                <ul class="rc-sub">
+                    <li>
+                        <a class="rc-sublink {{ ($maincat ?? '') == 'applicants' ? 'is-on' : '' }}"
+                            href="{{ url('/applicant/list') }}">Register</a>
+                    </li>
+                    <li>
+                        <a class="rc-sublink {{ ($maincat ?? '') == 'applicant-intake' ? 'is-on' : '' }}"
+                            href="{{ url('/recruitment/applicant-intake') }}">Intake</a>
+                    </li>
+                    <li>
+                        <a class="rc-sublink {{ ($maincat ?? '') == 'candidate-pool' ? 'is-on' : '' }}"
+                            href="{{ url('/recruitment/candidate-pool') }}">Candidate Pool</a>
+                    </li>
+                </ul>
             </li>
 
+            {{--
+                The work queue.
+
+                It was called Screening, which made a work list look like the
+                fourth stage of the pipeline. It never was one: it changes no
+                application's status and moves nothing along. What it answers
+                is "what should I do next", which is a question about HR's
+                day, not about where an application has got to.
+
+                The queue itself is unchanged by the rename.
+            --}}
             <li class="nav-item rc-item">
-                <a href="{{ url('/recruitment/screening') }}"
-                    class="rc-link {{ $maincat == 'screening' ? 'active' : '' }}">
+                <a href="{{ url('/recruitment/work-queue') }}"
+                    class="rc-link {{ $maincat == 'work-queue' ? 'active' : '' }}">
                     <span class="rc-step">4</span>
-                    <span class="rc-ico"><svg><use href="#ri-screening" /></svg></span>
-                    <span class="rc-text">Screening</span>
+                    <span class="rc-ico"><svg><use href="#ri-work-queue" /></svg></span>
+                    <span class="rc-text">Work Queue</span>
                 </a>
             </li>
 
+            {{--
+                Interviews, now a real place to go.
+
+                It was one disabled "Interview / Offer" item, which said two
+                untrue things at once: that interviews were not built -- the
+                engine is in daily use -- and that they are the same step as
+                Offer, which genuinely is not built. Offer gets its own item
+                when the navigation is restructured; this batch only stops
+                hiding something that works.
+            --}}
             <li class="nav-item rc-item">
-                <span class="rc-link rc-disabled">
+                <a href="{{ url('/recruitment/interviews') }}"
+                    class="rc-link {{ $maincat == 'interviews' ? 'active' : '' }}">
                     <span class="rc-step">5</span>
                     <span class="rc-ico"><svg><use href="#ri-interview" /></svg></span>
-                    <span class="rc-text">Interview / Offer</span>
-                    <span class="rc-soon">Soon</span>
-                </span>
+                    <span class="rc-text">Interviews</span>
+                </a>
+            </li>
+
+            {{--
+                Offer, on its own at last.
+
+                It shared one disabled item with Interview, which said two
+                untrue things at once: that interviews were not built, and
+                that the two are one step. Interviews is live; Offer genuinely
+                is not, so it keeps the Soon badge and gains nothing but its
+                own line.
+            --}}
+            <li class="nav-item rc-item">
+                <a href="{{ url('/recruitment/offers') }}"
+                    class="rc-link {{ ($maincat ?? '') == 'offers' ? 'active' : '' }}">
+                    <span class="rc-step">6</span>
+                    <span class="rc-ico"><svg><use href="#ri-offer" /></svg></span>
+                    <span class="rc-text">Offer</span>
+                </a>
             </li>
 
             <li class="nav-item rc-item">
                 <span class="rc-link rc-disabled">
-                    <span class="rc-step">6</span>
+                    <span class="rc-step">7</span>
                     <span class="rc-ico"><svg><use href="#ri-onboarding" /></svg></span>
                     <span class="rc-text">Onboarding</span>
                     <span class="rc-soon">Soon</span>
                 </span>
             </li>
 
-            <li class="nav-item rc-item">
+            {{--
+                Probation sits outside the numbered pipeline.
+
+                Not removed and not decided: once somebody is hired they are
+                an employee, and whether their probation belongs to
+                recruitment at all is an open question for the HRIS side. It
+                keeps its place in the menu and loses only its step number,
+                which was claiming it is part of a sequence that ends at
+                Onboarding.
+            --}}
+            <li class="nav-item rc-item rc-item-plain">
                 <span class="rc-link rc-disabled">
-                    <span class="rc-step">7</span>
                     <span class="rc-ico"><svg><use href="#ri-probation" /></svg></span>
                     <span class="rc-text">Probation</span>
                     <span class="rc-soon">Soon</span>

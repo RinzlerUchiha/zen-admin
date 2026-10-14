@@ -129,6 +129,28 @@ class ApplicationRecommendationService
 
         return ApplicationDecision::inLock($source->app_id, function () use ($source, $sourceApplicationId, $targetPostingId, $empno, $reason) {
             /*
+            | A blacklisted applicant gets no new application, from here either.
+            |
+            | This is the third and last place an application can be created --
+            | Careers apply and HR intake are the other two, and both have
+            | asked this question for some time. This one did not, so a bar
+            | that stopped somebody applying and stopped HR entering them by
+            | hand could still be walked straight past by recommending them
+            | onward. The bar is about the person, so every door has to ask.
+            |
+            | Inside the lock and before anything is written, like the other
+            | two: a bar applied in the seconds while HR types a reason has to
+            | count. The whole operation is one transaction, so a refusal here
+            | leaves no recommendation, no application and no workflow -- the
+            | source application is untouched and still open.
+            |
+            | Deliberately server-side and not merely hidden in the dialog. The
+            | dialog says why before HR types (see the controller's `blocked`),
+            | but a request that never opened the dialog is refused here.
+            */
+            ApplicantBlacklist::guardNewApplication((int) $source->app_id);
+
+            /*
             | Eligibility is re-checked HERE, inside the lock, not when the
             | selector was drawn. A posting can be closed, or another
             | application created, in the seconds while HR types a reason — and

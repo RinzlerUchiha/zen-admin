@@ -417,6 +417,18 @@
             }
         }
     </script>
+
+{{--
+    Page scripts.
+
+    The second stack in this layout, after @stack('styles') in the head. It
+    sits here rather than up there because anything pushed to it can then rely
+    on jQuery and Bootstrap, both of which load above, and on the DOM existing.
+
+    Nothing pushed to it before this line was added -- every view was checked
+    -- so no page renders differently for its arrival.
+--}}
+@stack('scripts')
 </body>
 
 </html>

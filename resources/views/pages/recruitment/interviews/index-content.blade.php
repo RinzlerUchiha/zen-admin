@@ -595,23 +595,51 @@
             }
 
             if (btn.classList.contains('js-iw-noshow')) {
-                if (!confirm('Record the candidate as not having attended? This is kept permanently.')) return;
+                if (!await hfConfirm({
+                    title: 'Record a no-show?',
+                    message: 'The candidate will be recorded as not having attended this interview.',
+                    detail: 'This is kept permanently and cannot be undone. If they simply need a new time, reschedule instead.',
+                    confirmLabel: 'Record no-show',
+                    tone: 'warn'
+                })) return;
                 await api('/' + btn.dataset.interview + '/no-show', 'POST');
                 await load();
             }
 
             if (btn.classList.contains('js-iw-cancel')) {
-                const reason = prompt('Why is this interview being cancelled?');
+                /* The reason is required, and the dialog says so and stays
+                   open rather than cancelling the whole action and making HR
+                   start again -- which is what the old prompt + alertBox pair
+                   did. */
+                const reason = await hfPrompt({
+                    title: 'Cancel this interview?',
+                    message: 'It will not go ahead, and the reason is kept with the application.',
+                    label: 'Why is it being cancelled?',
+                    placeholder: 'e.g. the panel is unavailable',
+                    required: true,
+                    requiredMessage: 'A cancellation needs a reason. It is kept on the record.',
+                    maxLength: 300,
+                    confirmLabel: 'Cancel interview',
+                    tone: 'warn'
+                });
                 if (reason === null) return;
-                if (!reason.trim()) { alertBox('A cancellation needs a reason.'); return; }
-                await api('/' + btn.dataset.interview + '/cancel', 'POST', { reason: reason.trim() });
+                await api('/' + btn.dataset.interview + '/cancel', 'POST', { reason: reason });
                 await load();
             }
 
             if (btn.classList.contains('js-iw-assign')) {
-                const empno = prompt('Employee number of the interviewer:');
-                if (!empno) return;
-                await api('/' + btn.dataset.interview + '/interviewers', 'POST', { empno: empno.trim() });
+                const empno = await hfPrompt({
+                    title: 'Add an interviewer',
+                    message: 'They get access to this interview, and to nothing else about the applicant.',
+                    label: 'Employee number',
+                    placeholder: '045-2025-001',
+                    required: true,
+                    requiredMessage: 'Give the interviewer\'s employee number.',
+                    maxLength: 20,
+                    confirmLabel: 'Add interviewer'
+                });
+                if (empno === null) return;
+                await api('/' + btn.dataset.interview + '/interviewers', 'POST', { empno: empno });
                 await load();
             }
 
@@ -657,30 +685,65 @@
             }
 
             if (btn.classList.contains('js-iw-complete')) {
-                const result = prompt('What did this round conclude? (your words, kept with the application)');
+                const result = await hfPrompt({
+                    title: 'Complete this round',
+                    message: 'What the round concluded, in your words. It is kept with the application.',
+                    label: 'Outcome',
+                    placeholder: 'e.g. strong on the technical side, to meet the department head',
+                    multiline: true,
+                    maxLength: 100,
+                    confirmLabel: 'Complete round'
+                });
                 if (result === null) return;
-                await api('/steps/' + btn.dataset.step + '/complete', 'POST', { result: result.trim() || null });
+                await api('/steps/' + btn.dataset.step + '/complete', 'POST', { result: result || null });
                 alertBox('Round completed. The application has not moved yet.', 'success');
                 await load();
             }
 
             if (btn.classList.contains('js-iw-remove-step')) {
-                if (!confirm('Remove this round? Only possible while nothing has happened on it.')) return;
+                if (!await hfConfirm({
+                    title: 'Remove this round?',
+                    message: 'It is taken out of this application\'s sequence.',
+                    detail: 'Only possible while nothing has happened on it. A round with an interview or an evaluation on it cannot be removed.',
+                    confirmLabel: 'Remove round',
+                    tone: 'warn'
+                })) return;
                 await api('/steps/' + btn.dataset.step, 'DELETE');
                 await load();
             }
 
             if (btn.id === 'iw-add-step') {
-                const label = prompt('What should this interview round be called?');
-                if (!label || !label.trim()) return;
-                await api('/steps', 'POST', { label: label.trim() });
+                const label = await hfPrompt({
+                    title: 'Add an interview round',
+                    message: 'It is added to this application only. Nobody else\'s sequence changes.',
+                    label: 'What should it be called?',
+                    placeholder: 'e.g. Technical Interview',
+                    required: true,
+                    requiredMessage: 'Give the round a name.',
+                    maxLength: 100,
+                    confirmLabel: 'Add round'
+                });
+                if (label === null) return;
+                await api('/steps', 'POST', { label: label });
                 await load();
             }
 
             if (btn.id === 'iw-advance') {
-                if (!confirm('Move this application to its next outstanding step?')) return;
-                const reason = prompt('Why is it moving on? (optional)') || null;
-                const res = await api('/advance', 'POST', { reason: reason });
+                /* One dialog, not two. The old pair asked for confirmation
+                   and THEN asked for a reason, so cancelling the second left
+                   HR unsure whether the first had already done something. */
+                const reason = await hfPrompt({
+                    title: 'Move to the next step?',
+                    message: 'The application moves to its next outstanding step.',
+                    detail: 'Its stage history records the move. Nothing about the current round is changed.',
+                    label: 'Why is it moving on?',
+                    placeholder: 'Optional',
+                    required: false,
+                    maxLength: 300,
+                    confirmLabel: 'Move on'
+                });
+                if (reason === null) return;
+                const res = await api('/advance', 'POST', { reason: reason || null });
                 alertBox('Moved to ' + (res.moved_to ? res.moved_to.label : 'the next step') + '.', 'success');
                 await load();
             }
@@ -728,12 +791,24 @@
                     alertBox('Please say why you are correcting this evaluation.');
                     return;
                 }
-                if (!confirm('Submit this correction? It replaces your previous evaluation and cannot be edited afterwards.')) {
+                if (!await hfConfirm({
+                    title: 'Submit this correction?',
+                    message: 'It replaces your previous evaluation as the one in force.',
+                    detail: 'Your original stays on the record and remains readable. A submitted correction cannot be edited.',
+                    confirmLabel: 'Submit correction',
+                    tone: 'warn'
+                })) {
                     return;
                 }
                 await api('/evaluations/' + evalMode.evaluationId + '/correct', 'POST', payload);
             } else if (submit) {
-                if (!confirm('Submit this evaluation? It cannot be edited afterwards — you would need to file a correction.')) {
+                if (!await hfConfirm({
+                    title: 'Submit this evaluation?',
+                    message: 'It becomes part of the applicant\'s record.',
+                    detail: 'It cannot be edited afterwards — you would have to file a correction, which is kept alongside it.',
+                    confirmLabel: 'Submit evaluation',
+                    tone: 'warn'
+                })) {
                     return;
                 }
                 await api('/' + evalMode.interviewId + '/evaluations', 'POST', payload);

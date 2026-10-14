@@ -5,23 +5,32 @@ namespace App\Http\Controllers\Recruitment;
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantApplication;
 use App\Services\Recruitment\ApplicantDocumentReview;
+use App\Models\Applicant\Offer;
+use App\Services\Recruitment\InterviewWorkload;
+use App\Services\Recruitment\OfferWorkflow;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * The screening queue: open applications that need HR to do something.
+ * The work queue: open applications that need HR to do something.
  *
- * This is a WORK QUEUE, not a stage. Nothing here changes an application's
- * status or position in the process — it only answers "what should I work on
- * next?" by reading state that already exists. Everything Phase 2.5 built
- * (document review, deadlines, assessment access) was reachable only by
- * opening one applicant at a time; this is the list that was missing.
+ * This is a WORK QUEUE, not a stage, and it was called Screening -- which
+ * made it look like the fourth step of the pipeline when it never was one.
+ * Nothing here changes an application's status or its position in the
+ * process; it only answers "what should I work on next?" by reading state
+ * that already exists. Everything Phase 2.5 built (document review,
+ * deadlines, assessment access) was reachable only by opening one applicant
+ * at a time; this is the list that was missing.
  *
  * Each row carries the ONE reason it is here, chosen by urgency, so the queue
  * can be worked top to bottom instead of read.
+ *
+ * The reasons are deliberately unchanged by the rename. As later stages land,
+ * this is where their actionable items join -- "evaluation outstanding",
+ * "ready for offer" -- each one routing to the module that does the work.
  */
-class ScreeningQueueController extends Controller
+class WorkQueueController extends Controller
 {
     /** A deadline this close is worth surfacing before it passes. */
     private const DUE_SOON_DAYS = 3;
@@ -34,21 +43,52 @@ class ScreeningQueueController extends Controller
     | end state, and in Phase 3 it becomes "ready to schedule".
     */
     private const REASONS = [
-        'deadline_passed'      => ['label' => 'Deadline passed',        'tone' => 'overdue'],
-        'deadline_soon'        => ['label' => 'Deadline approaching',   'tone' => 'attention'],
-        'documents_pending'    => ['label' => 'Documents to review',    'tone' => 'attention'],
-        'access_requested'     => ['label' => 'Assessment code asked',  'tone' => 'attention'],
-        'documents_incomplete' => ['label' => 'Documents outstanding',  'tone' => 'progress'],
-        'ready'                => ['label' => 'Ready to progress',      'tone' => 'done'],
+        'deadline_passed'       => ['label' => 'Deadline passed',         'tone' => 'overdue'],
+        'deadline_soon'         => ['label' => 'Deadline approaching',    'tone' => 'attention'],
+        'documents_pending'     => ['label' => 'Documents to review',     'tone' => 'attention'],
+        'access_requested'      => ['label' => 'Assessment code asked',   'tone' => 'attention'],
+        'documents_incomplete'  => ['label' => 'Documents outstanding',   'tone' => 'progress'],
+
+        /*
+        | The interview reasons, added below the original five on purpose.
+        |
+        | All five above keep the precedence they already had, so an
+        | application that raised "documents to review" yesterday raises it
+        | today. What these replace is the FALLBACK: an application with
+        | nothing wrong used to read "Ready to progress", which is true and
+        | says nothing about what to do. Now it names the actual next act.
+        |
+        | Every one is derived from a record that exists -- a scheduled
+        | interview, an assignment without an evaluation, a held round whose
+        | step is still open. None is inferred from a status.
+        */
+        'interview_outcome'     => ['label' => 'Interview needs an outcome', 'tone' => 'overdue'],
+        'evaluation_outstanding' => ['label' => 'Evaluation outstanding',  'tone' => 'attention'],
+        'interview_decision'    => ['label' => 'Round awaiting decision',  'tone' => 'attention'],
+        'interview_to_schedule' => ['label' => 'Interview to schedule',    'tone' => 'progress'],
+
+        /*
+        | The offer reasons.
+        |
+        | Each is a fact about an offer record, not a guess from a status:
+        | an issued offer past the date it stood until, an offer accepted and
+        | not yet turned into a hire, and an application whose steps are all
+        | finished with no offer against it.
+        */
+        'offer_lapsed'          => ['label' => 'Offer has lapsed',        'tone' => 'overdue'],
+        'offer_accepted'        => ['label' => 'Offer accepted',          'tone' => 'attention'],
+        'offer_to_make'         => ['label' => 'Ready for an offer',      'tone' => 'progress'],
+
+        'ready'                 => ['label' => 'Ready to progress',       'tone' => 'done'],
     ];
 
     public function index()
     {
         return view('pages.recruitment', [
             'main_link' => 'recruitment',
-            'sub_link' => 'screening',
-            'maincat' => 'screening',
-            'page' => 'pages.recruitment.screening.index-content',
+            'sub_link' => 'work-queue',
+            'maincat' => 'work-queue',
+            'page' => 'pages.recruitment.work-queue.index-content',
             'reasons' => self::REASONS,
         ]);
     }
@@ -99,9 +139,38 @@ class ScreeningQueueController extends Controller
 
         $titles = $this->postingTitles($applications);
 
-        $rows = $applications->map(function ($application) use ($documents, $accessRequests, $titles) {
+        /*
+        | What the interviews still need, per application.
+        |
+        | Derived by InterviewWorkload, which the Interviews workspace reads
+        | too, so "needs scheduling" cannot mean one thing on that page and
+        | another here. Null when this user may not see interviews: the queue
+        | then simply cannot raise an interview reason for them, exactly as it
+        | already behaves for documents.
+        */
+        $interviews = Gate::allows('applicant-interviews.view')
+            ? $this->interviewActions()
+            : [];
+
+        /*
+        | Offers outstanding, for whoever may act on them.
+        |
+        | Gated on the right that governs hiring decisions, exactly as the
+        | document reasons are gated on seeing documents: a user who cannot
+        | act on an offer is not told there is one waiting.
+        */
+        $offers = Gate::allows('applicant-applications.decide')
+            ? $this->offerActions($applications)
+            : [];
+
+        $rows = $applications->map(function ($application) use ($documents, $accessRequests, $titles, $interviews, $offers) {
             $docs = $documents[$application->app_id] ?? null;
-            $reason = $this->reasonFor($application, $docs, $accessRequests);
+            $reason = $this->reasonFor(
+                $application,
+                $docs,
+                $accessRequests,
+                $offers[$application->id] ?? $interviews[$application->id] ?? null
+            );
 
             return [
                 'id' => $application->id,
@@ -153,7 +222,7 @@ class ScreeningQueueController extends Controller
      * Returns 'ready' when nothing is outstanding — that is not an error
      * state, it is the application waiting for HR to move it forward.
      */
-    private function reasonFor($application, ?array $docs, $accessRequests): array
+    private function reasonFor($application, ?array $docs, $accessRequests, ?array $interview = null): array
     {
         // An open document process with a deadline outranks everything: it is
         // the only thing here that closes an application on its own.
@@ -210,11 +279,149 @@ class ScreeningQueueController extends Controller
             ];
         }
 
+        /*
+        | Nothing is wrong, so say what happens next.
+        |
+        | This sits where "Ready to progress" used to be the only answer. The
+        | five reasons above are untouched: an application that matched one of
+        | them still matches it and still reads the same. Only the fallback
+        | has become more specific.
+        |
+        | One reason per application, the most pressing first, so the same
+        | outstanding act is never listed twice.
+        */
+        if ($interview) {
+            return $interview;
+        }
+
         return [
             'key' => 'ready',
             'detail' => $docs ? 'Documents complete' : 'Nothing outstanding',
             'deadline' => null,
         ];
+    }
+
+    /**
+     * One interview reason per application, most pressing first.
+     *
+     * Read from InterviewWorkload so the rule lives in one place. The order
+     * here is the order HR should act: an interview whose time has passed and
+     * that nobody has said happened yet blocks everything behind it; a round
+     * nobody has written up blocks the decision; a decision blocks the next
+     * round; and a round with no date at all is the ordinary next task.
+     *
+     * @return array<int, array{key: string, detail: string, deadline: ?string}>
+     *         keyed by application id
+     */
+    /**
+     * One offer reason per application, most pressing first.
+     *
+     * Read from the offer records themselves. "Ready for an offer" is the
+     * eligibility OfferWorkflow already defines -- every recruitment step
+     * settled and no offer in play -- so the queue and the Offer page can
+     * never disagree about who is ready.
+     *
+     * An offer reason outranks an interview one because an application with
+     * a live offer has, by that same definition, no interview steps left
+     * outstanding; the two cannot both be true of the same application.
+     *
+     * @return array<int, array{key: string, detail: string, deadline: ?string}>
+     */
+    private function offerActions($applications): array
+    {
+        $byApplication = [];
+
+        $offers = Offer::whereIn('application_id', $applications->pluck('id'))->get();
+
+        /* Nothing outstanding on a settled offer except an accepted one,
+           which is waiting on the hire being recorded. */
+        foreach ($offers as $offer) {
+            if ($offer->status === Offer::ACCEPTED) {
+                $byApplication[(int) $offer->application_id] = [
+                    'key' => 'offer_accepted',
+                    'detail' => 'Accepted ' . ($offer->responded_at?->diffForHumans() ?? '')
+                        . ' — record the hire on the application when it happens',
+                    'deadline' => null,
+                ];
+
+                continue;
+            }
+
+            if ($offer->hasLapsed()) {
+                $byApplication[(int) $offer->application_id] = [
+                    'key' => 'offer_lapsed',
+                    'detail' => 'Issued offer stood until ' . $offer->expires_at->toFormattedDateString()
+                        . ' and has had no answer',
+                    'deadline' => $offer->expires_at->toDateString(),
+                ];
+            }
+        }
+
+        /* Ready, and nothing raised yet. Asked of OfferWorkflow so there is
+           one definition of ready. */
+        foreach ($applications as $application) {
+            if (isset($byApplication[(int) $application->id])) {
+                continue;
+            }
+
+            if (OfferWorkflow::eligibility((int) $application->id)['eligible']) {
+                $byApplication[(int) $application->id] = [
+                    'key' => 'offer_to_make',
+                    'detail' => 'Every recruitment step is settled — no offer raised yet',
+                    'deadline' => null,
+                ];
+            }
+        }
+
+        return $byApplication;
+    }
+
+    private function interviewActions(): array
+    {
+        $work = InterviewWorkload::collect();
+        $byApplication = [];
+
+        /* Most pressing last, so each assignment overwrites a lesser one and
+           the most pressing is what remains. */
+        foreach ($work['needs_scheduling'] as $row) {
+            $byApplication[$row['application_id']] = [
+                'key' => 'interview_to_schedule',
+                'detail' => $row['round'] . ' has no date yet',
+                'deadline' => null,
+            ];
+        }
+
+        foreach ($work['evaluations_outstanding'] as $row) {
+            $byApplication[$row['application_id']] = $row['kind'] === 'decision'
+                ? [
+                    'key' => 'interview_decision',
+                    'detail' => $row['round'] . ' is written up and waiting on a decision',
+                    'deadline' => null,
+                ]
+                : [
+                    'key' => 'evaluation_outstanding',
+                    'detail' => $row['round'] . ' — waiting on ' . implode(', ', $row['awaiting']),
+                    'deadline' => null,
+                ];
+        }
+
+        /* Only the ones whose time has passed. A scheduled interview that has
+           not happened yet is not an outstanding act; it is a diary entry, and
+           the Interviews page is where diaries are read. */
+        foreach ($work['due'] as $row) {
+            if (empty($row['overdue'])) {
+                continue;
+            }
+
+            $byApplication[$row['application_id']] = [
+                'key' => 'interview_outcome',
+                'detail' => $row['round'] . ' was ' . Carbon::parse($row['scheduled_at'])->diffForHumans()
+                    . ' — record whether it happened',
+                'deadline' => $row['scheduled_at'],
+            ];
+        }
+
+        return $byApplication;
     }
 
     /**

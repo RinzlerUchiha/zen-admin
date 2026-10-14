@@ -154,6 +154,23 @@ Route::middleware(['auth'])->group(function () {
         ->name('applicant.')
         ->group(function () {
             Route::get('list', [ApplicantProfileController::class, 'index'])->name('index');
+
+            /*
+            | Blacklisting the APPLICANT (Phase 3).
+            |
+            | Here rather than with the intake or the per-application
+            | decisions: it bars the PERSON from making a new application at
+            | all, so it is not an action on one application and not a step in
+            | intake. Same decide right as HR's other judgements about an
+            | applicant -- the same authority exercised more widely, not a new
+            | one.
+            */
+            Route::post('{id}/blacklist', [\App\Http\Controllers\Applicant\ApplicantBlacklistController::class, 'store'])
+                ->whereNumber('id')
+                ->middleware('can:applicant-applications.decide')->name('blacklist.store');
+            Route::post('{id}/blacklist/lift', [\App\Http\Controllers\Applicant\ApplicantBlacklistController::class, 'lift'])
+                ->whereNumber('id')
+                ->middleware('can:applicant-applications.decide')->name('blacklist.lift');
             Route::get('info/{id}/{tab?}', [ApplicantProfileController::class, 'show'])->name('show');
             Route::get('form/hire/{id}', [ApplicantProfileController::class, 'showFormHireContent'])
                 ->middleware('can:applicant.hire')->name('form.hire');
@@ -331,6 +348,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{jobPosting}/channels', [JobPostingController::class, 'channels'])->name('channels.index');
         Route::put('/{jobPosting}/channels', [JobPostingController::class, 'updateChannels'])->name('channels.update');
         // Photos shown beside the posting on the careers page (its Job Specification's).
+        /* The create form's doors: composing an ad and managing photos while
+           the posting is still being written, addressed by the POSITION it is
+           being raised against. Three segments where the {jobPosting} routes
+           have two, so the two sets cannot match the same URL and the order
+           between them decides nothing. */
+        Route::get('/draft/{position}/suggest-ad', [JobPostingController::class, 'draftSuggestAd'])->name('draft.suggest-ad');
+        Route::get('/draft/{position}/photos', [JobPostingPhotoController::class, 'draftIndex'])->name('draft.photos.index');
+        Route::post('/draft/{position}/photos', [JobPostingPhotoController::class, 'draftStore'])->name('draft.photos.store');
+        Route::get('/draft/{position}/photos/{name}', [JobPostingPhotoController::class, 'draftShow'])->name('draft.photos.show');
+        Route::delete('/draft/{position}/photos/{name}', [JobPostingPhotoController::class, 'draftDestroy'])->name('draft.photos.destroy');
+
         Route::get('/{jobPosting}/photos', [JobPostingPhotoController::class, 'index'])->name('photos.index');
         Route::post('/{jobPosting}/photos', [JobPostingPhotoController::class, 'store'])->name('photos.store');
         Route::get('/{jobPosting}/photos/{name}', [JobPostingPhotoController::class, 'show'])->name('photos.show');
@@ -370,6 +398,49 @@ Route::middleware(['auth'])->group(function () {
                     ->whereNumber('interview')->name('notes.add');
                 Route::patch('/notes/{note}', [\App\Http\Controllers\Recruitment\InterviewController::class, 'editNote'])
                     ->whereNumber('note')->name('notes.edit');
+
+                /*
+                | Evaluating, and saying what happened at the interview.
+                |
+                | These were behind applicant-applications.decide, which is
+                | the wrong axis. Deciding an application is an HR judgement;
+                | evaluating an interview is something the person who sat in
+                | the room does, and the two are different people more often
+                | than not. The effect was that an assigned interviewer who
+                | was not also an HR decision-maker got a 403 from this app
+                | and had to go to Zen-Hub to submit the evaluation that
+                | zen-admin was already showing them a form for.
+                |
+                | The gate is now the same one notes use, for the same reason,
+                | and -- as with notes -- the right is only a key to the door:
+                | InterviewEvaluationService::assignedNameOrFail() and
+                | InterviewScheduling::guardAttendanceActor() decide who may
+                | actually write, and refuse anyone not on this interview.
+                |
+                | This WIDENS nothing by itself. applicant-interviews.view is
+                | already required to read the page these buttons are on.
+                */
+                Route::post('/{interview}/evaluations/draft', [\App\Http\Controllers\Recruitment\InterviewController::class, 'saveDraft'])
+                    ->whereNumber('interview')->name('evaluations.draft');
+                Route::post('/{interview}/evaluations', [\App\Http\Controllers\Recruitment\InterviewController::class, 'submitEvaluation'])
+                    ->whereNumber('interview')->name('evaluations.submit');
+                Route::post('/evaluations/{evaluation}/correct', [\App\Http\Controllers\Recruitment\InterviewController::class, 'correctEvaluation'])
+                    ->whereNumber('evaluation')->name('evaluations.correct');
+
+                /*
+                | Whether the interview happened.
+                |
+                | The interviewer is the one who knows. Held and Did Not
+                | Attend are observations, not decisions about the
+                | application, so they sit here with the evaluation rather
+                | than with the HR decisions below. The service refuses
+                | anyone who is neither assigned to the interview nor an HR
+                | decision-maker.
+                */
+                Route::post('/{interview}/held', [\App\Http\Controllers\Recruitment\InterviewController::class, 'markHeld'])
+                    ->whereNumber('interview')->name('held');
+                Route::post('/{interview}/no-show', [\App\Http\Controllers\Recruitment\InterviewController::class, 'markNoShow'])
+                    ->whereNumber('interview')->name('no-show');
             });
 
             Route::middleware('can:applicant-applications.decide')->group(function () {
@@ -387,21 +458,17 @@ Route::middleware(['auth'])->group(function () {
                 Route::delete('/{interview}/interviewers/{empno}', [\App\Http\Controllers\Recruitment\InterviewController::class, 'unassignInterviewer'])
                     ->whereNumber('interview')->name('interviewers.unassign');
 
-                // What happened
-                Route::post('/{interview}/held', [\App\Http\Controllers\Recruitment\InterviewController::class, 'markHeld'])
-                    ->whereNumber('interview')->name('held');
+                /*
+                | Cancelling stays an HR decision.
+                |
+                | Held and Did Not Attend moved up to the view group with the
+                | evaluations: they report what happened. Cancelling is a
+                | decision to call the interview off, which is HR's, and an
+                | interviewer who cannot make it should be unassigned or the
+                | interview rescheduled -- both of which are also HR's.
+                */
                 Route::post('/{interview}/cancel', [\App\Http\Controllers\Recruitment\InterviewController::class, 'cancel'])
                     ->whereNumber('interview')->name('cancel');
-                Route::post('/{interview}/no-show', [\App\Http\Controllers\Recruitment\InterviewController::class, 'markNoShow'])
-                    ->whereNumber('interview')->name('no-show');
-
-                // Evaluating
-                Route::post('/{interview}/evaluations/draft', [\App\Http\Controllers\Recruitment\InterviewController::class, 'saveDraft'])
-                    ->whereNumber('interview')->name('evaluations.draft');
-                Route::post('/{interview}/evaluations', [\App\Http\Controllers\Recruitment\InterviewController::class, 'submitEvaluation'])
-                    ->whereNumber('interview')->name('evaluations.submit');
-                Route::post('/evaluations/{evaluation}/correct', [\App\Http\Controllers\Recruitment\InterviewController::class, 'correctEvaluation'])
-                    ->whereNumber('evaluation')->name('evaluations.correct');
 
                 // Rounds and stage
                 Route::post('/steps', [\App\Http\Controllers\Recruitment\InterviewController::class, 'addStep'])->name('steps.add');
@@ -413,11 +480,77 @@ Route::middleware(['auth'])->group(function () {
             });
         });
 
-    // The screening work queue: what HR should act on next. A view over state
-    // that already exists — it changes no application's status or stage.
-    Route::prefix('recruitment/screening')->name('recruitment.screening.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Recruitment\ScreeningQueueController::class, 'index'])->name('index');
-        Route::get('/data', [\App\Http\Controllers\Recruitment\ScreeningQueueController::class, 'data'])->name('data');
+    /*
+    | Every interview HR has, across applications.
+    |
+    | A lens over the per-application interview pages, not a second workflow:
+    | it reads and nothing else, and every row links back to the page that
+    | actually schedules, assigns, marks held and evaluates. Gated on the same
+    | right that page uses, so it exposes nothing new.
+    */
+    Route::prefix('recruitment/interviews')->name('recruitment.interviews-workspace.')
+        ->middleware('can:applicant-interviews.view')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\Recruitment\InterviewWorkspaceController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\Recruitment\InterviewWorkspaceController::class, 'data'])->name('data');
+        });
+
+    /*
+    | The work queue: what HR should act on next.
+    |
+    | A view over state that already exists — it changes no application's
+    | status or stage. It was called Screening, which made a work list look
+    | like a pipeline stage; the queue itself is unchanged.
+    */
+    Route::prefix('recruitment/work-queue')->name('recruitment.work-queue.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Recruitment\WorkQueueController::class, 'index'])->name('index');
+        Route::get('/data', [\App\Http\Controllers\Recruitment\WorkQueueController::class, 'data'])->name('data');
+    });
+
+    /* The old address still works. Anybody who bookmarked the queue when it
+       was called Screening keeps their link. */
+    Route::redirect('/recruitment/screening', '/recruitment/work-queue');
+    Route::redirect('/recruitment/screening/data', '/recruitment/work-queue/data');
+
+    /*
+    | Offers.
+    |
+    | An offer is terms put to somebody and their answer — not a stage of the
+    | application and not a hire. Reading is open to anyone who may see the
+    | pipeline; every change is a hiring decision and carries the right that
+    | already governs those.
+    */
+    Route::prefix('recruitment/offers')->name('recruitment.offers.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Recruitment\OfferController::class, 'index'])->name('index');
+        Route::get('/data', [\App\Http\Controllers\Recruitment\OfferController::class, 'data'])->name('data');
+        Route::get('/{offer}', [\App\Http\Controllers\Recruitment\OfferController::class, 'show'])
+            ->whereNumber('offer')->name('show');
+
+        Route::middleware('can:applicant-applications.decide')->group(function () {
+            Route::post('/', [\App\Http\Controllers\Recruitment\OfferController::class, 'store'])->name('store');
+            Route::patch('/{offer}', [\App\Http\Controllers\Recruitment\OfferController::class, 'update'])
+                ->whereNumber('offer')->name('update');
+            Route::post('/{offer}/transition', [\App\Http\Controllers\Recruitment\OfferController::class, 'transition'])
+                ->whereNumber('offer')->name('transition');
+        });
+    });
+
+    /*
+    | The Candidate Pool, as a place rather than a filter.
+    |
+    | People who did not go forward on one application and whose record is
+    | kept: withdrawn, non-responsive, not selected. It was reachable only as
+    | a chip on the intake list and through a JSON endpoint nothing rendered,
+    | so the one question it exists to answer -- "who have we already met who
+    | might suit this new post?" -- had nowhere to be asked.
+    |
+    | The feed is the SAME method the intake chip already used, at a second
+    | address. One query, one set of rules; the old URL keeps working for
+    | anything still calling it.
+    */
+    Route::prefix('recruitment/candidate-pool')->name('recruitment.candidate-pool.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Recruitment\CandidatePoolController::class, 'index'])->name('index');
+        Route::get('/data', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'candidatePool'])->name('data');
     });
 
     Route::prefix('recruitment/applicant-intake')->name('recruitment.applicant-intake.')->group(function () {
@@ -432,6 +565,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/intake-sources', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'intakeSources'])->name('intake-sources');
         Route::post('/acquired', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'storeAcquired'])
             ->middleware('can:applicant-applications.decide')->name('acquired');
+
+        /* "Do we already know this person?" — asked before the intake form is
+           filled in, so a duplicate or a blacklisted applicant is found at the
+           start rather than at the end. Read-only. */
+        Route::get('/lookup', [\App\Http\Controllers\Recruitment\ApplicantIntakeController::class, 'lookupApplicant'])
+            ->middleware('can:applicant-applications.decide')->name('lookup');
 
         /*
         | Controlled entry points: the office kiosk and job-fair events.

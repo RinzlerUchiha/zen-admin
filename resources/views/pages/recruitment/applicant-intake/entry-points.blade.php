@@ -103,9 +103,10 @@
             <span class="ep-title">Walk-in Mode</span>
             <span class="ep-state is-off" id="ep-walkin-state">Inactive</span>
         </div>
-        <div class="ep-sub">
-            The office PC. Anyone who applies after opening this link is recorded as a
-            <strong>Walk-in</strong> — they still register and apply themselves, as normal.
+        {{-- The explanation is on the control rather than under it: HR reads
+             this once and then only ever needs the state. --}}
+        <div class="ep-sub" title="Anyone who applies after opening this link is recorded as a Walk-in. They still register and apply themselves, as normal.">
+            The office PC. Applications opened from it are recorded as <strong>Walk-in</strong>.
         </div>
         <div id="ep-walkin-body"></div>
     </section>
@@ -121,8 +122,8 @@
                 </button>
             @endcan
         </div>
-        <div class="ep-sub">
-            One entry per event, so you can tell which fair produced which applications.
+        <div class="ep-sub" title="One entry per event, so you can tell which fair produced which applications.">
+            One entry per event.
         </div>
         <div id="ep-fairs-body"></div>
     </section>
@@ -349,8 +350,13 @@
         });
 
         $('#ep-walkin, #ep-fairs').on('click', '.ep-deactivate', async function () {
-            if (!confirm('Close this entry point? Its link and QR stop working immediately. '
-                       + 'Applications already recorded against it are kept.')) { return; }
+            if (!await hfConfirm({
+                title: 'Close this entry point?',
+                message: 'Its link and QR code stop working immediately.',
+                detail: 'Applications already recorded against it are kept, and so are its figures.',
+                confirmLabel: 'Close entry point',
+                tone: 'warn'
+            })) { return; }
 
             const id = $(this).data('id');
             $(this).prop('disabled', true).text('Closing…');

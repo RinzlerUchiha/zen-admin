@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantApplication;
+use App\Services\Recruitment\ApplicantBlacklist;
 use App\Services\Recruitment\ApplicationDecision;
 use App\Services\Recruitment\ApplicationRecommendationService;
 use Illuminate\Http\Request;
@@ -25,8 +26,29 @@ class ApplicationRecommendationController extends Controller
     /** The postings HR can choose from, with reasons for those they cannot. */
     public function targets($application)
     {
+        /*
+        | Why nothing can be chosen, when the obstacle is the applicant rather
+        | than any particular posting.
+        |
+        | A blacklist bars the PERSON, so it is not a property of a posting and
+        | writing "blacklisted" onto all forty of them would be the wrong
+        | shape -- HR would read it as forty separate problems. It is said
+        | once, here, and the dialog puts it above the selector.
+        |
+        | This only explains the refusal. It does not enforce it:
+        | ApplicationRecommendationService::recommend() refuses inside the
+        | lock whether or not this was ever fetched.
+        */
+        $app = ApplicantApplication::find((int) $application);
+
+        $blocked = $app && ApplicantBlacklist::isBlacklisted((int) $app->app_id)
+            ? 'This applicant is blacklisted, so no new application can be created for them. '
+                . 'Lift the blacklist on their profile first if that is no longer right.'
+            : null;
+
         return response()->json([
             'targets' => ApplicationRecommendationService::targetsFor((int) $application),
+            'blocked' => $blocked,
         ]);
     }
 

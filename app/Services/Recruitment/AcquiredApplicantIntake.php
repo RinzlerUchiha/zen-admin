@@ -102,6 +102,14 @@ class AcquiredApplicantIntake
             $existing = self::findExisting($applicantConn, $data);
             $appId = $existing ? (int) $existing->app_id : self::openAccount($applicantConn, $data);
 
+            /*
+            | A blacklisted applicant gets no new application, however they
+            | arrived. Checked after the account is found or opened, because
+            | the bar is on the person and an existing account is how we know
+            | which person this is.
+            */
+            ApplicantBlacklist::guardNewApplication($appId);
+
             $alreadyApplied = $applicantConn->table('tblapp_applications')
                 ->where('app_id', $appId)
                 ->where('job_posting_id', $posting->id)
@@ -140,6 +148,25 @@ class AcquiredApplicantIntake
             $applicantConn->table('tblapp_persinfo')
                 ->where('app_id', $appId)
                 ->update(['app_posapplied' => $posting->posting_title ?? '']);
+
+            /*
+            | An application that is still open gets its workflow now, so HR
+            | can schedule the Initial Interview against it. Without this the
+            | application has no steps at all and the interview page has
+            | nothing to offer.
+            |
+            | A closed one does not: Not Selected at the door is decided and
+            | finished, and there is no recruitment process ahead of it to
+            | record. Hired stays open, so it does get one -- requirements and
+            | exams are still to come.
+            */
+            if (!$closed) {
+                ApplicationWorkflow::initialize(
+                    (int) $applicationId,
+                    $empno,
+                    'Recorded by HR at intake'
+                );
+            }
 
             self::countChannelApplication((int) $posting->id, $source);
 

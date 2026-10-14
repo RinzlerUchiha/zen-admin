@@ -14,6 +14,8 @@ use App\Models\User;
 use App\Services\Recruitment\ApplicantDocumentReview;
 use App\Services\Recruitment\AssessmentAccessCodes;
 use App\Services\Recruitment\AssessmentResults;
+use App\Services\Recruitment\AssessmentEligibility;
+use App\Services\Recruitment\ApplicantBlacklist;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -80,29 +82,84 @@ class ApplicantProfileController extends Controller
                 ->orderBy('tblapp_persinfo.app_id', 'desc')
                 ->get();
 
+            /*
+            | Who on THIS page is barred.
+            |
+            | One query for the page, not one per row, and only for the ids
+            | actually being returned -- the list is paginated server-side, so
+            | this never asks about more than $request->length applicants.
+            |
+            | The flag only. The reason is HR's own note and stays on the
+            | profile with the decision and its history.
+            */
+            $barred = ApplicantBlacklist::flagsFor(
+                $applicants->pluck('app_id')->map(fn ($id) => (int) $id)->all()
+            );
+
             return response()->json([
                 "draw"            => intval($request->draw),
                 "recordsTotal"    => $totalRecords,
                 "recordsFiltered" => $filteredRecords,
-                "data"            => $applicants->map(function ($applicant) {
+                "data"            => $applicants->map(function ($applicant) use ($barred) {
                     return [
                         'name' => $applicant->name,
                         'date_created' => $applicant->date_created,
                         'email' => $applicant->email,
                         'contact' => $applicant->contact,
                         'position' => $applicant->position,
+                        'blacklisted' => isset($barred[(int) $applicant->app_id]),
                         'show_url'  => route('applicant.show', $applicant->app_id),
                     ];
                 }),
             ]);
         }
 
-        // Normal page load
-        return view('pages.applicant.index', [
-            'main_link' => 'applicant',
-            'sub_link' => '',
-            'maincat' => ''
+        /*
+        | The register renders inside the Recruitment workspace.
+        |
+        | It used to return its own layout, which dropped HR out of the
+        | pipeline the moment they opened it: no sidebar, no Applicants
+        | submenu, no way back. maincat 'applicants' is what lights the group
+        | and marks Register in that submenu.
+        |
+        | Only the shell changed. The query, the DataTables feed above and
+        | every permission on this controller are untouched.
+        */
+        return view('pages.recruitment', [
+            'main_link' => 'recruitment',
+            'sub_link' => 'register',
+            'maincat' => 'applicants',
+            'page' => 'pages.applicant.register-content',
         ]);
+    }
+
+    /**
+     * A return link to the Applicant Intake list that cannot leave this site.
+     *
+     * Accepts a relative path under /recruitment/applicant-intake, with its
+     * query string, and nothing else. A scheme, a host, a protocol-relative
+     * "//elsewhere" or any other path falls back to the plain list.
+     */
+    private static function safeIntakeReturn($from): string
+    {
+        $default = route('recruitment.applicant-intake.index');
+
+        if (!is_string($from) || $from === '') {
+            return $default;
+        }
+
+        // Must be a site-relative path, never "//host" or "https://host".
+        if (!str_starts_with($from, '/') || str_starts_with($from, '//')) {
+            return $default;
+        }
+
+        $path = parse_url($from, PHP_URL_PATH);
+
+        if (!is_string($path) || !str_starts_with($path, '/recruitment/applicant-intake')) {
+            return $default;
+        }
+
+        return $from;
     }
 
     public function show($id, $tab = 'personal')
@@ -119,6 +176,33 @@ class ApplicantProfileController extends Controller
             // 'position_list' => Setting::positionList(),
             // 'employment_status' => Setting::emplStatusList()
         ];
+
+        /*
+        | Whether this applicant is barred, and the whole history of that
+        | decision. The history is loaded with the page rather than fetched on
+        | demand: a lifted blacklist is part of what HR needs to know about
+        | somebody, not a detail to go looking for.
+        */
+        /*
+        | Where HR came from, so the profile can send them back to the list
+        | they were working rather than an unfiltered one.
+        |
+        | Taken from the request, so it is only ever as trustworthy as a query
+        | string -- which is to say not at all. It is accepted only if it is a
+        | relative path on the applicant-intake route; anything else, including
+        | an absolute URL to another host, is discarded for the plain default.
+        | A "return to" parameter is otherwise an open redirect.
+        */
+        $params['intakeReturn'] = self::safeIntakeReturn(request('from'));
+
+        $params['blacklist'] = ApplicantBlacklist::current((int) $applicant->app_id);
+        $params['blacklistHistory'] = ApplicantBlacklist::history((int) $applicant->app_id);
+
+        /*
+        | Where this applicant stands on the assessment prerequisite, so HR can
+        | see why issuing a code is or is not available before they try.
+        */
+        $params['assessmentEligibility'] = AssessmentEligibility::status((int) $applicant->app_id);
 
         // Where each assessment stands, for the menu and the result tab's header.
         if ($applicant) {
@@ -158,6 +242,50 @@ class ApplicantProfileController extends Controller
                 $link = $recommendationLinks[$application->id] ?? null;
                 $application->setAttribute('recommended_from', $link['from'] ?? null);
                 $application->setAttribute('recommended_to', $link['to'] ?? []);
+
+                /*
+                | Where this application has actually GOT to, and what it is
+                | waiting on.
+                |
+                | The overview could say what an applicant had applied for and
+                | what its status was, but not where it stood -- so "Applied"
+                | looked the same whether the initial interview was tomorrow or
+                | three rounds were already behind them. HR had to open the
+                | Interview Details tab to find out, for every application.
+                |
+                | Status and stage are different questions and both are shown:
+                | status is what was DECIDED, stage is what is being DONE.
+                | Only for applications still open; a closed one is not waiting
+                | on anything.
+                */
+                if ($application->closed_at === null) {
+                    $next = \App\Services\Recruitment\ApplicationWorkflow::nextStep($application->id);
+                    $application->setAttribute('stage_label', $next?->label);
+                    $application->setAttribute('stage_kind', $next?->kind);
+                    $application->setAttribute(
+                        'stage_done',
+                        $next === null && \App\Models\Applicant\ApplicationStep::forApplication($application->id)->exists()
+                    );
+                }
+
+                /*
+                | The shape of the journey, not just its next move.
+                |
+                | "Next: Final Interview" says what is outstanding but not how
+                | much is behind it, so an application one round in and one
+                | round from the end read identically. The steps are this
+                | application's own -- an extra Technical round shows as an
+                | extra mark, and Examinations marked not applicable stops
+                | being counted as outstanding.
+                |
+                | Loaded for closed applications too: where an application
+                | stopped is part of what happened to it, and a closed one
+                | that shows no journey at all loses that.
+                */
+                $application->setAttribute(
+                    'progress',
+                    \App\Services\Recruitment\ApplicationProgress::forApplication((int) $application->id)
+                );
             });
             $params['profileDocuments'] = \App\Services\Recruitment\ApplicantDocumentReview::summary((int) $applicant->app_id);
         }

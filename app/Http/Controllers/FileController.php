@@ -199,6 +199,32 @@ class FileController extends Controller
             $path = $path2;
         }
         
+        /*
+        | What to send when the file simply is not there.
+        |
+        | The default is a placeholder picture, served 200. That is what the
+        | pages showing documents and certificates want: something visible in
+        | the frame where a file was expected.
+        |
+        | It is quietly wrong for an avatar. A caller that draws the person's
+        | initials underneath the photo depends on the <img> FAILING, so its
+        | onerror can take the photo away and leave the initials showing --
+        | and a 200 never fails. HR got a 1.4 MB "FILE NOT AVAILABLE" graphic
+        | squeezed into a 42px circle instead, which is worse than no photo at
+        | all and happens on every machine whose disk does not hold the
+        | applicant images.
+        |
+        | Those callers ask for ?missing=skip and get a plain 404. Opt-in, so
+        | every existing caller keeps the placeholder it was written around.
+        */
+        $missing = function () {
+            if (request()->query('missing') === 'skip') {
+                abort(404, 'File not found.');
+            }
+
+            return response()->file(public_path('no-file.png'));
+        };
+
         // Check if file exists
         if (! $exists) {
             // abort(404, 'File not found.');
@@ -209,13 +235,12 @@ class FileController extends Controller
             });
 
             if (!$path) {
-                // fallback default image
-                return response()->file(public_path('no-file.png'));
+                return $missing();
             }
         }
 
         $stream = $disk->readStream($path);
-        if (! $stream) return response()->file(public_path('no-file.png'));
+        if (! $stream) return $missing();
 
         $mime = $disk->mimeType($path) ?: 'application/octet-stream';
 

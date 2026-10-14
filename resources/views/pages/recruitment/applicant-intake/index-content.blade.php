@@ -120,6 +120,40 @@
         padding: 1px 8px;
     }
 
+    /*
+     | Barred from new applications.
+     |
+     | The same warning colour Not Selected uses, because it is the same kind
+     | of fact -- a door that is shut -- and a third colour would only invite
+     | HR to work out what it meant. Smaller than a status chip: it sits beside
+     | the name rather than in the status column, and it must not out-shout the
+     | applications it is standing next to.
+     */
+    /* Sits with the filters, reading as a way out rather than another chip. */
+    .ai-pool-link {
+        margin-left: auto;
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+        color: var(--zn-accent-dark);
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .ai-pool-link:hover { text-decoration: underline; }
+
+    .ai-chip-barred {
+        background: var(--zn-warn-soft);
+        color: var(--zn-warn);
+    }
+
+    .ai-chip-xs {
+        padding: 1px 9px;
+        font-size: 11px;
+        vertical-align: middle;
+    }
+
+    .ai-chip-xs::before { width: 5px; height: 5px; }
+
     /* Any status not in the map renders neutral rather than borrowing
        another status's colour. */
     .ai-chip-unknown {
@@ -294,17 +328,34 @@
        One card per person. The person leads; their applications, documents
        and status sit with them instead of being spread across nine columns.
     */
-    /* Collapsed by default: HR opens this when they set up a fair, not every
-       time they work the applicant list. */
+    /*
+    | The entry points are shown, not hidden behind a disclosure.
+    |
+    | They used to be a <details> that HR had to open every time. Which doors
+    | are open -- Walk-in Mode, a running job fair -- is a thing to be SEEN,
+    | not remembered to go and check: a fair left switched on quietly tags
+    | every application that follows. A click to find that out is a click too
+    | many.
+    */
     .ai-entry-points {
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
         background: var(--zn-surface-2);
+        margin-bottom: 12px;
     }
 
-    .ai-entry-points > summary {
-        cursor: pointer;
+    /* Compact: this reports which doors are open, it is not the page's work,
+       and it used to take a third of the screen before a single applicant
+       appeared. */
+    .ai-entry-points > .ai-ep-head { padding: 7px 12px; }
+    .ai-entry-points .ai-ep-body { padding: 0 12px 10px; }
+    .ai-entry-points .ep-card { padding: 8px 10px; }
+    .ai-entry-points .ep-sub { margin: 2px 0 0; font-size: var(--zn-fs-xs); }
+
+    .ai-entry-points > .ai-ep-head {
+        margin: 0;
         padding: 10px 14px;
+        font-size: var(--zn-fs);
         font-weight: 600;
         color: var(--zn-ink);
         display: flex;
@@ -312,10 +363,86 @@
         gap: 10px;
         flex-wrap: wrap;
     }
-
-    .ai-entry-points > summary::marker { color: var(--zn-ink-3); }
     .ai-ep-hint { font-weight: 400; font-size: var(--zn-fs-sm); color: var(--zn-ink-3); }
     .ai-ep-body { padding: 0 14px 14px; }
+
+    /*
+    | Recording an applicant by hand.
+    |
+    | The dialog is a sequence of small questions rather than one block of
+    | fields: who is this, what are they called, how do they sign in, what for.
+    | The order matters -- the contact details come first because they are what
+    | the lookup needs, and the lookup is what tells HR whether they are
+    | creating an account or adding to one that already exists.
+    */
+    .ai-step-label {
+        margin: 14px 0 6px;
+        font-size: var(--zn-fs-xs);
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--zn-ink-3);
+    }
+    .ai-step-label:first-of-type { margin-top: 4px; }
+
+    /* The answer to "do we already know this person?". */
+    .ai-known {
+        margin: 8px 0 2px;
+        padding: 10px 12px;
+        border: 1px solid var(--zn-accent);
+        border-left-width: 4px;
+        border-radius: var(--zn-radius);
+        background: var(--zn-accent-soft);
+    }
+
+    /* Blacklisted is a refusal, not a convenience, so it does not wear the
+       same colour as "we found them". */
+    .ai-known.is-blocked {
+        border-color: var(--zn-warn);
+        background: var(--zn-warn-soft);
+    }
+
+    .ai-known-title {
+        margin: 0;
+        font-weight: 700;
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-accent-dark);
+    }
+    .ai-known.is-blocked .ai-known-title { color: var(--zn-warn); }
+
+    .ai-known-name { margin: 1px 0 0; font-weight: 600; }
+    .ai-known-note { margin: 3px 0 0; font-size: var(--zn-fs-sm); color: var(--zn-ink-2); }
+
+    .ai-known-apps {
+        margin: 6px 0 0;
+        padding-left: 18px;
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-2);
+    }
+
+    .ai-known-link {
+        display: inline-block;
+        margin-top: 6px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 600;
+    }
+
+    /* The sign-in details, shown once after saving. The code is stored hashed,
+       so this is genuinely the only time it can be read. */
+    .ai-added-hand {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        align-items: baseline;
+        font-size: var(--zn-fs-sm);
+    }
+    .ai-added-hand span {
+        padding: 2px 8px;
+        border-radius: var(--zn-radius);
+        background: var(--zn-surface);
+        border: 1px solid var(--zn-line);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
 
     .ai-toolbar {
         display: flex;
@@ -325,9 +452,35 @@
         margin: 4px 0 12px;
     }
 
-    .ai-result-count { font-size: var(--zn-fs-sm); color: var(--zn-ink-3); margin-right: auto; }
+    .ai-result-count { font-size: var(--zn-fs-sm); color: var(--zn-ink-3); white-space: nowrap; }
 
-    .ai-search-wrap { position: relative; display: inline-flex; align-items: center; }
+    /* The primary action keeps its place at the end of the toolbar rather than
+       being pushed around by how wide the search happens to be. */
+    .ai-toolbar .ai-add { flex: none; margin-left: auto; }
+
+    /*
+    | The search leads the toolbar and takes the room left over, so it is the
+    | widest thing on the row rather than an afterthought at the right-hand
+    | edge. The magnifier sits inside it, which is what makes it read as a
+    | search box at a glance rather than a text field.
+    */
+    .ai-search-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+        flex: 1 1 260px;
+        min-width: 0;
+    }
+
+    .ai-search-ico {
+        position: absolute;
+        left: 10px;
+        color: var(--zn-ink-3);
+        pointer-events: none;
+        font-size: 14px;
+    }
+
+    .ai-search-wrap input[type="search"] { padding-left: 30px; }
 
     .ai-search-wrap input[type="search"] {
         border: 1px solid var(--zn-line);
@@ -391,6 +544,32 @@
 
     .ai-card-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
     .ai-card-name { font-weight: 700; color: var(--zn-ink); }
+
+    /* The name goes straight to the profile. Not underlined at rest, because
+       every row would then be a line of blue rules; underlined on hover and
+       always outlined on focus, so it is still obviously a link. */
+    .ai-card-link { color: inherit; text-decoration: none; }
+    .ai-card-link:hover { color: var(--zn-accent-dark); text-decoration: underline; }
+    .ai-card-link:focus-visible { outline: 2px solid var(--zn-accent); outline-offset: 2px; border-radius: 3px; }
+
+    /*
+    | The photo sits over the initials rather than instead of them.
+    |
+    | A photo that cannot be loaded -- removed, or simply not on this
+    | machine's disk -- then falls back to something readable instead of a
+    | broken-image icon, which is worse than no photo at all.
+    */
+    .ai-avatar { position: relative; overflow: hidden; }
+    .ai-avatar-initials { position: absolute; inset: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .ai-avatar img { position: relative; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    /* One control, so it should look like one rather than like a word. */
+    .ai-dots { line-height: 1; padding: 2px 9px; font-size: 15px; letter-spacing: 1px; }
+
+    .ai-actions-menu { max-width: min(320px, calc(100vw - 32px)); }
+    .ai-actions-menu .dropdown-item { white-space: normal; }
+    .ai-actions-menu .dropdown-item b { display: block; }
+    .ai-actions-menu .dropdown-item small { display: block; color: var(--zn-ink-3); }
 
     .ai-card-sub {
         display: block;
@@ -730,6 +909,59 @@
         </div>
     @endif
 
+    {{--
+        Controlled entry points.
+
+        A status strip, not a panel. Which doors are open is something HR needs
+        to SEE -- a job fair left switched on silently tags every application
+        after it -- but it is not what the page is for, and it used to sit
+        between the filters and the list taking a third of the screen before
+        a single applicant appeared.
+
+        Source tracking only: these decide what an application's source is
+        recorded as, nothing about its progress.
+    --}}
+    <section class="ai-entry-points" id="ai-entry-points" aria-labelledby="ai-ep-heading">
+        <h2 class="ai-ep-head" id="ai-ep-heading">
+            <span>Application entry points</span>
+            <span class="ai-ep-hint">Walk-in Mode &amp; Job Fair events</span>
+        </h2>
+        <div class="ai-ep-body">
+            @include('pages.recruitment.applicant-intake.entry-points')
+        </div>
+    </section>
+
+    {{--
+        One toolbar, directly above the list it controls.
+
+        Searching was the thing HR reached for first and it was the last thing
+        on the page -- below the entry points, pushed to the right-hand edge,
+        narrower than the filter chips above it. It leads now, at the width it
+        deserves, with the filters beside it and the count of what they left.
+    --}}
+    <div class="ai-toolbar" role="group" aria-label="Find applicants">
+        <div class="ai-search-wrap">
+            <i class="bi bi-search ai-search-ico" aria-hidden="true"></i>
+            <input type="search" id="ai-search" aria-label="Search applicants"
+                placeholder="Search name, email, position, MR no…">
+            <button type="button" id="ai-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+        </div>
+
+        <select id="ai-posting-filter" class="form-select form-select-sm" aria-label="Filter by position">
+            <option value="">Every position</option>
+        </select>
+
+        @can('applicant-applications.decide')
+            {{-- Walk-ins, referrals and job-fair candidates. HR opens the
+                 account here; the applicant signs in at the desk and fills in
+                 their own details, so there is no second intake workflow. --}}
+            <button type="button" class="btn btn-sm btn-primary ai-add" id="ai-add-btn"
+                data-bs-toggle="modal" data-bs-target="#aiWalkInModal">
+                <i class="bi bi-person-plus"></i> Record applicant
+            </button>
+        @endcan
+    </div>
+
     <div class="ai-filters" role="group" aria-label="Filter applications">
         <div class="ai-filter-chips">
             <button type="button" class="ai-filter is-on" data-filter="all">All applicants</button>
@@ -741,39 +973,12 @@
                  exist in tblapp_persinfo with no application rows. --}}
             <button type="button" class="ai-filter" data-filter="no-application">Registered, no application</button>
         </div>
-        <select id="ai-posting-filter" class="form-select form-select-sm" aria-label="Filter by position">
-            <option value="">Every position</option>
-        </select>
-    </div>
-
-    {{-- Controlled entry points. Source tracking only: these decide what an
-         application's source is recorded as, nothing about its progress. --}}
-    <details class="ai-entry-points mb-3" id="ai-entry-points">
-        <summary>
-            <span>Application entry points</span>
-            <span class="ai-ep-hint">Walk-in Mode &amp; Job Fair events</span>
-        </summary>
-        <div class="ai-ep-body">
-            @include('pages.recruitment.applicant-intake.entry-points')
-        </div>
-    </details>
-
-    <div class="ai-toolbar">
         <span class="ai-result-count" id="ai-result-count"></span>
-        @can('applicant-applications.decide')
-            {{-- Walk-ins, referrals and job-fair candidates. HR opens the
-                 account here; the applicant signs in at the desk and fills in
-                 their own details, so there is no second intake workflow. --}}
-            <button type="button" class="btn btn-sm btn-primary" id="ai-add-btn"
-                data-bs-toggle="modal" data-bs-target="#aiWalkInModal">
-                <i class="bi bi-person-plus"></i> Record applicant
-            </button>
-        @endcan
-        <div class="ai-search-wrap">
-            <input type="search" id="ai-search" aria-label="Search applicants"
-                placeholder="Search name, email, position, MR no…">
-            <button type="button" id="ai-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
-        </div>
+
+        {{-- The pool has a page of its own now. The chip above stays exactly
+             as it was -- this is a way through to the fuller view, not a
+             replacement for the filter. --}}
+        <a class="ai-pool-link" href="{{ url('/recruitment/candidate-pool') }}">Open the Candidate Pool &rarr;</a>
     </div>
 
     {{-- One card per person. The nine-column table scattered a single
@@ -817,6 +1022,37 @@
 
                         <div id="aiWalkInError" class="alert alert-danger py-2 small d-none"></div>
 
+                        {{--
+                            Who is this?
+
+                            The contact details come first and are checked as
+                            they are typed. Intake used to find an existing
+                            account inside the save, so HR filled in the whole
+                            form before learning the person was already known --
+                            or, worse, blacklisted. Asking first turns that from
+                            a surprise at the end into the first thing HR sees.
+                        --}}
+                        <p class="ai-step-label">1 · Who is this?</p>
+
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <label class="form-label small" for="wi-email">Email</label>
+                                <input type="email" class="form-control form-control-sm" id="wi-email" name="app_email" maxlength="150">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label small" for="wi-mobile">Mobile</label>
+                                <input class="form-control form-control-sm" id="wi-mobile" name="app_mobile" maxlength="50">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-text">They sign in with the email or the mobile number — at least one is needed.</div>
+                            </div>
+                        </div>
+
+                        {{-- Filled in by the lookup when the person is already known. --}}
+                        <div id="wi-known" class="ai-known d-none" role="status"></div>
+
+                        <p class="ai-step-label">2 · Their name</p>
+
                         <div class="row g-2">
                             <div class="col-sm-6">
                                 <label class="form-label small" for="wi-lname">Last name <span class="text-danger">*</span></label>
@@ -830,24 +1066,30 @@
                                 <label class="form-label small" for="wi-mname">Middle name</label>
                                 <input class="form-control form-control-sm" id="wi-mname" name="app_mname" maxlength="100">
                             </div>
-                            <div class="col-sm-6">
-                                <label class="form-label small" for="wi-email">Email</label>
-                                <input type="email" class="form-control form-control-sm" id="wi-email" name="app_email" maxlength="150">
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label small" for="wi-mobile">Mobile</label>
-                                <input class="form-control form-control-sm" id="wi-mobile" name="app_mobile" maxlength="50">
-                            </div>
-                            <div class="col-12">
-                                <div class="form-text">They sign in with the email or the mobile number — at least one is needed.</div>
-                            </div>
+                        </div>
+
+                        <p class="ai-step-label">3 · How they sign in</p>
+
+                        <div class="row g-2">
                             <div class="col-12">
                                 <label class="form-label small" for="wi-code">Sign-in code <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="wi-code" name="app_code"
-                                    minlength="8" maxlength="100" required autocomplete="off">
-                                <div class="form-text">At least 8 characters. Tell the applicant this so they can sign in;
-                                    they can change it once they are in.</div>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control form-control-sm" id="wi-code" name="app_code"
+                                        minlength="8" maxlength="100" required autocomplete="off">
+                                    <button class="btn btn-outline-secondary" type="button" id="wi-code-new">New</button>
+                                    <button class="btn btn-outline-secondary" type="button" id="wi-code-copy">Copy</button>
+                                </div>
+                                {{-- Offered rather than invented. HR used to think one up on the
+                                     spot, which produced weak and forgettable codes at exactly the
+                                     moment they were being read aloud to somebody. Still editable. --}}
+                                <div class="form-text">Read this out to the applicant — it is shown only here.
+                                    They can change it once they have signed in.</div>
                             </div>
+                        </div>
+
+                        <p class="ai-step-label">4 · What they are applying for</p>
+
+                        <div class="row g-2">
                             <div class="col-12">
                                 <label class="form-label small" for="wi-posting">Applying for <span class="text-danger">*</span></label>
                                 <select class="form-select form-select-sm" id="wi-posting" name="job_posting_id" required>
@@ -1050,8 +1292,9 @@
         // that application, not the company's interest in the person — HR often
         // realises afterwards that someone suits another post, and the record
         // of where that came from belongs on the application it came from.
-        const recommend = '<button type="button" class="btn btn-sm btn-outline-primary js-recommend"' + data + '>' +
-            'Recommend to another post</button>';
+        const recommend = '<li><button type="button" class="dropdown-item js-recommend"' + data + '>' +
+            '<b>Recommend to another post</b>' +
+            '<small>Creates a new application there. This one is not closed.</small></button></li>';
 
         // Interviews stay readable whatever the application's outcome: the
         // record of what was asked and concluded does not stop mattering when
@@ -1059,19 +1302,28 @@
         // The applicant's profile is where interviews are managed; the tab
         // shows each of their applications separately.
         const interviews = CAN_VIEW_INTERVIEWS
-            ? '<a class="btn btn-sm btn-outline-secondary" href="' +
-              INTERVIEWS_URL.replace('__APPID__', encodeURIComponent(app.app_id)) + '">Interviews</a> '
+            ? '<li><a class="dropdown-item ai-card-open" href="' +
+              INTERVIEWS_URL.replace('__APPID__', encodeURIComponent(app.app_id)) + '">' +
+              '<b>Interviews</b><small>Rounds, who is conducting them, and what they concluded.</small></a></li>'
             : '';
 
-        // A closed application has already reached its outcome, so only the
-        // recommend action remains.
-        if (app.is_closed) return interviews + recommend;
-
-        return interviews + recommend + ' ' +
-            '<div class="dropdown ai-close-menu">' +
-            '<button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">' +
-            'Close application</button>' +
-            '<ul class="dropdown-menu dropdown-menu-end">' +
+        /*
+        | One menu, carrying everything that can be done to THIS application.
+        |
+        | There were three controls in a row -- a link, a button and a second
+        | dropdown -- which meant the row's width decided how much HR could
+        | see, and the two menus looked like alternatives to each other rather
+        | than one list of actions. Every item carries this application's own
+        | id in `data`, so an applicant with several of them cannot have the
+        | wrong one acted on.
+        |
+        | A closed application has already reached its outcome, so the
+        | closures are left out; recommending and reading the interviews stay,
+        | because neither of those stops mattering when an application ends.
+        */
+        const closures = app.is_closed ? '' :
+            '<li><hr class="dropdown-divider"></li>' +
+            '<li><h6 class="dropdown-header">Close this application</h6></li>' +
             '<li><button type="button" class="dropdown-item js-decide" data-action="withdraw"' + data + '>' +
             '<b>Applicant withdrew</b><small>They asked to stop this application. No waiting period.</small></button></li>' +
             '<li><button type="button" class="dropdown-item js-decide" data-action="notSelected"' + data + '>' +
@@ -1079,7 +1331,13 @@
             (app.recommended_count > 0
                 ? '<li><button type="button" class="dropdown-item js-decide" data-action="recommended"' + data + '>' +
                   '<b>Recommended</b><small>They are going forward for another post instead. No waiting period.</small></button></li>'
-                : '') +
+                : '');
+
+        return '<div class="dropdown ai-close-menu">' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary ai-dots" data-bs-toggle="dropdown"' +
+            ' aria-expanded="false" aria-label="Actions for ' + esc(app.posting_title) + '" title="Actions">⋯</button>' +
+            '<ul class="dropdown-menu dropdown-menu-end ai-actions-menu">' +
+            interviews + recommend + closures +
             '</ul></div>';
     }
 
@@ -1201,6 +1459,19 @@
             return html;
         }
 
+        /*
+         | Where we are in the list right now, so the profile can come back to
+         | it rather than to an unfiltered list.
+         |
+         | The search and filters live in the query string, so path + search is
+         | exactly the view HR is looking at. The profile accepts it only if it
+         | is a relative applicant-intake path -- it arrives as a query
+         | parameter, so it is checked there rather than trusted from here.
+         */
+        function intakeReturn() {
+            return window.location.pathname + window.location.search;
+        }
+
         /** The status chips for a person: one per distinct application status. */
         function statusCell(row) {
             const apps = row.applications || [];
@@ -1231,13 +1502,64 @@
                 (last ? ' · last ' + esc(last) : '');
         }
 
+        /* One place that knows where a profile lives, and that HR should come
+           back to the list they were working. */
+        function profileUrl(appId) {
+            return baseUrlForDocs + '/applicant/info/' + encodeURIComponent(appId) +
+                '?from=' + encodeURIComponent(intakeReturn());
+        }
+
+        /*
+        | The applicant's face, or their initials.
+        |
+        | The initials are always rendered and the photo sits on top of them,
+        | so a photo that fails to load -- deleted, or not on this machine's
+        | disk -- falls back to something readable instead of a broken image
+        | icon. That is the pattern the profile header already uses.
+        |
+        | photo_url is built server-side through the file route, which is
+        | what enforces access. Nothing is copied between disks.
+        */
+        function avatar(row) {
+            const letters = '<span class="ai-avatar-initials">' + esc(initials(row.applicant_name)) + '</span>';
+
+            return '<span class="ai-avatar" aria-hidden="true">' + letters +
+                (row.photo_url
+                    ? '<img src="' + esc(row.photo_url) + '" alt="" loading="lazy" ' +
+                      'onerror="this.remove()">'
+                    : '') +
+                '</span>';
+        }
+
         function cardHtml(row) {
             return '' +
             '<article class="ai-card" data-app-id="' + esc(row.app_id) + '">' +
-              '<div class="ai-card-main" role="button" tabindex="0" aria-expanded="false">' +
-                '<span class="ai-avatar" aria-hidden="true">' + esc(initials(row.applicant_name)) + '</span>' +
+              /*
+              | The header: one thing that expands, one thing that navigates.
+              |
+              | It used to be a role="button" wrapping both a link and a
+              | button, so the whole header claimed to be a control while two
+              | of its children were different controls -- which is what made
+              | the clickable area feel arbitrary. The expander is now the
+              | header itself and the exceptions are explicit: anything inside
+              | .ai-card-open does its own thing and never toggles.
+              */
+              '<div class="ai-card-main" role="button" tabindex="0" aria-expanded="false"' +
+                   ' aria-label="Show this applicant\'s applications">' +
+                avatar(row) +
                 '<div class="ai-card-who">' +
-                  '<span class="ai-card-name">' + esc(row.applicant_name) + '</span>' +
+                  /* Whether this person may be given a new application at all
+                     is the first thing about them, so it sits with the name
+                     and not behind an expanded row. The reason is HR's own
+                     note and stays on the profile with the decision. */
+                  '<span class="ai-card-name">' +
+                    '<a class="ai-card-link ai-card-open" href="' + profileUrl(row.app_id) + '">' +
+                      esc(row.applicant_name) +
+                    '</a>' +
+                    (row.blacklisted
+                      ? ' <span class="ai-chip ai-chip-barred ai-chip-xs">Blacklisted</span>'
+                      : '') +
+                  '</span>' +
                   '<span class="ai-card-sub">' +
                     [row.app_email, row.app_mobile].filter(Boolean).map(esc).join(' · ') +
                   '</span>' +
@@ -1246,8 +1568,8 @@
                 '<div class="ai-card-state">' + statusCell(row) + '</div>' +
                 '<div class="ai-card-docs">' + docsCell(row) + '</div>' +
                 '<div class="ai-card-go">' +
-                  '<a class="btn btn-sm btn-outline-primary" href="' + baseUrlForDocs +
-                    '/applicant/info/' + encodeURIComponent(row.app_id) + '">Open profile</a>' +
+                  '<a class="btn btn-sm btn-outline-primary ai-card-open" href="' +
+                    profileUrl(row.app_id) + '">Open profile</a>' +
                 '</div>' +
               '</div>' +
               '<div class="ai-card-detail" hidden></div>' +
@@ -1360,7 +1682,16 @@
         // Expanding a card shows that person's applications and the decision
         // menu — the same markup the old child row used.
         $('#ai-list').on('click', '.ai-card-main', function (e) {
-            if ($(e.target).closest('a, button, .dropdown').length) { return; }
+            /*
+            | Anything that does its own thing says so.
+            |
+            | This used to exclude every a, button and .dropdown in the
+            | header, which worked but meant the rule lived in a selector
+            | nobody reading the markup would see -- and any control added
+            | later silently inherited it. .ai-card-open marks the exceptions
+            | where they are written.
+            */
+            if ($(e.target).closest('.ai-card-open, a, button, .dropdown').length) { return; }
             const $card = $(this).closest('.ai-card');
             const $detail = $card.find('.ai-card-detail');
             const open = !$detail.prop('hidden');
@@ -1478,6 +1809,120 @@
             $('#wi-outcome-help').text(OUTCOME_HELP[this.value] || '');
         });
 
+        /* ------------------------------- intake: who is this person? -- */
+
+        /*
+         | The contact details are looked up as HR types them.
+         |
+         | Finding a duplicate -- or a blacklisted applicant -- used to happen
+         | inside the save, so HR filled in the whole form before learning
+         | either. Asking first means the answer arrives while it can still
+         | change what HR does.
+         */
+        let lookupTimer = null;
+
+        function renderKnown(info) {
+            const $box = $('#wi-known');
+
+            if (!info || !info.found) {
+                $box.addClass('d-none').removeClass('is-blocked').empty();
+                $('#aiWalkInSubmit').prop('disabled', false);
+                return;
+            }
+
+            const apps = (info.applications || []).map(function (a) {
+                return '<li>' + esc(a.posting_title) + ' \u2014 <span class="' +
+                    (a.closed ? 'text-muted' : 'fw-semibold') + '">' + esc(a.status) + '</span></li>';
+            }).join('');
+
+            const blocked = !!info.blacklisted;
+
+            $box.toggleClass('is-blocked', blocked).removeClass('d-none').html(
+                '<p class="ai-known-title">' +
+                    (blocked ? 'This applicant is blacklisted' : 'We already know this person') +
+                '</p>' +
+                '<p class="ai-known-name">' + esc(info.name) + '</p>' +
+                (blocked
+                    ? '<p class="ai-known-note">A new application cannot be recorded for them. ' +
+                      'Lift the blacklist on their profile first if that is no longer right.</p>'
+                    : '<p class="ai-known-note">The application will be added to their existing account \u2014 ' +
+                      'no second account is created.</p>') +
+                (apps ? '<ul class="ai-known-apps">' + apps + '</ul>' : '') +
+                '<a class="ai-known-link" href="' + esc(info.profile_url) + '" target="_blank" rel="noopener">Open their profile</a>'
+            );
+
+            /* Their name is already known; filling it saves retyping it and
+               stops a second spelling of the same person entering the record. */
+            if (!blocked) {
+                if (!$('#wi-lname').val()) { $('#wi-lname').val(info.app_lname || ''); }
+                if (!$('#wi-fname').val()) { $('#wi-fname').val(info.app_fname || ''); }
+                if (!$('#wi-mname').val()) { $('#wi-mname').val(info.app_mname || ''); }
+            }
+
+            $('#aiWalkInSubmit').prop('disabled', blocked);
+        }
+
+        async function lookupApplicant() {
+            const email = $('#wi-email').val().trim();
+            const mobile = $('#wi-mobile').val().trim();
+
+            if (!email && !mobile) { renderKnown(null); return; }
+
+            try {
+                const res = await fetch(urlPrefix + '/recruitment/applicant-intake/lookup?' +
+                    new URLSearchParams({ app_email: email, app_mobile: mobile }), {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) { return; }   // a failed lookup must not block intake
+                renderKnown(await res.json());
+            } catch (err) {
+                /* The lookup is a convenience. If it cannot run, intake carries
+                   on and the save still refuses a blacklisted applicant. */
+            }
+        }
+
+        $('#wi-email, #wi-mobile').on('input', function () {
+            clearTimeout(lookupTimer);
+            lookupTimer = setTimeout(lookupApplicant, 350);
+        });
+
+        /* ---------------------------------------- intake: sign-in code -- */
+
+        function freshCode() {
+            /* Readable aloud: no look-alike characters, grouped in fours. */
+            const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const bytes = new Uint32Array(12);
+            crypto.getRandomValues(bytes);
+            const raw = Array.from(bytes).map(function (b) {
+                return alphabet[b % alphabet.length];
+            }).join('');
+            return raw.slice(0, 4) + '-' + raw.slice(4, 8) + '-' + raw.slice(8, 12);
+        }
+
+        $('#wi-code-new').on('click', function () { $('#wi-code').val(freshCode()); });
+
+        $('#wi-code-copy').on('click', async function () {
+            const $b = $(this);
+            try {
+                await navigator.clipboard.writeText($('#wi-code').val());
+                $b.text('Copied');
+            } catch (e) {
+                /* Clipboard access can be refused; selecting it still works. */
+                $('#wi-code').trigger('select');
+                $b.text('Select & copy');
+            }
+            setTimeout(function () { $b.text('Copy'); }, 1800);
+        });
+
+        /* A code is ready the moment the dialog opens, so HR never has to think
+           one up while somebody is waiting in front of them. */
+        $('#aiWalkInModal').on('show.bs.modal', function () {
+            $('#aiWalkInForm')[0].reset();
+            renderKnown(null);
+            $('#aiWalkInError').addClass('d-none').text('');
+            $('#wi-code').val(freshCode());
+        });
+
         $('#aiWalkInForm').on('submit', async function (e) {
             e.preventDefault();
 
@@ -1511,11 +1956,35 @@
                     return;
                 }
 
+                /*
+                 | What HR does next.
+                 |
+                 | The old toast said what had happened and left HR on the list.
+                 | The two things actually wanted at that moment are the sign-in
+                 | details to hand over -- shown once here and nowhere else
+                 | afterwards, because the code is stored hashed -- and a way
+                 | into the profile that was just created.
+                 */
+                const signIn = $('#wi-email').val().trim() || $('#wi-mobile').val().trim();
+                const code = $('#wi-code').val();
+
                 bootstrap.Modal.getInstance(document.getElementById('aiWalkInModal')).hide();
                 $('#aiWalkInForm')[0].reset();
+                renderKnown(null);
+
                 $('#ai-alert').html(
-                    '<div class="alert alert-success alert-dismissible fade show">' + esc(data.message) +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'
+                    '<div class="alert alert-success alert-dismissible fade show ai-added">' +
+                        '<p class="mb-2">' + esc(data.message) + '</p>' +
+                        '<p class="ai-added-hand mb-2">Give the applicant these to sign in \u2014 they are not shown again:' +
+                            '<span><b>' + esc(signIn) + '</b></span>' +
+                            '<span>code <b>' + esc(code) + '</b></span>' +
+                        '</p>' +
+                        '<a class="btn btn-sm btn-outline-primary" href="' + urlPrefix +
+                            '/applicant/info/' + encodeURIComponent(data.app_id) +
+                            '?from=' + encodeURIComponent(intakeReturn()) + '">Open their profile</a> ' +
+                        '<button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#aiWalkInModal">Record another</button>' +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                    '</div>'
                 );
                 load();
             } catch (err) {
@@ -1586,7 +2055,12 @@
             $('#aiRecWho').text(btn.data('name') + ' · currently ' + btn.data('title'));
             $('#aiRecReason').val('');
             $('#aiRecSubmit').prop('disabled', true);
-            $('#aiRecTarget').html('<option value="">Loading job posts…</option>');
+            /* Cleared on every open, not only on the paths that set it: the
+               dialog is reused, and a selector left disabled by the last
+               applicant would silently block the next one. */
+            $('#aiRecTarget')
+                .prop('disabled', false)
+                .html('<option value="">Loading job posts…</option>');
 
             bootstrap.Modal.getOrCreateInstance(document.getElementById('aiRecModal')).show();
 
@@ -1594,6 +2068,27 @@
                 .done(function (data) {
                     const targets = (data && data.targets) || [];
                     const eligible = targets.filter(t => t.eligible);
+
+                    /*
+                     | An obstacle that is about the applicant, not a posting.
+                     |
+                     | Said once, above the selector, instead of being written
+                     | onto every posting in the list. HR finds out before
+                     | typing a reason rather than after submitting it.
+                     |
+                     | This only explains. The server refuses the same request
+                     | whether or not this ran -- see
+                     | ApplicationRecommendationService::recommend().
+                     */
+                    if (data && data.blocked) {
+                        $('#aiRecTarget').html('<option value="">No job post can be chosen</option>')
+                            .prop('disabled', true);
+                        $('#aiRecTargetHelp').text(data.blocked);
+                        $('#aiRecSubmit').prop('disabled', true);
+                        return;
+                    }
+
+                    $('#aiRecTarget').prop('disabled', false);
 
                     if (!targets.length) {
                         $('#aiRecTarget').html('<option value="">No published job posts</option>');

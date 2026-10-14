@@ -47,10 +47,16 @@
     <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
         <h6 class="mb-0">Assessment access</h6>
         @can('applicant-assessments.issue-access')
-            <form method="POST" action="{{ route('applicant.assessment-access.issue', ['id' => $applicant?->app_id]) }}">
+            {{-- The question moved from the button to the form: a click
+                 handler can only guard a click, and this form can also be
+                 submitted by pressing Return in it. --}}
+            <form method="POST" action="{{ route('applicant.assessment-access.issue', ['id' => $applicant?->app_id]) }}"
+                  data-hf-confirm="Issue a new access code?"
+                  data-hf-message="The applicant uses it to open their assessments."
+                  data-hf-detail="Any earlier code that has not been used stops working immediately."
+                  data-hf-ok="Issue code" data-hf-tone="warn">
                 @csrf
-                <button type="submit" class="btn btn-sm btn-primary"
-                        onclick="return confirm('Issue a new access code? Any earlier unused code stops working.')">
+                <button type="submit" class="btn btn-sm btn-primary">
                     Issue access code
                 </button>
             </form>

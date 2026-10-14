@@ -1,5 +1,5 @@
 {{--
-| The screening work queue.
+| The work queue.
 |
 | A list of open applications that need HR to do something, each showing the
 | one reason it is here. It reads existing state only — nothing on this page
@@ -94,7 +94,7 @@
 
 <div class="sq-head">
     <div>
-        <h5 class="mb-1">Screening</h5>
+        <h5 class="mb-1">Work Queue</h5>
         <div class="sq-sub">
             Open applications that need attention. This is a work list — opening a row is where
             the work happens; nothing here changes an application on its own.
@@ -142,11 +142,28 @@
         function rowHtml(row) {
             const profile = BASE_URL + '/applicant/info/' + encodeURIComponent(row.app_id);
 
-            // Send HR straight to the tab that matches the reason, so the
-            // queue hands off to the work rather than to a profile.
-            const target = (row.reason === 'access_requested')
-                ? profile + '/assessment-access'
-                : (row.documents ? profile + '/documents' : profile);
+            /*
+            | Straight to where the work is done, chosen by the reason.
+            |
+            | The queue hands off; it never does the work itself. An interview
+            | reason goes to that application's own interview page -- the only
+            | place a round is scheduled, marked held, evaluated or concluded
+            | -- and a document reason to the documents tab.
+            */
+            const interviewReasons = [
+                'interview_outcome', 'evaluation_outstanding',
+                'interview_decision', 'interview_to_schedule'
+            ];
+
+            const offerReasons = ['offer_lapsed', 'offer_accepted', 'offer_to_make'];
+
+            const target = offerReasons.includes(row.reason)
+                ? BASE_URL + '/recruitment/offers'
+                : (interviewReasons.includes(row.reason)
+                    ? BASE_URL + '/recruitment/applications/' + encodeURIComponent(row.id) + '/interviews'
+                    : (row.reason === 'access_requested'
+                        ? profile + '/assessment-access'
+                        : (row.documents ? profile + '/documents' : profile)));
 
             const docs = row.documents
                 ? esc(row.documents.accepted + '/' + row.documents.required + ' documents')
@@ -195,7 +212,7 @@
         }
 
         function load() {
-            $.getJSON('{{ route('recruitment.screening.data') }}')
+            $.getJSON('{{ route('recruitment.work-queue.data') }}')
                 .done(function (json) {
                     ROWS = json.data || [];
                     $('#sq-count-all').text(ROWS.length);
@@ -205,7 +222,7 @@
                     render();
                 })
                 .fail(function (xhr) {
-                    console.error('[screening]', xhr.status, xhr.responseText);
+                    console.error('[work-queue]', xhr.status, xhr.responseText);
                     $('#sq-list').empty();
                     $('#sq-empty').text('Could not load the queue. Please refresh — if it keeps '
                         + 'happening, your session may have expired.').show();

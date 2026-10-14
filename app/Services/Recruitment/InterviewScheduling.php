@@ -187,6 +187,7 @@ class InterviewScheduling
     {
         $interview = self::interviewOrFail($applicationId, $interviewId);
 
+        self::guardAttendanceActor($interview, $empno);
         self::guardNotTerminal($interview, 'marked as held');
 
         /*
@@ -247,6 +248,7 @@ class InterviewScheduling
     {
         $interview = self::interviewOrFail($applicationId, $interviewId);
 
+        self::guardAttendanceActor($interview, $empno);
         self::guardNotTerminal($interview, 'recorded as a no-show');
 
         $interview->update(['attendance' => Interview::NO_SHOW]);
@@ -308,6 +310,86 @@ class InterviewScheduling
     }
 
     /** Every interview for one step, oldest first. */
+    /**
+     * Who may say whether an interview happened.
+     *
+     * Either the interviewer assigned to it -- who was in the room and is the
+     * only person who actually knows -- or an HR user with the decide right,
+     * who has always been able to and still can.
+     *
+     * This is the service-level check, and it is the one that counts. The
+     * route now sits behind applicant-interviews.view, which is the right to
+     * READ this interview; without this, that right would also have become
+     * the right to record an outcome on anybody's interview.
+     */
+    private static function guardAttendanceActor(Interview $interview, ?string $empno): void
+    {
+        $empno = trim((string) $empno);
+
+        /*
+        | Assigned to THIS interview is the first and commonest way in.
+        |
+        | Asked before the gate, because it needs no user record at all: an
+        | interviewer is identified by the assignment itself.
+        */
+        if ($empno !== '' && InterviewAssignment::where('interview_id', $interview->id)
+                ->where('empno', $empno)->exists()) {
+            return;
+        }
+
+        /*
+        | Otherwise the decide right -- asked about the ACTOR, not about
+        | whoever happens to be logged in.
+        |
+        | Gate::allows() reads the ambient session user, which is right inside
+        | a request and meaningless outside one. The service is handed the
+        | empno of the person doing this, and that is who should be
+        | authorized. Asking the session instead made the answer depend on
+        | context rather than on the actor: with nobody logged in it refused a
+        | genuine HR empno, and with an HR user logged in it would have
+        | authorized an action recorded against somebody else entirely.
+        |
+        | The ambient user is still consulted when no actor is named, which is
+        | how every existing request path already behaves.
+        */
+        if ($empno !== '') {
+            $actor = \App\Models\User::where('Emp_No', $empno)->first();
+            $allowed = $actor
+                && \Illuminate\Support\Facades\Gate::forUser($actor)->allows('applicant-applications.decide');
+        } else {
+            $allowed = \Illuminate\Support\Facades\Gate::allows('applicant-applications.decide');
+        }
+
+        if (!$allowed) {
+            throw ValidationException::withMessages([
+                'interview' => 'Only an interviewer assigned to this interview, or HR, may record what happened at it.',
+            ]);
+        }
+    }
+
+    /**
+     * Is this interview due -- its time has come and nobody has said yet
+     * whether it happened?
+     *
+     * DERIVED, never stored. A scheduled time passing is not evidence that an
+     * interview took place: the candidate may not have come, the panel may
+     * have been called away, the room may have been double-booked. So nothing
+     * is written, no status changes, and "held" still means somebody said so.
+     *
+     * What it removes is the pretence that an interview scheduled for last
+     * Tuesday is still merely "scheduled". It is waiting to be confirmed, and
+     * saying that is the whole point.
+     *
+     * Only a live interview can be due. A cancelled or superseded one has
+     * already reached its end, and a held or no-show one has been answered.
+     */
+    public static function isDue(Interview $interview): bool
+    {
+        return $interview->attendance === Interview::SCHEDULED
+            && $interview->scheduled_at !== null
+            && $interview->scheduled_at->isPast();
+    }
+
     public static function forStep(int $applicationId, int $stepId)
     {
         self::interviewStepOrFail($applicationId, $stepId);

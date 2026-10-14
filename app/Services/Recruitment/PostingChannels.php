@@ -111,6 +111,130 @@ class PostingChannels
     }
 
     /**
+     * Give a posting the channels HR will probably use, so they start ticked.
+     *
+     * A new posting used to arrive with nothing but the `direct` bucket, so
+     * publishing it produced no links to copy and HR had to go and tick the
+     * places they were about to post to before the panel would give them
+     * anything. The places we advertise do not change from posting to
+     * posting; the exceptions do.
+     *
+     * So every EXTERNAL channel in the catalogue gets a row, Not Posted. A
+     * row means "this channel is available for this posting and will be
+     * offered a link" -- it does NOT mean the ad has gone up, which is what
+     * `state` says and what HR ticks when they have actually posted it.
+     *
+     * Switching one off is deleting its row, which sync() already does, and
+     * already refuses to do when anything has arrived through it. Nothing
+     * here can lose a number.
+     *
+     * Idempotent, and it never touches a channel that already exists -- so
+     * running it against a posting HR has already curated changes nothing.
+     *
+     * HR MAY NARROW IT
+     *
+     * $only, when given, is the set of channel keys HR left ticked on the
+     * create form. Every external channel starts ticked there, so passing
+     * nothing and passing all of them mean the same thing; unticking one
+     * means its row is never created, and it is therefore never offered a
+     * link. An empty array is a real answer -- "advertise this nowhere but
+     * the Careers page" -- and is not the same as null.
+     *
+     * @param  string[]|null  $only
+     * @return string[] the channel keys it added
+     */
+    public function seedFor(JobPosting $posting, ?array $only = null): array
+    {
+        $default = $this->defaultKey();
+
+        $existing = JobPostingChannel::where('job_posting_id', $posting->id)
+            ->pluck('channel_key')->all();
+
+        $added = [];
+
+        foreach ($this->catalogue() as $key => $channel) {
+            if ($only !== null && !in_array($key, $only, true)) {
+                continue;
+            }
+
+            /* The default bucket is not somewhere HR posts, and rowsFor()
+               creates it on demand anyway. */
+            if ($key === $default || !($channel['external'] ?? true)) {
+                continue;
+            }
+
+            if (in_array($key, $existing, true)) {
+                continue;
+            }
+
+            JobPostingChannel::create([
+                'job_posting_id' => $posting->id,
+                'channel_key' => $key,
+                'state' => JobPostingChannel::NOT_POSTED,
+                'visits' => 0,
+                'applications' => 0,
+            ]);
+
+            $added[] = $key;
+        }
+
+        return $added;
+    }
+
+    /**
+     * Seed a posting that is still being advertised and has never been
+     * given channels.
+     *
+     * Postings created before seeding existed would otherwise keep their
+     * empty panel for ever, which would leave two postings behaving
+     * differently for no reason a user could see.
+     *
+     * ONLY WHEN THERE ARE NONE
+     *
+     * This is the important part, and the first version got it wrong. Seeding
+     * on every open re-added whatever HR had just unticked, because unticking
+     * a channel IS deleting its row -- so the panel quietly undid the
+     * decision it had been opened to make, and nothing on screen said so.
+     * Seeding only when the posting has no external channels at all means it
+     * happens once, to a posting that genuinely never had any.
+     *
+     * The remaining edge: a draft whose channels HR removed every one of
+     * would be seeded again on the next open. That is deliberate -- an empty
+     * panel is indistinguishable from a broken one -- and a posting
+     * advertised nowhere at all is not a case the Careers flow supports.
+     *
+     * DRAFT AND PUBLISHED, NEVER CLOSED
+     *
+     * This began as drafts only, on the reasoning that a published posting
+     * had been through HR's hands already and adding channels after the fact
+     * would change what it offers. In practice that reasoning was backwards.
+     * The postings that predate seeding are exactly the ones already
+     * published, and leaving them out meant the live job -- the one with
+     * applicants against it -- was the single posting in the system with no
+     * channels, a bare panel, and a publish that handed over no links at all.
+     * Seeding it adds Not Posted rows: somewhere HR *may* advertise. It
+     * claims nothing was posted and changes no figure.
+     *
+     * Closed is still left alone. A closed posting is not being advertised
+     * any more, so offering it somewhere new to be advertised is meaningless,
+     * and sync() refuses to change a closed posting's channels anyway.
+     *
+     * @return string[] the channel keys it added
+     */
+    public function seedOpen(JobPosting $posting): array
+    {
+        if (!in_array($posting->status, ['Draft', 'Published'], true)) {
+            return [];
+        }
+
+        $hasAny = JobPostingChannel::where('job_posting_id', $posting->id)
+            ->where('channel_key', '!=', $this->defaultKey())
+            ->exists();
+
+        return $hasAny ? [] : $this->seedFor($posting);
+    }
+
+    /**
      * The tagged Careers link HR copies for one channel.
      *
      * Null when the Careers address is not configured (CAREERS_URL), so the
@@ -146,6 +270,51 @@ class PostingChannels
      *
      * @return array{kept: string[], removed: string[], retained: string[]}
      */
+    /**
+     * Switch this posting's channels on as it goes live.
+     *
+     * HR chose where to advertise on the create form; having chosen, they
+     * then had to go into the panel afterwards and tick every one of those
+     * same sites by hand before it counted as switched on. The posting was
+     * live, the links existed, and every channel sat there saying Not Posted.
+     * Choosing a site IS switching it on; the second act of ticking said
+     * nothing the first had not.
+     *
+     * Only at the moment it FIRST goes live, and only for channels that
+     * already have a row -- a site HR unticked has no row and is not brought
+     * back. Afterwards the ticks are HR's own: unticking one later is a
+     * deliberate act and nothing here overrides it, because a posting only
+     * goes live for the first time once.
+     *
+     * @return string[] the keys it switched on
+     */
+    public function enableOnPublish(JobPosting $posting): array
+    {
+        $default = $this->defaultKey();
+        $turnedOn = [];
+
+        $rows = JobPostingChannel::where('job_posting_id', $posting->id)
+            ->where('channel_key', '!=', $default)
+            ->get();
+
+        foreach ($rows as $row) {
+            if (!$this->isExternal($row->channel_key) || $row->state === JobPostingChannel::POSTED) {
+                continue;
+            }
+
+            if (!$row->posted_at) {
+                $row->posted_at = now();
+            }
+
+            $row->state = JobPostingChannel::POSTED;
+            $row->save();
+
+            $turnedOn[] = $row->channel_key;
+        }
+
+        return $turnedOn;
+    }
+
     public function sync(JobPosting $posting, array $selections): array
     {
         $default = $this->defaultKey();

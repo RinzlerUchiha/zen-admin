@@ -25,112 +25,124 @@
         overflow-y: auto;
     }
 
-    .jp-eligible-grid {
+
+    /*
+    | Waiting to be posted, grouped by job.
+    |
+    | Auto-fit rather than a fixed two columns: at 1366 the old pair of columns
+    | left the source lines cramped, and on a narrow window they had nowhere to
+    | go. This gives each job a sensible minimum and lets the count of columns
+    | follow the width.
+    */
+    .jp-job-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
         gap: 14px;
     }
 
-    @media (max-width: 900px) {
-        .jp-eligible-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .jp-mr-group {
+    .jp-job {
         border: 1px solid var(--zn-line);
         border-radius: var(--zn-radius-lg);
         background: var(--zn-surface-2);
         padding: 12px 14px;
+        min-width: 0;
     }
 
-    .jp-mr-label {
-        font-size: var(--zn-fs-xs);
-        font-weight: 700;
-        letter-spacing: .04em;
-        text-transform: uppercase;
-        color: var(--zn-ink-3);
-        margin-bottom: 8px;
+    /* A job wanted by more than one request is the case this grouping exists
+       for, so it is marked rather than left to be inferred from the list. */
+    .jp-job.is-combined {
+        border-color: var(--zn-accent);
+        background: var(--zn-accent-soft);
     }
 
-    .jp-mr-label .mr-no {
-        color: var(--zn-accent-dark);
-        font-weight: 800;
-        letter-spacing: 0;
-        text-transform: none;
-        font-size: var(--zn-fs-ui);
-        margin-left: 4px;
-    }
-
-    .jp-capsule-row {
+    .jp-job-head {
         display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
         flex-wrap: wrap;
-        gap: 8px;
+        margin-bottom: 2px;
     }
 
-    .jp-capsule {
+    .jp-job-title {
+        font-weight: 700;
+        color: var(--zn-ink);
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .jp-job-count {
+        font-size: var(--zn-fs-sm);
+        color: var(--zn-ink-2);
+        white-space: nowrap;
+    }
+
+    .jp-job-count strong { color: var(--zn-ink); }
+    .jp-job-filled { color: var(--zn-ink-3); }
+
+    .jp-job-note {
+        margin: 0 0 8px;
+        font-size: var(--zn-fs-xs);
+        color: var(--zn-ink-2);
+    }
+
+    .jp-job-sources {
+        list-style: none;
+        margin: 8px 0 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .jp-job-source {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
+        flex-wrap: wrap;
         border: 1px solid var(--zn-line);
         border-radius: 999px;
-        background: var(--zn-surface-2);
+        background: var(--zn-surface);
         padding: 4px 4px 4px 12px;
-        width: 100%;
         transition: border-color .15s ease, box-shadow .15s ease;
     }
 
-    .jp-capsule:hover {
+    .jp-job-source:hover {
         border-color: var(--zn-line-2);
-        box-shadow: 0 1px 6px rgba(32, 26, 22,.06);
+        box-shadow: 0 1px 6px rgba(32, 26, 22, .06);
     }
 
-    .jp-capsule-text {
+    .jp-job-source-text {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
         flex: 1;
         min-width: 0;
         font-size: var(--zn-fs-sm);
         color: var(--zn-ink);
     }
 
-    .jp-capsule-title {
-        white-space: nowrap;
-        font-weight: 700;
-    }
-
-    .jp-capsule-meta {
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-        flex-shrink: 0;
-        margin-left: auto;
-        padding-left: 10px;
-    }
-
-    .jp-capsule-meta .sep {
-        color: var(--zn-line-2);
-        margin: 0 4px;
-    }
-
-    .jp-capsule-meta .jp-type-inline {
-        font-weight: 700;
-        width: 78px;
-        display: inline-block;
-    }
-
-    .jp-capsule-meta .jp-type-additional {
+    .jp-job-source .mr-no {
+        font-weight: 800;
         color: var(--zn-accent-dark);
     }
 
-    .jp-capsule-meta .jp-type-replacement {
-        color: var(--zn-accent-dark);
-    }
 
-    .jp-capsule-meta .headcount {
-        color: var(--zn-ink-3);
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     .jp-btn-create-mini {
         border: none;
@@ -252,6 +264,98 @@
         overflow-x: auto;
         box-shadow: 0 2px 8px rgba(32, 26, 22,.04);
         background: var(--zn-surface);
+    }
+
+    /* ===== Publishing: the confirmation, and the links it produces ===== */
+
+    .jp-pub-dlg { width: min(520px, calc(100vw - 32px)); }
+
+    .jp-pub-label {
+        margin: 14px 0 6px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 700;
+        color: var(--zn-ink-2);
+    }
+
+    .jp-pub-channels { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+    .jp-pub-channel {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 8px 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius);
+        background: var(--zn-surface-2);
+    }
+
+    .jp-pub-channel-name { font-weight: 700; font-size: var(--zn-fs-sm); }
+
+    /* The link itself, allowed to wrap: a tagged careers URL is long and
+       truncating it would hide the very part that identifies the channel. */
+    .jp-pub-link {
+        flex: 1 1 220px;
+        min-width: 0;
+        font-size: 11.5px;
+        color: var(--zn-ink-3);
+        overflow-wrap: anywhere;
+    }
+
+    /*
+    | The links, after the posting really is published.
+    |
+    | Sits above everything and stays until it is dismissed -- the page
+    | reloads only when HR closes it, because a reload that arrived while they
+    | were copying would take the links away at the worst moment.
+    */
+    .jp-pub-done .jp-pub-channels { max-height: min(46vh, 420px); overflow: auto; }
+
+    /* "It worked" reads as the heading, not as a colour on a corner card. */
+    .jp-pub-done .hf-dlg-title { color: var(--zn-ok, var(--zn-ink)); }
+
+    /*
+    | The inline fallback, for when the browser has no clipboard to write to.
+    |
+    | Full width on its own line so a long tagged URL is readable rather than
+    | truncated -- the query string is the part that identifies the channel,
+    | and a field showing only the start of it would be useless.
+    */
+    .jp-copy-fallback {
+        display: block;
+        flex-basis: 100%;
+        margin-top: 6px;
+    }
+
+    .jp-copy-fallback-label {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--zn-ink-2);
+        margin-bottom: 3px;
+    }
+
+    .jp-copy-fallback-input {
+        width: 100%;
+        border: 1px solid var(--zn-accent);
+        border-radius: var(--zn-radius);
+        padding: 6px 8px;
+        font-size: 11.5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: var(--zn-ink);
+        background: var(--zn-surface);
+    }
+
+    .jp-copy-fallback-input:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--zn-accent-soft);
+    }
+
+    .jp-copy-fallback-hint {
+        display: block;
+        font-size: 11px;
+        color: var(--zn-ink-3);
+        margin-top: 3px;
     }
 
     table.jp-list-table { min-width: 720px; }
@@ -418,6 +522,9 @@
     .jp-channel-actions { display: flex; gap: 6px; align-items: center; }
 
     .jp-channel-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;                      /* was nothing at all: icon against the C */
         border: 1px solid var(--zn-line-2);
         background: var(--zn-surface);
         color: var(--zn-ink-2);
@@ -510,55 +617,6 @@
     #jp-panel-expand-btn .jp-expand-ico svg { width: 15px; height: 15px; }
     #jp-panel-expand-btn.is-wide .jp-expand-ico { transform: rotate(180deg); }
 
-    /* ===== Confirm dialog (replaces window.confirm on this page) ===== */
-    .jp-confirm-back {
-        position: fixed;
-        inset: 0;
-        background: rgba(32, 26, 22,.45);
-        z-index: 1080;
-    }
-
-    .jp-confirm {
-        position: fixed;
-        z-index: 1081;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: min(420px, calc(100vw - 32px));
-        background: var(--zn-surface);
-        border-radius: var(--zn-radius-lg);
-        box-shadow: 0 18px 48px rgba(32, 26, 22,.28);
-        padding: 20px;
-    }
-
-    .jp-confirm p {
-        margin: 0 0 16px;
-        font-size: var(--zn-fs);
-        color: var(--zn-ink);
-    }
-
-    .jp-confirm-row { display: flex; justify-content: flex-end; gap: 8px; }
-
-    .jp-confirm-row button {
-        border-radius: var(--zn-radius-lg);
-        padding: 7px 16px;
-        font-size: var(--zn-fs-ui);
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    .jp-confirm-cancel {
-        border: 1px solid var(--zn-line);
-        background: var(--zn-surface);
-        color: var(--zn-ink-2);
-    }
-
-    .jp-confirm-ok {
-        border: 1px solid var(--zn-warn);
-        background: var(--zn-warn);
-        color: var(--zn-surface);
-    }
-
     table.jp-list-table {
         width: 100%;
         border-collapse: collapse;
@@ -609,6 +667,41 @@
         color: var(--zn-accent-dark);
         transform: translateX(3px);
     }
+
+    /* The create form's field labels carry a button, like the panel's do. */
+    .cp-label-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    /* Where to advertise, on the create form. Wraps rather than scrolls:
+       there are five of them and they must all be visible to be unticked. */
+    .cp-channels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        padding: 8px 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius);
+        background: var(--zn-surface-2);
+    }
+
+    .cp-channel {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: var(--zn-fs);
+        font-weight: 600;
+        color: var(--zn-ink-2);
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .cp-channel input { margin: 0; cursor: pointer; }
+    .cp-channel:has(input:checked) { color: var(--zn-ink); }
+    .cp-channel input:focus-visible { outline: 2px solid var(--zn-accent); outline-offset: 2px; }
 
     /* ===== Create Posting modal polish ===== */
     #modal-create-posting .modal-content {
@@ -709,6 +802,18 @@
         min-height: 55vh;
     }
 
+    /*
+    | Expanding used to buy nothing but wider textareas: the facts stayed in
+    | one column and the channels and photos stayed stacked under them, so
+    | the panel simply got longer as well as wider.
+    */
+    .jp-dist {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 0 24px;
+        align-items: start;
+    }
+
     .jp-panel-head-actions {
         display: flex;
         align-items: center;
@@ -755,6 +860,121 @@
         padding: 20px 24px;
         overflow-y: auto;
         flex: 1;
+    }
+
+    /*
+    | The facts, at a glance.
+    |
+    | Two columns, because each of these is a word or a date and giving each
+    | a full row of its own spent the whole first screen on things nobody
+    | needs to read twice.
+    */
+    .jp-facts {
+        display: grid;
+        /*
+        | Columns from the space there actually is, not from which class the
+        | panel is wearing. The wide panel is capped at 92vw, so on a laptop
+        | "wide" can be barely wider than narrow -- and a fixed four-column
+        | rule there squeezed "Oct 13, 2026 05:21 PM" onto three lines. The
+        | floor is the width a column has at the narrow size, so a column is
+        | never tighter than it already was.
+        */
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px 16px;
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius-lg);
+        background: var(--zn-surface-2);
+    }
+
+    .jp-fact { min-width: 0; }
+
+    .jp-fact dt {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: var(--zn-fs-xs);
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: var(--zn-ink-3);
+        margin: 0 0 1px;
+    }
+
+    .jp-fact dt i { color: var(--zn-line-2); }
+
+    .jp-fact dd {
+        margin: 0;
+        font-size: var(--zn-fs);
+        color: var(--zn-ink);
+        overflow-wrap: anywhere;
+    }
+
+    /* The link out is an action, so it reads as one rather than as a caption
+       hanging off whichever fact happened to be above it. */
+    .jp-jump-row { display: inline-block; margin-bottom: 18px; }
+
+    /*
+    | A quiet rule between the three things this panel is for: what the
+    | posting is, the words that go out, and where they go. Nine identical
+    | uppercase labels in a column gave no sense of which of them belonged
+    | together.
+    */
+    .jp-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 4px 0 14px;
+        font-size: var(--zn-fs-sm);
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--zn-ink-2);
+    }
+
+    .jp-section::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--zn-line);
+    }
+
+    /* The internal jobspec, folded. */
+    .jp-fold > summary {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        flex-wrap: wrap;
+        cursor: pointer;
+        list-style: none;
+        padding: 7px 10px;
+        border: 1px solid var(--zn-line);
+        border-radius: var(--zn-radius);
+        background: var(--zn-surface-2);
+    }
+
+    .jp-fold > summary::-webkit-details-marker { display: none; }
+
+    .jp-fold > summary::before {
+        content: "\25B8";                 /* a caret that turns when open */
+        color: var(--zn-ink-3);
+        transition: transform .15s ease;
+        display: inline-block;
+    }
+
+    .jp-fold[open] > summary::before { transform: rotate(90deg); }
+    .jp-fold[open] > summary { margin-bottom: 8px; }
+    .jp-fold > summary:hover { border-color: var(--zn-line-2); }
+    .jp-fold > summary:focus-visible { outline: 2px solid var(--zn-accent); outline-offset: 2px; }
+    .jp-fold > summary .jp-panel-label { margin-bottom: 0; }
+
+    .jp-fold-note {
+        font-size: var(--zn-fs-xs);
+        color: var(--zn-ink-3);
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
     }
 
     .jp-panel-field {
@@ -915,6 +1135,9 @@
     }
 
     .jp-gen-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         margin-left: auto;
         border: 1px solid var(--zn-line-2);
         background: var(--zn-accent-soft);
@@ -932,7 +1155,7 @@
 
     .jp-gen-btn:disabled { opacity: .6; }
 
-    .jp-gen-btn i { margin-right: 4px; font-size: var(--zn-fs-xs); }
+    .jp-gen-btn i { font-size: var(--zn-fs-xs); }
 
     .jp-gen-btn + .jp-field-tag { margin-left: 6px; }
 
@@ -1033,16 +1256,43 @@
 
     /* "Close Posting" — ends the posting. NOT the same as the X that
     dismisses the panel (.jp-panel-close). Kept visually distinct. */
+ /*
+ | Closing a posting is the end of it, and it was the loudest thing on the
+ | panel: a solid red button beside an outlined Save. The eye went to the one
+ | action HR performs once, away from the one they perform constantly, and a
+ | mis-click there cannot be taken back by pressing Save again.
+ |
+ | It keeps the danger colour -- it IS the dangerous one -- but as an outline,
+ | which is the shape of a thing you have to mean.
+ */
  .jp-panel-btn-close {
-     background: linear-gradient(135deg, var(--zn-warn), var(--zn-warn));
-     color: var(--zn-on-accent);
-     box-shadow: 0 2px 8px rgba(198, 40, 40,.25);
+     background: transparent;
+     color: var(--zn-warn);
+     border: 1px solid var(--zn-warn);
+     box-shadow: none;
+     flex: 0 1 auto;
  }
 
+ .jp-panel-btn-close:hover {
+     background: var(--zn-warn);
+     color: var(--zn-on-accent);
+     filter: none;
+ }
+
+ /* Saving is what this panel is mostly for, so it looks like it. */
  .jp-panel-btn-save {
+     background: var(--zn-accent);
+     color: var(--zn-on-accent);
+     border: 1px solid var(--zn-accent);
+     box-shadow: 0 2px 8px rgba(32, 26, 22,.12);
+     flex: 1 1 auto;
+ }
+
+ /* Beside Publish, Save is not the point. */
+ .jp-panel-btn-save.is-quiet {
      background: var(--zn-surface);
      color: var(--zn-accent-dark);
-     border: 1px solid var(--zn-line-2);
+     border-color: var(--zn-line-2);
      box-shadow: none;
  }
 
@@ -1051,9 +1301,16 @@
      transform: none;
  }
 
- .jp-panel-btn i {
-     margin-right: 6px;
+ /* The icon and the label are two boxes with a gap between them, not a
+    glyph with a margin guessed around it. */
+ .jp-panel-btn {
+     display: inline-flex;
+     align-items: center;
+     justify-content: center;
+     gap: 9px;
  }
+
+ .jp-panel-btn i { margin-right: 0; }
 
  .jp-panel-footer:empty {
      display: none;
@@ -1108,48 +1365,73 @@
 
     <div id="alert-box"></div>
 
-    @forelse ($eligibleRequests as $request)
-        @if ($loop->first)
-            <div class="jp-eligible-card" id="jp-eligible">
-                <div class="jp-eligible-grid">
-        @endif
+{{--
+    Waiting to be posted, grouped by the JOB rather than by the request.
 
-        <div class="jp-mr-group">
-            <div class="jp-mr-label">Manpower Request<span class="mr-no">{{ $request->mr_no ?? '—' }}</span></div>
-            <div class="jp-capsule-row">
-                @forelse ($request->positions as $position)
-                    @php $typeClass = strtolower($position->type) === 'additional' ? 'jp-type-additional' : 'jp-type-replacement'; @endphp
-                    <div class="jp-capsule">
-                        <span class="jp-capsule-text">
-                            <span class="jp-capsule-title">{{ $position->positionTitle() }}</span>
-                            <span class="jp-capsule-meta">
-                                <span class="sep">·</span>
-                                <span class="jp-type-inline {{ $typeClass }}">{{ ucfirst($position->type) }}</span>
-                                <span class="sep">·</span>
-                                <span class="headcount">{{ $position->headcount }} ({{ $position->filled }}
-                                    filled)</span>
-                            </span>
-                        </span>
-                        <button type="button" class="jp-btn-create-mini btn-open-create-posting"
-                            data-position-id="{{ $position->id }}">
-                            Create
-                        </button>
-                    </div>
-                @empty
-                    <span class="text-muted small">No eligible positions on this request.</span>
-                @endforelse
-            </div>
+    It used to be a card per manpower request, so the same job raised twice
+    appeared as two unrelated rows under different MR numbers and the real
+    headcount had to be added up by eye. Grouping by jobspec puts the figure
+    on the row and keeps every request that contributed to it named underneath,
+    each with its own Create button -- a posting is still raised against one
+    position on one request, so none of those relationships are lost.
+--}}
+@forelse ($waitingByJob as $job)
+    @if ($loop->first)
+        <div class="jp-eligible-card" id="jp-eligible">
+            <div class="jp-job-grid">
+    @endif
+
+    <div class="jp-job{{ $job['is_combined'] ? ' is-combined' : '' }}">
+        <div class="jp-job-head">
+            <span class="jp-job-title">{{ $job['title'] }}</span>
+            <span class="jp-job-count"
+                  title="{{ $job['filled'] }} of {{ $job['headcount'] }} already filled">
+                Headcount: <strong>{{ $job['headcount'] }}</strong>
+                @if ($job['filled'] > 0)
+                    <span class="jp-job-filled">({{ $job['filled'] }} filled)</span>
+                @endif
+            </span>
         </div>
 
-        @if ($loop->last)
-</div>
-</div>
-@endif
+        @if ($job['is_combined'])
+            <p class="jp-job-note">
+                Asked for by {{ $job['request_count'] }} manpower requests.
+                Each is posted separately, so every request keeps its own record.
+            </p>
+        @endif
+
+        <ul class="jp-job-sources">
+            @foreach ($job['sources'] as $src)
+                @php $typeClass = strtolower($src['type']) === 'additional' ? 'jp-type-additional' : 'jp-type-replacement'; @endphp
+                <li class="jp-job-source">
+                    <span class="jp-job-source-text">
+                        <span class="mr-no">{{ $src['mr_no'] }}</span>
+                        <span class="sep">·</span>
+                        <span class="jp-type-inline {{ $typeClass }}">{{ ucfirst($src['type']) }}</span>
+                        <span class="sep">·</span>
+                        <span class="headcount">
+                            {{ $src['headcount'] }} {{ \Illuminate\Support\Str::plural('position', $src['headcount']) }}
+                            @if ($src['filled'] > 0) ({{ $src['filled'] }} filled) @endif
+                        </span>
+                    </span>
+                    <button type="button" class="jp-btn-create-mini btn-open-create-posting"
+                        data-position-id="{{ $src['position_id'] }}">
+                        Create
+                    </button>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+
+    @if ($loop->last)
+            </div>
+        </div>
+    @endif
 @empty
-<div class="jp-empty-state">
-    <i class="bi bi-inbox"></i>
-    No approved requests with eligible positions found.
-</div>
+    <div class="jp-empty-state">
+        <i class="bi bi-inbox"></i>
+        No approved requests with eligible positions found.
+    </div>
 @endforelse
 
 <div class="jp-section-divider"><span class="dot"></span> Existing Postings</div>
@@ -1272,19 +1554,119 @@
                         <div class="form-text">Pre-filled from this position's Job Specification. HR reference only —
                             never shown to applicants.</div>
                     </div>
+                    {{--
+                        Composing the ad while writing the posting.
+
+                        The first draft was handed over when the form opened
+                        and that was the end of it: no Generate, and none of
+                        the templates, until the posting had been saved and
+                        reopened in the panel. Which is the one moment HR is
+                        least likely to want to stop -- the ad is being written
+                        NOW, and trying another wording is the whole point of
+                        having templates.
+
+                        Composing needs the position, not the posting, so
+                        there was never anything to wait for.
+                    --}}
                     <div class="mb-2">
-                        <label class="form-label">Public Ad <span class="jp-field-tag jp-field-tag-live">Careers
-                                page</span></label>
+                        <label class="form-label cp-label-row">Public Ad
+                            <button type="button" class="jp-gen-btn" id="cp-generate-btn"
+                                title="Re-compose from the Job Specification"><i class="fa fa-wand-magic-sparkles"></i>
+                                Generate</button>
+                            <span class="jp-field-tag jp-field-tag-live">Careers page</span>
+                        </label>
                         <textarea id="cp-public" class="form-control" rows="14" style="font-size: var(--zn-fs);"></textarea>
                         <div class="form-text">Auto-composed from the Job Specification. This is what applicants read —
                             edit the wording freely before saving.</div>
+
+                        {{-- Three ways to write the same Job Specification.
+                             Switching only rewrites the draft in the box. --}}
+                        <div class="jp-template" id="cp-template" style="display:none;">
+                            <div class="jp-template-head">
+                                <i class="fa fa-wand-magic-sparkles" aria-hidden="true"></i>
+                                <span>
+                                    Template: <strong class="jp-template-name"></strong>
+                                    <span class="jp-template-reason d-block"></span>
+                                </span>
+                            </div>
+                            <div class="jp-template-picker" id="cp-template-picker" role="group"
+                                aria-label="Rewrite this ad with another template"></div>
+                        </div>
+
+                        <div class="jp-public-warning d-none" id="cp-public-warning">
+                            <i class="fa fa-exclamation-triangle"></i> No public ad written. The careers page will fall
+                            back to the internal jobspec, which exposes age, sex and headcount publicly.
+                        </div>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label" for="cp-short">Short Description <span class="jp-field-tag jp-field-tag-live">Job
-                                boards &amp; sharing</span></label>
+                        <label class="form-label cp-label-row" for="cp-short">Short Description
+                            <button type="button" class="jp-gen-btn" id="cp-short-generate-btn"
+                                title="Draft from the Job Specification"><i class="fa fa-wand-magic-sparkles"></i>
+                                Draft</button>
+                            <span class="jp-field-tag jp-field-tag-live">Job boards &amp; sharing</span>
+                        </label>
                         <textarea id="cp-short" class="form-control" rows="3" maxlength="{{ \App\Services\Recruitment\Ad\JobShortDescription::MAX }}"></textarea>
-                        <div class="form-text">Two or three plain sentences for anywhere the full ad does not fit — a job
+                        <div class="form-text"><span id="cp-short-count">0</span> / {{ \App\Services\Recruitment\Ad\JobShortDescription::MAX }}
+                            characters — two or three plain sentences for anywhere the full ad does not fit: a job
                             board's summary, a social post, the careers list. No emoji needed.</div>
+                    </div>
+
+                    {{--
+                        Pictures for the ad.
+
+                        They were only ever reachable from a posting that already
+                        existed, which is the wrong moment: HR has the photographs
+                        in front of them while they are writing the ad, not after
+                        saving it and reopening the panel.
+
+                        They belong to the Job Specification, so the position this
+                        posting is being raised against already names the folder --
+                        there is nothing to attach to a posting that does not exist
+                        yet, which is why this works before Save.
+                    --}}
+                    <div class="mb-3">
+                        <label class="form-label">Photos <span class="jp-field-tag jp-field-tag-live">Careers page</span></label>
+                        <div class="jp-photos" id="cp-photos"></div>
+                        <input type="file" id="cp-photo-input" accept="image/jpeg,image/png" class="d-none">
+                        <div class="form-text">Shown beside the ad on the careers page — up to
+                            {{ \App\Services\Recruitment\JobSpecPhotos::MAX }}, JPG or PNG. They belong to this
+                            position's Job Specification, so every posting of it shows the same photos.
+                            <strong>Saved as soon as they are added</strong>, before the posting itself.</div>
+                    </div>
+
+                    {{--
+                        Where this job is going to be advertised.
+
+                        Every site starts ticked, because the places we advertise
+                        do not change from posting to posting -- the exceptions do.
+                        Unticking one here means no row is created for it, so it is
+                        never offered a link and never counted.
+
+                        A tick is NOT a claim that the ad has gone up. Nothing here
+                        posts anything: HireFlow has no API to any of these sites.
+                        It decides which tagged links HR is handed on publishing.
+                    --}}
+                    @php
+                        $cpDefault = config('posting_channels.default', 'direct');
+                        $cpChannels = collect(config('posting_channels.channels', []))
+                            ->filter(fn ($c, $k) => ($c['external'] ?? true) && $k !== $cpDefault);
+                    @endphp
+                    <div class="mb-2">
+                        <label class="form-label" id="cp-channels-label">Where to advertise it
+                            <span class="jp-field-tag">Tagged links</span></label>
+                        <div class="cp-channels" id="cp-channels" role="group" aria-labelledby="cp-channels-label">
+                            @foreach ($cpChannels as $key => $channel)
+                                <label class="cp-channel">
+                                    <input type="checkbox" class="form-check-input cp-channel-tick"
+                                        value="{{ $key }}" checked>
+                                    <span>{{ $channel['name'] }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <div class="form-text">Each one gets its own tagged Careers link to post by hand, and
+                            HireFlow counts the visits and applications that come back through it. All on by
+                            default — untick anywhere you are not posting this job. HireFlow cannot post to
+                            these sites itself.</div>
                     </div>
                 </div>
             </div>
@@ -1324,40 +1706,67 @@
     <div class="jp-panel-body">
         <div id="jp-panel-loading" class="jp-panel-loading">Loading…</div>
         <div id="jp-panel-content" class="d-none">
-            <div class="jp-panel-field">
-                <div class="jp-panel-label"><i class="fa fa-briefcase"></i> Position</div>
-                {{-- Filled when HR composes an ad, so the choice of template
-                     is never a black box. --}}
-                <div class="jp-panel-value" id="jpp-position">—</div>
-            </div>
-            <div class="jp-panel-field">
-                <div class="jp-panel-label"><i class="fa fa-file-alt"></i> Request</div>
-                <div class="jp-panel-value" id="jpp-mrno">—</div>
-                {{-- Straight through to step 3 for this posting. --}}
-                <a class="jp-panel-jump" id="jpp-applicants-link"
-                    href="{{ url('/recruitment/applicant-intake') }}">See applicants for this posting &rarr;</a>
-            </div>
-            <div class="jp-panel-field">
-                <div class="jp-panel-label"><i class="fa fa-user"></i> Created By</div>
-                <div class="jp-panel-value" id="jpp-createdby">—</div>
-            </div>
-            <div class="jp-panel-field jp-panel-field-inline">
-                <div>
-                    <div class="jp-panel-label"><i class="fa fa-calendar-check"></i> Posted At</div>
-                    <div class="jp-panel-value" id="jpp-postedat">—</div>
+            {{--
+                What this posting IS, in one block.
+
+                These five facts used to be five stacked rows, each with its
+                own uppercase heading and its own line, and together they
+                filled the panel before anything you could act on came into
+                view. They are the things you read once and then ignore, so
+                they are now read at a glance: two columns, four at the wider
+                width, and the ad itself starts near the top of the panel
+                instead of below the fold.
+            --}}
+            <dl class="jp-facts">
+                <div class="jp-fact">
+                    <dt><i class="fa fa-briefcase" aria-hidden="true"></i> Position</dt>
+                    <dd id="jpp-position">—</dd>
                 </div>
-                <div>
-                    <div class="jp-panel-label"><i class="fa fa-calendar-times"></i> Closed At</div>
-                    <div class="jp-panel-value" id="jpp-closedat">—</div>
+                <div class="jp-fact">
+                    <dt><i class="fa fa-file-alt" aria-hidden="true"></i> Request</dt>
+                    <dd id="jpp-mrno">—</dd>
                 </div>
-            </div>
-            <div class="jp-panel-field">
-                <div class="jp-panel-label"><i class="fa fa-lock"></i> Internal Jobspec <span
-                        class="jp-field-tag">Not public</span></div>
+                <div class="jp-fact">
+                    <dt><i class="fa fa-user" aria-hidden="true"></i> Created by</dt>
+                    <dd id="jpp-createdby">—</dd>
+                </div>
+                <div class="jp-fact">
+                    <dt><i class="fa fa-calendar-check" aria-hidden="true"></i> Posted</dt>
+                    <dd id="jpp-postedat">—</dd>
+                </div>
+                <div class="jp-fact">
+                    <dt><i class="fa fa-calendar-times" aria-hidden="true"></i> Closed</dt>
+                    <dd id="jpp-closedat">—</dd>
+                </div>
+            </dl>
+
+            {{-- Straight through to step 3 for this posting. An action, so it
+                 sits on its own rather than buried under a fact. --}}
+            <a class="jp-panel-jump jp-jump-row" id="jpp-applicants-link"
+                href="{{ url('/recruitment/applicant-intake') }}">See applicants for this posting &rarr;</a>
+
+            <h3 class="jp-section">The advertisement</h3>
+            {{--
+                Folded shut to begin with.
+
+                It is the one box on this panel that nobody outside HR ever
+                reads -- it says so itself -- and it was ten rows tall, sitting
+                above the ad that applicants actually see. Closed it costs a
+                line; open it is exactly what it was. Nothing about it is
+                read-only or conditional: the textarea is still in the page,
+                still saved by Save Description, still made readonly on a
+                closed posting.
+            --}}
+            <details class="jp-panel-field jp-fold">
+                <summary class="jp-fold-head">
+                    <span class="jp-panel-label"><i class="fa fa-lock"></i> Internal Jobspec
+                        <span class="jp-field-tag">Not public</span></span>
+                    <span class="jp-fold-note">HR reference only — never shown to applicants</span>
+                </summary>
                 <textarea class="jp-panel-desc-textarea" id="jpp-description-input" rows="10"></textarea>
                 <div class="jp-desc-hint">Auto-drafted from the jobspec. HR reference only — never shown on the
                     careers page.</div>
-            </div>
+            </details>
             <div class="jp-panel-field">
                 <div class="jp-panel-label"><i class="fa fa-globe"></i> Public Ad
                     <button type="button" class="jp-gen-btn" id="jpp-generate-btn"
@@ -1404,6 +1813,8 @@
                 <div class="jp-desc-hint"><span id="jpp-short-count">0</span> / {{ \App\Services\Recruitment\Ad\JobShortDescription::MAX }}
                     characters · saved with <strong>Save Description</strong>.</div>
             </div>
+            <h3 class="jp-section">Where it goes</h3>
+            <div class="jp-dist">
             {{-- Where HR advertises this posting.
 
                  HireFlow cannot publish to LinkedIn or JobStreet — no API —
@@ -1432,6 +1843,7 @@
                     {{ \App\Services\Recruitment\JobSpecPhotos::MAX }}, JPG or PNG. They belong to this position's Job
                     Specification, so every posting of it shows the same photos. Saved as soon as they are added.</div>
             </div>
+            </div>{{-- /.jp-dist --}}
         </div>
     </div>
     <div class="jp-panel-footer" id="jp-panel-footer"></div>
@@ -1463,6 +1875,23 @@
             $('#alert-box').empty();
         }
 
+        /*
+        | Whether the create modal has finished appearing.
+        |
+        | Bootstrap IGNORES hide() while a modal is still transitioning in, so
+        | a Publish pressed in those 300ms leaves the modal and its backdrop
+        | stacked behind the result dialog. The title is pre-filled from the
+        | draft, so there is nothing a quick user has to type first -- which
+        | makes this reachable rather than theoretical.
+        */
+        let cpModalOpen = false;
+        let cpModalSettled = false;
+
+        $('#modal-create-posting')
+            .on('show.bs.modal', function () { cpModalOpen = true; cpModalSettled = false; })
+            .on('shown.bs.modal', function () { cpModalSettled = true; })
+            .on('hidden.bs.modal', function () { cpModalOpen = false; cpModalSettled = false; });
+
         // ===== Create Posting modal (unchanged behavior) =====
         $('.btn-open-create-posting').on('click', async function() {
             clearAlert();
@@ -1478,8 +1907,24 @@
                 $('#cp-description').val(draft.description);
                 $('#cp-public').val(draft.public_ad || '');
                 $('#cp-short').val(draft.short_description || '');
+
+                /* Every site ticked again: the form is a new posting each
+                   time it opens, not the last one HR half-filled. */
+                $('#cp-channels .cp-channel-tick').prop('checked', true);
+
+                /* Same for the ad tools: no template left showing from the
+                   last position, no stale warning, counter in step. */
+                $('#cp-template').hide();
+                $('#cp-public-warning').addClass('d-none');
+                updateShortCount(JP_AD_CREATE);
+
                 $('#create-posting-loading').addClass('d-none');
                 $('#create-posting-form').removeClass('d-none');
+
+                /* After the form is visible, so the widget has somewhere to
+                   draw. Its own failure message covers a disk that cannot be
+                   read; it must not stop the ad being written. */
+                draftPhotos.load();
             } catch (err) {
                 showAlert('danger', 'Failed to load draft.');
                 $('#modal-create-posting').modal('hide');
@@ -1501,8 +1946,32 @@
                 posting_title: title,
                 posting_description: description,
                 public_description: publicAd,
-                short_description: $('#cp-short').val()
+                short_description: $('#cp-short').val(),
+
+                /* Only the sites still ticked get a row, and only a channel
+                   with a row is ever offered a link or counted. Sending an
+                   empty array is meaningful -- "nowhere but Careers" -- which
+                   is why it is always sent, even when nothing is ticked. */
+                channels: cpTickedChannels().map(c => c.key)
             });
+        }
+
+        /*
+        | The sites still ticked on the create form, in the shape the publish
+        | dialog and the copy panel already speak.
+        |
+        | `link` is null because there is nothing to link to yet: the posting
+        | does not exist, so neither does its tagged URL. The real links are
+        | read back from the server after publishing.
+        */
+        function cpTickedChannels() {
+            return $('#cp-channels .cp-channel-tick:checked').map(function () {
+                return {
+                    key: this.value,
+                    name: $(this).next('span').text(),
+                    link: null
+                };
+            }).get();
         }
 
         $('#cp-save-btn').on('click', async function() {
@@ -1515,12 +1984,48 @@
             }
         });
 
+        /*
+        | Publishing straight from the create form.
+        |
+        | This used to create the posting, publish it and reload, with no
+        | confirmation and nothing handed back -- the links HR needs in order
+        | to actually advertise the job were silently lost at the one moment
+        | they were wanted. The panel's publish button had already been given
+        | a confirmation and a copy panel; this one had not, and this is the
+        | button HR presses far more often.
+        */
         $('#cp-publish-btn').on('click', async function() {
+            const $btn = $(this);
+
+            /* Checked before the dialog, so HR is never asked to confirm
+               something that is then refused for a missing title. */
+            if (!$('#cp-title').val()) {
+                showAlert('danger', 'Posting title is required.');
+                return;
+            }
+
+            /*
+            | No dialog before this point.
+            |
+            | There was one, and it was wrong: it asked "publish this?" of
+            | somebody who had just filled in a form and pressed Publish on
+            | it, and then showed them links that did not exist yet. The
+            | confirmation belongs AFTER the posting is live, where it can
+            | report what actually happened and hand over the real links.
+            |
+            | Pressing Publish on a form you have just written is already the
+            | deliberate act; the panel's own Publish button still asks first,
+            | because that one acts on a posting already saved.
+            */
+            clearAlert();
+
+            const original = $btn.html();
+            $('#modal-create-posting .modal-footer .btn').prop('disabled', true);
+            $btn.html('<i class="fa fa-spinner fa-spin"></i> Publishing…');
+
             try {
                 const result = await createPosting();
-                if (!result) return;
-
-                console.log('createPosting() result:', result);
+                if (!result) { throw new Error('The posting was not created.'); }
 
                 const res = await fetch(`${BASE}/recruitment/job-postings/${result.id}/status`, {
                     method: 'PATCH',
@@ -1538,10 +2043,81 @@
                     throw new Error(`Status ${res.status}: ${text}`);
                 }
 
+                /*
+                | Published, on the server's word and not before.
+                |
+                | The links are read back rather than assembled here: what the
+                | posting actually offers is whatever rows it ended up with,
+                | which is the server's answer, not the form's.
+                */
+                const body = await res.json().catch(() => ({}));
+
+                if (body.status === 'Published') {
+                    let links = [];
+
+                    try {
+                        links = jpChannelsFromPayload(
+                            await GET('recruitment/job-postings/' + result.id + '/channels'));
+                    } catch (err) {
+                        /* The posting IS published; failing to list its links
+                           must not be reported as a failed publish. They are
+                           still on its panel. */
+                        console.error('[posting-channels] could not read the new posting back', err);
+                    }
+
+                    /*
+                    | Out of the way first: the create modal's backdrop would
+                    | sit over the result.
+                    |
+                    | Awaited, not fired and forgotten. Bootstrap ignores a
+                    | hide() issued while the modal is still transitioning in,
+                    | and the form is filled from the draft, so a quick Publish
+                    | really can land inside that window -- leaving two stacked
+                    | backdrops behind the result. The race is rare and the
+                    | wait costs nothing, so it is waited on rather than hoped
+                    | about. The timeout is there so a missed event can never
+                    | strand the links.
+                    */
+                    const $createModal = $('#modal-create-posting');
+
+                    /*
+                    | Asked of the events, not of the class.
+                    |
+                    | .show is not on the element for the first moments of the
+                    | transition, so testing for it skipped the hide entirely
+                    | in exactly the case this code exists to handle, and left
+                    | the modal open behind the result.
+                    */
+                    if (cpModalOpen) {
+                        /* Let it finish arriving before asking it to leave --
+                           a hide() issued mid-transition is simply dropped. */
+                        if (!cpModalSettled) {
+                            await new Promise(function (there) {
+                                $createModal.one('shown.bs.modal', there);
+                                setTimeout(there, 600);
+                            });
+                        }
+
+                        await new Promise(function (gone) {
+                            $createModal.one('hidden.bs.modal', gone);
+                            setTimeout(gone, 600);
+                            $createModal.modal('hide');
+                        });
+                    }
+
+                    /* The reload waits for Done, so the links cannot vanish
+                       before they have been used. */
+                    jpShowCopyPanel(links, () => location.reload(), { title: $('#cp-title').val() });
+
+                    return;
+                }
+
                 location.reload();
             } catch (err) {
                 console.error(err);
-                showAlert('danger', 'Failed to publish posting: ' + err.message );
+                showAlert('danger', 'Failed to publish posting: ' + err.message);
+                $('#modal-create-posting .modal-footer .btn').prop('disabled', false);
+                $btn.html(original);
             }
         });
 
@@ -1581,9 +2157,20 @@
             const editable = status !== 'Closed';
             let html = '';
 
+            /*
+            | Which button is the loud one depends on what the posting is for.
+            |
+            | On a draft the point is to publish it, so Publish leads and Save
+            | steps back. Once it is live, saving the wording is the thing HR
+            | does over and over, and the only other button ends the posting
+            | for good -- so Save leads and Close is the quiet one.
+            */
+            const quietSave = status === 'Draft';
+
             if (editable) {
                 html +=
-                    '<button type="button" class="jp-panel-btn jp-panel-btn-save" id="jp-save-desc-btn">' +
+                    '<button type="button" class="jp-panel-btn jp-panel-btn-save' +
+                    (quietSave ? ' is-quiet' : '') + '" id="jp-save-desc-btn">' +
                     '<i class="fa fa-save"></i>Save Description</button>';
             }
 
@@ -1735,19 +2322,87 @@
 
         $(document).on('change', '.js-channel-tick', jpSaveChannels);
 
+        /*
+        | Copying a channel's link, and what happens when the browser will not.
+        |
+        | navigator.clipboard needs a secure context: HTTPS, or localhost. Served
+        | over plain HTTP from a hostname -- which is how an internal tool often
+        | is -- it is simply not there, and the failure is not an edge case but
+        | every copy, every time.
+        |
+        | The fallback used to be window.prompt, which put the link in a browser
+        | dialog: unstyled, impossible to read on a phone, and the one native
+        | dialog left in a flow where every other one had been replaced. It is
+        | now a field in the panel itself, with the link already selected, so
+        | Ctrl+C works immediately and the text can also be dragged or read.
+        |
+        | Nothing here publishes, re-publishes or reloads. A failed copy is a
+        | failed copy; the posting is already live and the panel stays exactly
+        | as it was.
+        */
+        function jpCopyFallback($btn, link) {
+            /* One field per button, reused rather than stacked up if copying
+               is attempted more than once. */
+            let $box = $btn.siblings('.jp-copy-fallback');
+
+            if (!$box.length) {
+                $box = $(
+                    '<span class="jp-copy-fallback">' +
+                        '<label class="jp-copy-fallback-label">Copy this link</label>' +
+                        '<input type="text" class="jp-copy-fallback-input" readonly>' +
+                        '<span class="jp-copy-fallback-hint">Press Ctrl+C (or Cmd+C)</span>' +
+                    '</span>'
+                );
+                $btn.after($box);
+
+                const id = 'jp-copy-' + Math.random().toString(36).slice(2, 8);
+                $box.find('.jp-copy-fallback-input').attr('id', id);
+                $box.find('.jp-copy-fallback-label').attr('for', id);
+            }
+
+            const $field = $box.find('.jp-copy-fallback-input');
+            $field.val(link);
+
+            /* Focused and selected, so a keyboard user can copy without
+               reaching for the mouse, and a mouse user sees it is ready. */
+            $field.trigger('focus');
+            $field[0].setSelectionRange(0, link.length);
+
+            /* Selecting again on click: the first Ctrl+C often follows a
+               stray click that collapsed the selection. */
+            $field.off('click.jpcopy').on('click.jpcopy', function () {
+                this.setSelectionRange(0, this.value.length);
+            });
+
+            return $box;
+        }
+
         $(document).on('click', '.js-channel-copy', async function () {
             const link = $(this).data('link');
             if (!link) { return; }
             const $btn = $(this);
+
+            /*
+            | No clipboard API at all is the commonest case on plain HTTP, and
+            | it throws a TypeError rather than rejecting, so it is checked
+            | before being called.
+            */
+            if (!navigator.clipboard || !navigator.clipboard.writeText) {
+                jpCopyFallback($btn, link);
+
+                return;
+            }
+
             try {
                 await navigator.clipboard.writeText(link);
                 const original = $btn.html();
                 $btn.html('<i class="fa fa-check"></i> Copied');
                 setTimeout(() => $btn.html(original), 1500);
+                /* It worked, so any field left over from an earlier failure
+                   is no longer telling the truth. */
+                $btn.siblings('.jp-copy-fallback').remove();
             } catch (err) {
-                // Clipboard is blocked outside HTTPS in some browsers; show the
-                // link so it can still be copied by hand rather than failing.
-                window.prompt('Copy this link:', link);
+                jpCopyFallback($btn, link);
             }
         });
 
@@ -1757,21 +2412,55 @@
          * Generating used to produce one ad with no alternative; the choice
          * was invisible and unchangeable.
          */
-        function jpShowTemplate(template, templates) {
-            const $box = $('#jpp-template');
+        /*
+        | The two places an ad gets composed: the panel, and the create form.
+        |
+        | They differ in which boxes they fill and which URL they ask -- the
+        | panel has a posting, the create form has only the position it is
+        | being raised against. Everything else is the same, so it is the same
+        | code with a scope rather than two copies that drift.
+        */
+        const JP_AD_PANEL = {
+            gen: '#jpp-generate-btn',
+            shortBtn: '#jpp-short-generate-btn',
+            publicInput: '#jpp-public-input',
+            shortInput: '#jpp-short-input',
+            shortCount: '#jpp-short-count',
+            templateBox: '#jpp-template',
+            picker: '#jpp-template-picker',
+            warning: '#jpp-public-warning',
+            url: () => 'recruitment/job-postings/' + currentPostingId + '/suggest-ad'
+        };
+
+        const JP_AD_CREATE = {
+            gen: '#cp-generate-btn',
+            shortBtn: '#cp-short-generate-btn',
+            publicInput: '#cp-public',
+            shortInput: '#cp-short',
+            shortCount: '#cp-short-count',
+            templateBox: '#cp-template',
+            picker: '#cp-template-picker',
+            warning: '#cp-public-warning',
+            url: () => 'recruitment/job-postings/draft/' + currentPositionId + '/suggest-ad'
+        };
+
+        function jpShowTemplate(template, templates, scope) {
+            scope = scope || JP_AD_PANEL;
+
+            const $box = $(scope.templateBox);
             if (!template) { $box.hide(); return; }
 
             $box.find('.jp-template-name').text(template.name);
             $box.find('.jp-template-reason').text(template.reason || '');
 
-            const $picker = $('#jpp-template-picker').empty();
+            const $picker = $(scope.picker).empty();
             (templates || []).forEach(function (t) {
                 $('<button type="button" class="jp-template-btn"></button>')
                     .text(t.name)
                     .attr('title', t.description)
                     .attr('aria-pressed', t.key === template.key ? 'true' : 'false')
                     .toggleClass('is-on', t.key === template.key)
-                    .on('click', function () { jpGenerateAd(t.key); })
+                    .on('click', function () { jpGenerateAd(t.key, scope); })
                     .appendTo($picker);
             });
 
@@ -1782,18 +2471,20 @@
          * Composes the public ad, optionally with a chosen template.
          * Only the draft in the box changes; nothing is stored until save.
          */
-        async function jpGenerateAd(templateKey) {
-            const $btn = $('#jpp-generate-btn');
+        async function jpGenerateAd(templateKey, scope) {
+            scope = scope || JP_AD_PANEL;
+
+            const $btn = $(scope.gen);
             const original = $btn.html();
             $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Composing…');
-            $('.jp-template-btn').prop('disabled', true);
+            $(scope.picker).find('.jp-template-btn').prop('disabled', true);
 
             try {
                 const query = templateKey ? ('?template=' + encodeURIComponent(templateKey)) : '';
-                const data = await GET('recruitment/job-postings/' + currentPostingId + '/suggest-ad' + query);
-                $('#jpp-public-input').val(data.public_description || '');
-                $('#jpp-public-warning').addClass('d-none');
-                jpShowTemplate(data.template, data.templates);
+                const data = await GET(scope.url() + query);
+                $(scope.publicInput).val(data.public_description || '');
+                $(scope.warning).addClass('d-none');
+                jpShowTemplate(data.template, data.templates, scope);
                 showAlert('info', data.template
                     ? (data.template.chosen_by_hr
                         ? 'Ad rewritten with the ' + data.template.name + ' template. Review it, then click Save Description.'
@@ -1803,7 +2494,7 @@
                 showAlert('danger', 'Ad not composed: ' + err.message);
             } finally {
                 $btn.prop('disabled', false).html(original);
-                $('.jp-template-btn').prop('disabled', false);
+                $(scope.picker).find('.jp-template-btn').prop('disabled', false);
             }
         }
 
@@ -1877,42 +2568,6 @@
             document.querySelector('.jp-list-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }).css('cursor', 'pointer');
 
-        /**
-         * Replaces window.confirm for the destructive actions on this page.
-         * Those are the most consequential things HR can do here — replacing a
-         * hand-written ad, deleting a photo from every posting, closing a live
-         * posting — and they were getting the browser's bare dialog.
-         */
-        function jpConfirm(message, okLabel) {
-          return new Promise(function (resolve) {
-            const $back = $('<div class="jp-confirm-back"></div>');
-            const $box = $(
-                '<div class="jp-confirm" role="alertdialog" aria-modal="true">' +
-                '<p></p><div class="jp-confirm-row">' +
-                '<button type="button" class="jp-confirm-cancel">Cancel</button>' +
-                '<button type="button" class="jp-confirm-ok"></button>' +
-                '</div></div>'
-            );
-            $box.find('p').text(message);
-            $box.find('.jp-confirm-ok').text(okLabel);
-
-            function close(answer) {
-                $back.remove();
-                $box.remove();
-                $(document).off('keydown.jpConfirm');
-                resolve(answer);
-            }
-
-            $box.find('.jp-confirm-cancel').on('click', function () { close(false); });
-            $box.find('.jp-confirm-ok').on('click', function () { close(true); });
-            $back.on('click', function () { close(false); });
-            $(document).on('keydown.jpConfirm', function (e) { if (e.key === 'Escape') { close(false); } });
-
-            $('body').append($back).append($box);
-            $box.find('.jp-confirm-ok').trigger('focus');
-          });
-        }
-
         // ===== Expand / shrink panel (resets every time the panel closes) =====
         function setPanelWide(wide) {
             $('#jp-panel').toggleClass('jp-panel-wide', wide);
@@ -1947,77 +2602,77 @@
 
         // ===== Re-compose the public ad from the jobspec =====
         // Fills the textarea only — nothing is stored until Save.
-        $(document).on('click', '#jpp-generate-btn', async function() {
-            clearAlert();
-            const current = $('#jpp-public-input').val().trim();
-
-            if (current && !await jpConfirm(
-                    'Replace the current public ad with a freshly composed one? Your edits will be lost.',
-                    'Replace ad')) {
-                return;
-            }
-
-            // null = use the recommended template; the picker passes a key.
-            await jpGenerateAd(null);
-        });
-
-        // ===== Short description: counter, and a fresh draft on request =====
-        function updateShortCount() {
-            $('#jpp-short-count').text($('#jpp-short-input').val().length);
+        function updateShortCount(scope) {
+            scope = scope || JP_AD_PANEL;
+            $(scope.shortCount).text($(scope.shortInput).val().length);
         }
-        $(document).on('input', '#jpp-short-input', updateShortCount);
 
-        // Fills the textarea only — nothing is stored until Save.
-        $(document).on('click', '#jpp-short-generate-btn', async function() {
-            clearAlert();
-            const $btn = $(this);
+        /**
+         * Wires Generate, Draft and the character counter for one scope.
+         *
+         * Called once for the panel and once for the create form. Every
+         * selector comes from the scope, so neither set of buttons can reach
+         * into the other's boxes -- which matters, because the create form
+         * opens over a page that may still hold a panel's state.
+         */
+        function jpWireAdTools(scope) {
+            $(document).on('input', scope.shortInput, function () { updateShortCount(scope); });
 
-            if ($('#jpp-short-input').val().trim() &&
-                !await jpConfirm(
-                    'Replace the current short description with a fresh draft? Your edits will be lost.',
-                    'Replace description')) {
-                return;
-            }
+            $(document).on('click', scope.gen, async function () {
+                clearAlert();
 
-            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Drafting…');
+                const current = $(scope.publicInput).val().trim();
 
-            try {
-                const data = await GET('recruitment/job-postings/' + currentPostingId + '/suggest-ad');
-                $('#jpp-short-input').val(data.short_description || '');
-                updateShortCount();
-                showAlert('info', 'Short description drafted from the Job Specification. Review it, then click Save Description.');
-            } catch (err) {
-                console.error(err);
-                showAlert('danger', 'Could not draft a short description for this posting.');
-            } finally {
-                $btn.prop('disabled', false).html('<i class="fa fa-wand-magic-sparkles"></i> Draft');
-            }
-        });
+                if (current && !await hfConfirm({
+                    title: 'Replace the public ad?',
+                    message: 'A freshly composed ad will replace what is there now.',
+                    detail: 'Your edits to this ad will be lost. Nothing is saved until you press Save.',
+                    confirmLabel: 'Replace ad',
+                    tone: 'warn'
+                })) {
+                    return;
+                }
+
+                // null = use the recommended template; the picker passes a key.
+                await jpGenerateAd(null, scope);
+            });
+
+            // Fills the textarea only — nothing is stored until Save.
+            $(document).on('click', scope.shortBtn, async function () {
+                clearAlert();
+                const $btn = $(this);
+
+                if ($(scope.shortInput).val().trim() && !await hfConfirm({
+                    title: 'Replace the short description?',
+                    message: 'A fresh draft will replace what is there now.',
+                    detail: 'Your edits to the short description will be lost.',
+                    confirmLabel: 'Replace description',
+                    tone: 'warn'
+                })) {
+                    return;
+                }
+
+                $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Drafting…');
+
+                try {
+                    const data = await GET(scope.url());
+                    $(scope.shortInput).val(data.short_description || '');
+                    updateShortCount(scope);
+                    showAlert('info', 'Short description drafted from the Job Specification. Review it, then click Save Description.');
+                } catch (err) {
+                    console.error(err);
+                    showAlert('danger', 'Could not draft a short description for this posting.');
+                } finally {
+                    $btn.prop('disabled', false).html('<i class="fa fa-wand-magic-sparkles"></i> Draft');
+                }
+            });
+        }
+
+        jpWireAdTools(JP_AD_PANEL);
+        jpWireAdTools(JP_AD_CREATE);
 
         // ===== Photos (the Job Specification's; saved immediately) =====
         let photosEditable = true;
-
-        function renderPhotos(data) {
-            const photos = (data && data.photos) || [];
-            let html = photos.map(p =>
-                '<div class="jp-photo"><img src="' + p.url + '" alt="" loading="lazy">' +
-                (photosEditable ? '<button type="button" class="jp-photo-remove" data-name="' + p.name +
-                    '" title="Remove photo" aria-label="Remove photo"><i class="fa fa-times"></i></button>' : '') +
-                '</div>').join('');
-            if (photosEditable && photos.length < (data ? data.max : 0)) {
-                html += '<button type="button" class="jp-photo-add" id="jpp-photo-add"><i class="fa fa-plus"></i><span>Add photo</span></button>';
-            }
-            $('#jpp-photos').html(html || '<span class="text-muted small">No photos.</span>');
-        }
-
-        async function loadPhotos() {
-            $('#jpp-photos').html('<span class="text-muted small">Loading photos…</span>');
-            try {
-                renderPhotos(await GET('recruitment/job-postings/' + currentPostingId + '/photos'));
-            } catch (err) {
-                $('#jpp-photos').html('<span class="text-muted small">Photos could not be loaded.</span>');
-            }
-        }
 
         async function photoRequest(method, url, body) {
             const res = await fetch(`${BASE}/${url}`, {
@@ -2033,33 +2688,102 @@
             return data;
         }
 
-        $(document).on('click', '#jpp-photo-add', function() {
-            $('#jpp-photo-input').val('').trigger('click');
+        /*
+        | The photo picker, mounted twice.
+        |
+        | Once in the posting panel and once in the Create Posting form. The
+        | two differ in exactly two ways -- which element they draw into, and
+        | which URL they talk to -- so they are the same widget rather than
+        | the same sixty lines written out again.
+        |
+        | Every handler is scoped to its own container. A delegated
+        | '.jp-photo-remove' would otherwise fire on both mounts at once and
+        | the modal's remove would also act on the panel behind it.
+        */
+        function mountPhotos(opts) {
+            const editable = () => (opts.editable ? opts.editable() : true);
+
+            function render(data) {
+                const photos = (data && data.photos) || [];
+                const on = editable();
+
+                let html = photos.map(p =>
+                    '<div class="jp-photo"><img src="' + p.url + '" alt="" loading="lazy">' +
+                    (on ? '<button type="button" class="jp-photo-remove" data-name="' + p.name +
+                        '" title="Remove photo" aria-label="Remove photo"><i class="fa fa-times"></i></button>' : '') +
+                    '</div>').join('');
+
+                if (on && photos.length < (data ? data.max : 0)) {
+                    html += '<button type="button" class="jp-photo-add"><i class="fa fa-plus"></i><span>Add photo</span></button>';
+                }
+
+                $(opts.container).html(html || '<span class="text-muted small">No photos.</span>');
+            }
+
+            async function load() {
+                $(opts.container).html('<span class="text-muted small">Loading photos…</span>');
+                try {
+                    render(await GET(opts.url()));
+                } catch (err) {
+                    $(opts.container).html('<span class="text-muted small">Photos could not be loaded.</span>');
+                }
+            }
+
+            $(document).on('click', opts.container + ' .jp-photo-add', function() {
+                $(opts.input).val('').trigger('click');
+            });
+
+            $(document).on('change', opts.input, async function() {
+                if (!this.files.length) return;
+                clearAlert();
+
+                const form = new FormData();
+                form.append('photo', this.files[0]);
+                $(opts.container + ' .jp-photo-add').prop('disabled', true).find('span').text('Uploading…');
+
+                try {
+                    render(await photoRequest('POST', opts.url(), form));
+                } catch (err) {
+                    showAlert('danger', 'Photo not added: ' + err.message);
+                    load();
+                }
+            });
+
+            $(document).on('click', opts.container + ' .jp-photo-remove', async function() {
+                const name = $(this).data('name');
+
+                if (!await hfConfirm({
+                    title: 'Remove this photo?',
+                    message: 'Photos belong to the Job Specification, not to one posting.',
+                    detail: 'It will stop appearing beside every posting of this position, including ones already published.',
+                    confirmLabel: 'Remove photo',
+                    tone: 'warn'
+                })) { return; }
+
+                clearAlert();
+
+                try {
+                    render(await photoRequest('DELETE', opts.url() + '/' + encodeURIComponent(name)));
+                } catch (err) {
+                    showAlert('danger', 'Photo not removed: ' + err.message);
+                }
+            });
+
+            return { render, load };
+        }
+
+        const panelPhotos = mountPhotos({
+            container: '#jpp-photos',
+            input: '#jpp-photo-input',
+            url: () => 'recruitment/job-postings/' + currentPostingId + '/photos',
+            editable: () => photosEditable
         });
 
-        $('#jpp-photo-input').on('change', async function() {
-            if (!this.files.length) return;
-            clearAlert();
-            const form = new FormData();
-            form.append('photo', this.files[0]);
-            $('#jpp-photo-add').prop('disabled', true).find('span').text('Uploading…');
-            try {
-                renderPhotos(await photoRequest('POST', 'recruitment/job-postings/' + currentPostingId + '/photos', form));
-            } catch (err) {
-                showAlert('danger', 'Photo not added: ' + err.message);
-                loadPhotos();
-            }
-        });
-
-        $(document).on('click', '.jp-photo-remove', async function() {
-            if (!await jpConfirm('Remove this photo from every posting of this position?', 'Remove photo')) { return; }
-            clearAlert();
-            try {
-                renderPhotos(await photoRequest('DELETE', 'recruitment/job-postings/' + currentPostingId + '/photos/' +
-                    encodeURIComponent($(this).data('name'))));
-            } catch (err) {
-                showAlert('danger', 'Photo not removed: ' + err.message);
-            }
+        /* Addressed by POSITION, because the posting does not exist yet. */
+        const draftPhotos = mountPhotos({
+            container: '#cp-photos',
+            input: '#cp-photo-input',
+            url: () => 'recruitment/job-postings/draft/' + currentPositionId + '/photos'
         });
 
         // ===== Save description only (no status change) =====
@@ -2127,14 +2851,18 @@
                 $('#jpp-public-warning').toggleClass('d-none', !!(data.public_description || '').trim());
                 renderSyncState(data.ad_is_custom);
                 $('#jpp-short-input').val(data.short_description || '');
-                updateShortCount();
-                $('#jpp-createdby').text(data.created_by ?? '—');
+                updateShortCount(JP_AD_PANEL);
+                /* The name when we have one, with the number kept as the
+                   tooltip so nothing is lost by making it readable. */
+                $('#jpp-createdby')
+                    .text(data.created_by_name || data.created_by || '—')
+                    .attr('title', data.created_by || '');
                 $('#jpp-postedat').text(data.posted_at ?? 'Not yet published');
                 $('#jpp-closedat').text(data.closed_at ?? 'Not closed');
 
                 renderFooter(data.status);
                 photosEditable = data.status !== 'Closed';
-                loadPhotos();
+                panelPhotos.load();
                 jpLoadChannels(id);
 
                 $('#jp-panel-loading').addClass('d-none');
@@ -2166,16 +2894,271 @@
             closePanel();
         });
 
+        /*
+        | Publishing, confirmed, with the links it will produce.
+        |
+        | Publish used to be the one status change with no confirmation at
+        | all: Close asked, Publish just went. It is the more consequential
+        | of the two -- the posting becomes visible on the Careers site and
+        | starts accepting applications -- and HR had no sight of which
+        | channels were about to be offered until afterwards.
+        |
+        | The dialog is built here rather than through hfConfirm because it
+        | carries a list, not a sentence. Everything else about it follows the
+        | same rules: Escape and the backdrop cancel, focus is trapped, focus
+        | returns to the button, and nothing says "published" until the server
+        | has said so.
+        */
+        function jpPublishDialog(posting, channels) {
+            return new Promise(function (resolve) {
+                const opener = document.activeElement;
+
+                const rows = channels.length
+                    ? channels.map(c =>
+                        '<li class="jp-pub-channel">' +
+                            '<span class="jp-pub-channel-name">' + esc(c.name) + '</span>' +
+                            (c.link
+                                ? '<code class="jp-pub-link">' + esc(c.link) + '</code>'
+                                : '<span class="jp-desc-hint">No link — set CAREERS_URL</span>') +
+                        '</li>').join('')
+                    : '<li class="jp-desc-hint">No external channels are switched on for this posting. ' +
+                      'It will still be published on the Careers site, and anyone arriving ' +
+                      'untagged is counted as direct.</li>';
+
+                const back = document.createElement('div');
+                back.className = 'hf-dlg-back';
+                back.style.zIndex = '2000';
+
+                const box = document.createElement('div');
+                box.className = 'hf-dlg jp-pub-dlg';
+                box.style.zIndex = '2001';
+                box.setAttribute('role', 'alertdialog');
+                box.setAttribute('aria-modal', 'true');
+                box.setAttribute('aria-labelledby', 'jp-pub-title');
+
+                box.innerHTML =
+                    '<h2 class="hf-dlg-title" id="jp-pub-title">Publish this job posting?</h2>' +
+                    '<p class="hf-dlg-msg"><b>' + esc(posting.title) + '</b>' +
+                        (posting.mr_no ? ' · ' + esc(posting.mr_no) : '') + '</p>' +
+                    '<p class="hf-dlg-detail">It becomes visible on the Careers site and starts ' +
+                        'accepting applications. You can close it again at any time.</p>' +
+                    '<p class="jp-pub-label">Links you will be given to post by hand</p>' +
+                    '<ul class="jp-pub-channels">' + rows + '</ul>' +
+                    '<p class="hf-dlg-detail">HireFlow does not post to these sites itself. ' +
+                        'It gives you a tagged link for each one so applications coming back ' +
+                        'can be counted against it.</p>' +
+                    '<div class="hf-dlg-row">' +
+                        '<button type="button" class="hf-dlg-btn hf-dlg-cancel">Cancel</button>' +
+                        '<button type="button" class="hf-dlg-btn hf-dlg-ok">Publish posting</button>' +
+                    '</div>';
+
+                function close(answer) {
+                    document.removeEventListener('keydown', onKey, true);
+                    back.remove();
+                    box.remove();
+                    if (opener && opener.focus && document.contains(opener)) { opener.focus(); }
+                    resolve(answer);
+                }
+
+                function onKey(e) {
+                    if (e.key === 'Escape') { e.preventDefault(); close(false); return; }
+                    if (e.key !== 'Tab') { return; }
+
+                    const f = [...box.querySelectorAll('button')].filter(b => !b.disabled);
+                    if (!f.length) { return; }
+
+                    const first = f[0];
+                    const last = f[f.length - 1];
+
+                    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                }
+
+                box.querySelector('.hf-dlg-cancel').addEventListener('click', () => close(false));
+                box.querySelector('.hf-dlg-ok').addEventListener('click', () => close(true));
+                back.addEventListener('click', () => close(false));
+                document.addEventListener('keydown', onKey, true);
+
+                document.body.appendChild(back);
+                document.body.appendChild(box);
+                box.querySelector('.hf-dlg-ok').focus();
+            });
+        }
+
+        /*
+        | Which channels this posting will actually offer a link for.
+        |
+        | Only the ones that exist on the posting -- a channel HR unticked has
+        | no row and must not appear here -- and only the external ones, since
+        | the direct bucket is where untagged traffic lands rather than
+        | somewhere anybody posts.
+        */
+        /*
+        | Every place this posting can be advertised by hand.
+        |
+        | This was called jpEnabledChannels, which was a lie: it filtered on
+        | `external`, never on whether HR had ticked the channel as Posted. The
+        | name said one thing and the code did another, and since seeding now
+        | gives a posting all five external channels up front, "enabled" would
+        | have meant "all of them" in every case anyway.
+        |
+        | Filtering on the tick would be worse, not better: at the moment of
+        | publishing, nothing is ticked yet -- HR ticks a channel once they
+        | have actually posted it, which is after they have the link. Doing
+        | that would have emptied the copy panel exactly when it is needed.
+        |
+        | So: every external channel, and the ticks stay what they always
+        | were, a record of where the ad has really gone up.
+        */
+        function jpExternalChannels() {
+            return jpChannelsFromPayload({ channels: jpChannels, available: jpChannelsAvailable });
+        }
+
+        /*
+        | The same reduction, from a payload that is not the open panel's.
+        |
+        | Publishing from the create form has no panel state to read: the
+        | posting was made a moment ago and its channels are fetched for that
+        | one purpose. Both paths reduce the answer the same way, so the copy
+        | panel cannot show one thing in one flow and another in the other.
+        */
+        function jpChannelsFromPayload(payload) {
+            const external = {};
+            (payload.available || jpChannelsAvailable || []).forEach(a => {
+                if (a.external) { external[a.key] = a; }
+            });
+
+            return (payload.channels || [])
+                .filter(c => external[c.key])
+                .map(c => ({ key: c.key, name: external[c.key].name, link: c.link || null }));
+        }
+
+        /*
+        | After it really is published: the links, to copy.
+        |
+        | Shown only once the server has confirmed, and listing only the
+        | channels that were switched on. The page reloads afterwards, so this
+        | is the one moment HR has the whole set in front of them.
+        */
+        function jpShowCopyPanel(channels, onDismiss, posting) {
+            const opener = document.activeElement;
+
+            const back = document.createElement('div');
+            back.className = 'hf-dlg-back';
+            back.style.zIndex = '2000';
+
+            const box = document.createElement('div');
+            box.className = 'hf-dlg jp-pub-dlg jp-pub-done';
+            box.style.zIndex = '2001';
+            box.setAttribute('role', 'dialog');
+            box.setAttribute('aria-modal', 'true');
+            box.setAttribute('aria-labelledby', 'jp-done-title');
+
+            const rows = channels.length
+                ? '<p class="jp-pub-label">Links to post by hand</p>' +
+                  '<ul class="jp-pub-channels">' +
+                  channels.map(c =>
+                    '<li class="jp-pub-channel">' +
+                        '<span class="jp-pub-channel-name">' + esc(c.name) + '</span>' +
+                        (c.link
+                            ? '<code class="jp-pub-link">' + esc(c.link) + '</code>' +
+                              '<button type="button" class="jp-channel-link js-channel-copy" ' +
+                              'data-link="' + esc(c.link) + '"><i class="fa fa-copy"></i> Copy</button>'
+                            : '<span class="jp-desc-hint">No link — set CAREERS_URL</span>') +
+                    '</li>').join('') +
+                  '</ul>' +
+                  '<p class="hf-dlg-detail">They are switched on already. Post each one where you ' +
+                      'said you would — HireFlow counts the visits and applications that come ' +
+                      'back through it.</p>'
+                : '<p class="hf-dlg-detail">It is advertised on the Careers page only. Anyone ' +
+                      'arriving without a tagged link is counted as direct.</p>';
+
+            box.innerHTML =
+                '<h2 class="hf-dlg-title" id="jp-done-title">Published</h2>' +
+                '<p class="hf-dlg-msg"><b>' + esc((posting && posting.title) || 'The posting') + '</b>' +
+                    ' is live on the Careers site and accepting applications.</p>' +
+                rows +
+                '<div class="hf-dlg-row">' +
+                    '<button type="button" class="hf-dlg-btn hf-dlg-ok">Done</button>' +
+                '</div>';
+
+            function close() {
+                document.removeEventListener('keydown', onKey, true);
+                back.remove();
+                box.remove();
+                if (opener && opener.focus && document.contains(opener)) { opener.focus(); }
+                if (onDismiss) { onDismiss(); }
+            }
+
+            function onKey(e) {
+                if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+                if (e.key !== 'Tab') { return; }
+
+                const f = [...box.querySelectorAll('button, input')].filter(b => !b.disabled);
+                if (!f.length) { return; }
+
+                const first = f[0];
+                const last = f[f.length - 1];
+
+                if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+            }
+
+            box.querySelector('.hf-dlg-ok').addEventListener('click', close);
+            back.addEventListener('click', close);
+            document.addEventListener('keydown', onKey, true);
+
+            document.body.appendChild(back);
+            document.body.appendChild(box);
+
+            /* The first link, not the Done button: copying is what this is
+               for, and Done is one Tab away from wherever you stop. */
+            (box.querySelector('.js-channel-copy') || box.querySelector('.hf-dlg-ok')).focus();
+        }
+
         $(document).on('click', '.jp-panel-status-btn', async function() {
             const $btn = $(this);
             const status = $btn.data('status');
             const posting_description = $('#jpp-description-input').val();
 
-            if (status === 'Closed' &&
-                !await jpConfirm(
-                    'Close this job posting? It will stop accepting applicants. This does not close the panel.',
-                    'Close posting')) {
+            if (status === 'Closed' && !await hfConfirm({
+                title: 'Close this job posting?',
+                message: 'It will stop accepting applicants.',
+                detail: 'Applications already made are unaffected. The panel stays open.',
+                confirmLabel: 'Close posting',
+                tone: 'warn'
+            })) {
                 return;
+            }
+
+            /*
+            | Publishing asks too, and shows what it will produce.
+            |
+            | The channels are re-read first rather than trusted from whenever
+            | the panel was last drawn: HR may have ticked something a minute
+            | ago, and the list in the dialog has to be the list the posting
+            | will actually offer.
+            */
+            let publishedChannels = [];
+
+            if (status === 'Published') {
+                try {
+                    jpRenderChannels(await GET('recruitment/job-postings/' + currentPostingId + '/channels'));
+                } catch (err) {
+                    /* The dialog is still worth showing without them: it is
+                       the confirmation that matters, and the links are
+                       offered again afterwards. */
+                    console.error('[posting-channels] could not refresh before publishing', err);
+                }
+
+                publishedChannels = jpExternalChannels();
+
+                if (!await jpPublishDialog({
+                    title: $('#jpp-title').text() || 'this posting',
+                    mr_no: $('#jpp-mrno').text() || ''
+                }, publishedChannels)) {
+                    return;
+                }
             }
 
             clearAlert();
@@ -2204,6 +3187,37 @@
                 if (!res.ok) {
                     const text = await res.text();
                     throw new Error(`Status ${res.status}: ${text}`);
+                }
+
+                /*
+                | Published, and only now said so.
+                |
+                | The copy panel is appended to the body before the reload so
+                | it survives it -- it does not, which is the point: the links
+                | are read from the server-confirmed state on the way through,
+                | and the panel is rebuilt from the reloaded page. Nothing
+                | here claims success before this line.
+                */
+                if (status === 'Published') {
+                    const body = await res.json().catch(() => ({}));
+
+                    /*
+                    | The server's word, not ours.
+                    |
+                    | "Published" is only said once the response says so.
+                    | If it did not, the reload below still happens and the
+                    | list repaints from whatever actually took effect.
+                    */
+                    if (body.status === 'Published') {
+                        /* The reload WAITS for this dialog. Showing the links
+                           and then reloading a moment later would take them
+                           away before anybody could use them, which is the
+                           one thing this dialog exists to prevent. */
+                        jpShowCopyPanel(publishedChannels, () => location.reload(),
+                            { title: $('#jpp-title').text() });
+
+                        return;
+                    }
                 }
 
                 // The full page reload repaints the list and the panel state,

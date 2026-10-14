@@ -294,6 +294,18 @@ class InterviewWorkflow
                     'id' => $i->id,
                     'scheduled_at' => $i->scheduled_at?->toDateTimeString(),
                     'attendance' => $i->attendance,
+                    /*
+                    | Its time has come and nobody has said yet whether it
+                    | happened.
+                    |
+                    | Worked out on every read rather than stored, so it is
+                    | never stale and no job has to sweep for it. It is not a
+                    | fifth attendance value and it does not replace
+                    | 'scheduled': the interview IS still scheduled, it is
+                    | simply overdue an answer. Nothing is recorded as held
+                    | because a clock passed.
+                    */
+                    'due' => InterviewScheduling::isDue($i),
                     'venue' => $i->venue,
                     'cancel_reason' => $i->cancel_reason,
                     /*

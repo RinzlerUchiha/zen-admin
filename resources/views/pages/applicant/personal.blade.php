@@ -91,7 +91,18 @@
 
     /* ── Accordion tweaks ───────────────────────────────────────── */
     .info-accordion {
-        --bs-accordion-bg: var(--zn-line);
+        /*
+        | The accordion takes the card's own background.
+        |
+        | This was --zn-line, which is the DIVIDER colour -- the same #e5e0db
+        | the card draws its border in. Bootstrap paints .accordion-item with
+        | it, so the Address block ended up filled with the colour of its own
+        | surround while every other section stayed white.
+        |
+        | Transparent rather than --zn-surface, so it cannot disagree with the
+        | card again: whatever .info-section is, this is.
+        */
+        --bs-accordion-bg: transparent;
     }
 
     .info-accordion .accordion-button {
@@ -149,6 +160,35 @@
         body, #form-personal { font-size: var(--zn-fs-xs); }
         .masked { color: #000 !important; letter-spacing: normal; }
     }
+
+    /* The photo sits on top of the initials, so a file that cannot be loaded
+       leaves something readable rather than a broken image. The same pattern
+       the overview header above it uses. */
+    .ap-photo-box {
+        position: relative;
+        width: 70px;
+        height: 70px;
+        display: inline-block;
+    }
+
+    .ap-photo-box img,
+    .ap-photo-initials {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: var(--zn-radius, 6px);
+        object-fit: cover;
+    }
+
+    .ap-photo-initials {
+        display: grid;
+        place-items: center;
+        background: var(--zn-accent-soft);
+        color: var(--zn-accent);
+        font-weight: 700;
+        font-size: var(--zn-fs-lg);
+    }
 </style>
 
 <div class="container-fluid">
@@ -157,11 +197,35 @@
         {{-- ── Header row: photo · name · status · print ──────────── --}}
         <div class="d-flex align-items-start gap-3 mb-4">
 
-            <img id="personal-img-preview"
-                 src="{{ $applicant?->app_img ? config('app.url').'/file/app-img/'.$applicant?->app_img : asset('no-file.png') }}"
-                 class="img-thumbnail object-fit-contain flex-shrink-0"
-                 alt="Applicant photo"
-                 style="height:70px; width:70px;">
+            {{--
+                The applicant's photo, with their initials underneath it.
+
+                The URL was built by hand as {APP_URL}/file/app-img/{name},
+                which is the shape zen-applicants serves. zen-admin has no such
+                route, so the photo 404'd on every profile here and HR saw a
+                broken image; and when there was no photo at all the page
+                deliberately loaded no-file.png -- a 1.4 MB "FILE NOT
+                AVAILABLE" graphic -- into a 70px box.
+
+                It now goes through zen-admin's own file route, asks for a 404
+                rather than that placeholder, and falls back to the initials,
+                which say more about who this is than the graphic ever did.
+            --}}
+            @php
+                $apInitials = strtoupper(
+                    mb_substr($applicant?->app_fname ?? 'A', 0, 1) . mb_substr($applicant?->app_lname ?? '', 0, 1)
+                );
+            @endphp
+            <span class="ap-photo-box flex-shrink-0">
+                <span class="ap-photo-initials" aria-hidden="true">{{ $apInitials }}</span>
+                @if ($applicant?->app_img)
+                    <img id="personal-img-preview"
+                         src="{{ route('applicant.file', ['src' => 'app-img', 'filename' => $applicant->app_img, 'missing' => 'skip']) }}"
+                         alt="{{ trim(($applicant?->app_fname ?? '') . ' ' . ($applicant?->app_lname ?? '')) ?: 'Applicant photo' }}"
+                         loading="lazy"
+                         onerror="this.remove()">
+                @endif
+            </span>
 
             <div class="flex-grow-1 min-w-0">
                 {{-- Name --}}

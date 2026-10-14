@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Recruitment;
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantApplication;
 use App\Services\Recruitment\AcquiredApplicantIntake;
+use App\Services\Recruitment\ApplicantBlacklist;
 use App\Services\Recruitment\ApplicationRecommendationService;
 use App\Services\Recruitment\ApplicantDocumentReview;
 use Illuminate\Support\Facades\DB;
@@ -46,7 +47,11 @@ class ApplicantIntakeController extends Controller
                 'p.app_mname',
                 'p.app_lname',
                 'p.app_email',
-                'p.app_mobile'
+                'p.app_mobile',
+                /* The applicant's own photo, for the list. Just the stored
+                   file name -- the view builds the URL through the existing
+                   file route, which is what enforces access to it. */
+                'p.app_img'
             );
     }
 
@@ -119,7 +124,7 @@ class ApplicantIntakeController extends Controller
             ->leftJoin('tblapp_applications as a', 'a.app_id', '=', 'p.app_id')
             ->whereNull('a.id')
             ->select('p.app_id', 'p.app_fname', 'p.app_mname', 'p.app_lname',
-                     'p.app_email', 'p.app_mobile', 'p.app_date')
+                     'p.app_email', 'p.app_mobile', 'p.app_date', 'p.app_img')
             ->orderByDesc('p.app_date')
             ->get()
             ->map(fn ($p) => [
@@ -128,6 +133,7 @@ class ApplicantIntakeController extends Controller
                     $p->app_fname . ' ' . ($p->app_mname ?? '') . ' ' . $p->app_lname)),
                 'app_email' => $p->app_email,
                 'app_mobile' => $p->app_mobile,
+                'app_img' => $p->app_img,
                 'application_count' => 0,
                 'latest_applied_at' => null,
                 'registered_at' => $p->app_date,
@@ -181,6 +187,7 @@ class ApplicantIntakeController extends Controller
                 'applicant_name' => $first->applicant_name,
                 'app_email' => $first->app_email,
                 'app_mobile' => $first->app_mobile,
+                'app_img' => $first->app_img,
                 'application_count' => $apps->count(),
                 'latest_applied_at' => $apps->max('applied_at'),
                 'registered_at' => $registeredAt,
@@ -213,6 +220,52 @@ class ApplicantIntakeController extends Controller
         $rows = $grouped->concat($this->accountsWithoutApplications())
             ->sortByDesc(fn ($r) => $r['latest_applied_at'] ?? $r['registered_at'] ?? '')
             ->values();
+
+        /*
+        | Who is barred, for the whole list in one query.
+        |
+        | HR could only find this out by opening a profile, which is the wrong
+        | way round: whether somebody may be given a new application at all is
+        | the first thing about them, not the last. It is a flag rather than
+        | the reason -- the reason is HR's own note and belongs on the profile
+        | where the decision and its history are.
+        |
+        | Covers the registered-no-application accounts too: those are exactly
+        | the people a bar is most likely to be sitting on.
+        */
+        $barred = ApplicantBlacklist::flagsFor(
+            $rows->pluck('app_id')->map(fn ($id) => (int) $id)->all()
+        );
+
+        $rows = $rows->map(function ($row) use ($barred) {
+            $row['blacklisted'] = isset($barred[(int) $row['app_id']]);
+
+            /*
+            | Where the photo lives, named by the route rather than by hand.
+            |
+            | The profile had this wrong once -- it built /file/app-img/{name}
+            | as a string, which broke when the app moved under a subpath and
+            | left a broken-image icon where the initials should have been.
+            | route() is the one place that knows, and the route itself is
+            | what enforces access to the file: nothing is copied anywhere and
+            | no disk is bridged.
+            |
+            | Null when the applicant has no photo, which is most of them; the
+            | view then shows their initials, as the profile does.
+            */
+            $row['photo_url'] = !empty($row['app_img'])
+                /* missing=skip: a missing file has to 404 so the card's
+                   onerror can fall back to the initials. Without it the route
+                   answers 200 with a placeholder graphic, and every applicant
+                   whose photo is not on this disk shows "FILE NOT AVAILABLE"
+                   in a 42px circle. */
+                ? route('applicant.file', ['src' => 'app-img', 'filename' => $row['app_img'], 'missing' => 'skip'])
+                : null;
+
+            unset($row['app_img']);
+
+            return $row;
+        })->values();
 
         return response()->json(['data' => $rows]);
     }
@@ -255,6 +308,79 @@ class ApplicantIntakeController extends Controller
      * Source, outcome and current work stay separate: a job-fair hire is
      * source=job_fair AND outcome=Hired AND still missing documents.
      */
+    /**
+     * Do we already know this person?
+     *
+     * Asked BEFORE the form is filled in, not discovered after it is submitted.
+     * Intake used to find the duplicate inside the save and report it in the
+     * success message -- so HR typed out somebody's details, pressed Add, and
+     * only then learned the account had existed all along and the form had been
+     * largely pointless. Worse, a blacklisted applicant was refused at the very
+     * end, after all the typing.
+     *
+     * Nothing here creates anything. It answers a question.
+     */
+    public function lookupApplicant(Request $request)
+    {
+        $validated = $request->validate([
+            'app_email' => 'nullable|email|max:150',
+            'app_mobile' => 'nullable|string|max:50',
+        ]);
+
+        $email = trim((string) ($validated['app_email'] ?? ''));
+        $mobile = trim((string) ($validated['app_mobile'] ?? ''));
+
+        if ($email === '' && $mobile === '') {
+            return response()->json(['found' => false]);
+        }
+
+        $conn = DB::connection('applicant');
+
+        $person = $conn->table('tblapp_persinfo')
+            ->where(function ($q) use ($email, $mobile) {
+                if ($email !== '') { $q->orWhere('app_email', $email); }
+                if ($mobile !== '') { $q->orWhere('app_mobile', $mobile); }
+            })
+            ->first(['app_id', 'app_lname', 'app_fname', 'app_mname', 'app_email', 'app_mobile', 'app_date']);
+
+        if (!$person) {
+            return response()->json(['found' => false]);
+        }
+
+        /* Their applications, so HR can see whether this is a returning
+           applicant or someone already in the middle of something. */
+        $applications = $conn->table('tblapp_applications as a')
+            ->leftJoin(DB::connection()->getDatabaseName() . '.tbl_job_posting as p', 'p.id', '=', 'a.job_posting_id')
+            ->where('a.app_id', $person->app_id)
+            ->orderByDesc('a.applied_at')
+            ->limit(5)
+            ->get(['a.id', 'a.status', 'a.applied_at', 'a.closed_at', 'p.posting_title']);
+
+        $blacklist = ApplicantBlacklist::current((int) $person->app_id);
+
+        return response()->json([
+            'found' => true,
+            'app_id' => (int) $person->app_id,
+            'name' => trim($person->app_fname . ' ' . ($person->app_mname ? $person->app_mname . ' ' : '') . $person->app_lname),
+            'app_lname' => $person->app_lname,
+            'app_fname' => $person->app_fname,
+            'app_mname' => $person->app_mname,
+            'app_email' => $person->app_email,
+            'app_mobile' => $person->app_mobile,
+            'since' => $person->app_date,
+            'blacklisted' => $blacklist !== null,
+            'blacklist_reason' => $blacklist?->reason,
+            'open_count' => $applications->whereNull('closed_at')->count(),
+            'applications' => $applications->map(fn ($a) => [
+                'posting_title' => $a->posting_title ?: '—',
+                'status' => $a->status,
+                'applied_at' => $a->applied_at,
+                'closed' => $a->closed_at !== null,
+            ])->values(),
+            'profile_url' => route('applicant.show', ['id' => $person->app_id]),
+        ]);
+    }
+
     public function storeAcquired(Request $request)
     {
         $validated = $request->validate([
@@ -317,7 +443,25 @@ class ApplicantIntakeController extends Controller
 
         $rows = $this->enrichAll(
             $this->baseQuery()->whereIn('a.status', $pooled)->orderByDesc('a.closed_at')->get()
-        )->map(fn ($a) => [
+        );
+
+        /*
+        | Whether a bar sits on the person.
+        |
+        | The pool is where HR goes looking for somebody to put forward, so a
+        | blacklist has to be visible BEFORE they pick one -- otherwise the
+        | refusal arrives at the end, after the choosing. The service refuses
+        | it either way; this only stops the wasted trip.
+        */
+        $barred = ApplicantBlacklist::flagsFor(
+            $rows->pluck('app_id')->map(fn ($id) => (int) $id)->all()
+        );
+
+        $rows = $rows->map(fn ($a) => [
+            /* The APPLICATION, which is what a recommendation is made from.
+               app_id below is the person; the two are not interchangeable and
+               the recommendation endpoints take this one. */
+            'id' => $a->id,
             'app_id' => $a->app_id,
             'applicant_name' => $a->applicant_name,
             'app_email' => $a->app_email,
@@ -329,6 +473,7 @@ class ApplicantIntakeController extends Controller
             'closed_at' => $a->closed_at,
             'closed_note' => $a->closed_note,
             'reapply_on' => ApplicantApplication::cooldownEndsFor($a->status, $a->closed_at)?->toDateString(),
+            'blacklisted' => isset($barred[(int) $a->app_id]),
         ])->values();
 
         return response()->json(['data' => $rows]);

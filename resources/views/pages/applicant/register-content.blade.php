@@ -1,9 +1,21 @@
-@extends('layouts.layout')
-
-@section('content')
-    {{-- HireFlow page: the shared HireFlow look, scoped to this wrapper. --}}
-    @include('partials.hireflow-theme')
-    <div class="hf-theme">
+{{--
+| The Applicant Register, inside the Recruitment workspace.
+|
+| It used to extend layouts.layout and carry its own copy of the HireFlow
+| theme, so opening it from the pipeline dropped HR out of the workspace
+| entirely -- no sidebar, no Applicants submenu, no way back except the
+| browser. The page itself is unchanged; it is the shell around it that was
+| wrong.
+|
+| The theme include and the .hf-theme wrapper are gone because
+| pages/recruitment.blade.php already provides both. Including them twice
+| would nest the scope inside itself.
+--}}
+<style>
+    /* Only engages when the table is genuinely wider than the space. */
+    .ap-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .ap-table-scroll > table { min-width: 720px; }
+</style>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.bootstrap5.min.css">
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
@@ -31,7 +43,31 @@
             },
             columns: [
                 { data: 'date_created' },
-                { data: 'name' },
+                {
+                    data: 'name',
+                    /*
+                     | The name, and whether this person is barred.
+                     |
+                     | Beside the name rather than in a column of its own: a
+                     | blacklist is rare, so a whole column would be empty
+                     | almost everywhere and would cost width the five real
+                     | columns need at 1366 and below.
+                     |
+                     | The name is escaped here. The column had no renderer
+                     | before, and DataTables writes cell content as HTML, so
+                     | adding one without escaping would turn a stored name
+                     | into markup -- worse than what it replaced.
+                     */
+                    render: function (data, type, row) {
+                        if (type !== 'display') { return data; }
+
+                        const name = $('<div>').text(data == null ? '' : data).html();
+
+                        return row.blacklisted
+                            ? name + ' <span class="hf-chip hf-chip-warn">Blacklisted</span>'
+                            : name;
+                    }
+                },
                 { data: 'email' },
                 { data: 'contact' },
                 { data: 'position' },
@@ -66,8 +102,8 @@
     });
 </script>
 
-<div class="row pt-1 justify-content-center">
-    <div class="col-md-10">
+<div class="row pt-1">
+    <div class="col-12">
         <h5>Applicant List</h5>
         <select id="status-filter" class="form-control form-control-sm">
             <option value="">All Status</option>
@@ -75,6 +111,17 @@
             <option value="inactive">Inactive</option>
             <option value="hired">Hired</option>
         </select>
+        {{--
+            A horizontal scroller around the table.
+
+            Seven columns do not fit a narrow window, and without this the ones
+            on the right were simply unreachable -- the page did not scroll
+            sideways, so they were off the edge with no way to get to them.
+            Wrapping the table rather than hiding columns keeps every column
+            available at every width; at desktop sizes the scroller never
+            engages and nothing looks different.
+        --}}
+        <div class="ap-table-scroll">
         <table id="applicant-table" class="table table-bordered">
             <thead>
                 <tr>
@@ -86,8 +133,6 @@
                 </tr>
             </thead>
         </table>
+        </div>
     </div>
 </div>
-
-    </div>{{-- /.hf-theme --}}
-@stop
