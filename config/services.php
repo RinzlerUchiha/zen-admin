@@ -30,6 +30,11 @@ return [
     */
     'hireflow' => [
         'secret' => env('HIREFLOW_API_SECRET'),
+
+        /* The offer-approval bridge's own secret. Separate from the
+           interviewer one so compromising either does not reach the other;
+           both sides fail closed when it is missing. */
+        'approver_secret' => env('HIREFLOW_APPROVER_SECRET'),
     ],
 
     'postmark' => [

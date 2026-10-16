@@ -441,8 +441,34 @@ class ApplicantIntakeController extends Controller
     {
         $pooled = ApplicantApplication::candidatePoolStatuses();
 
+        /*
+        | Somebody we are already talking to is not somebody to revisit.
+        |
+        | The pool answers one question: "who have we met before who might suit
+        | this new post?" An applicant who withdrew from one posting but is
+        | live on another is not that person -- they are mid-process, and
+        | offering them up as a fresh prospect invites HR to recommend somebody
+        | into a second pipeline while the first is still running.
+        |
+        | Pool membership stays a property of the APPLICATION, as designed.
+        | This only hides those applications while their applicant still has an
+        | open one; the moment that closes, they reappear with the record
+        | intact. Nothing is deleted and no status changes.
+        */
         $rows = $this->enrichAll(
-            $this->baseQuery()->whereIn('a.status', $pooled)->orderByDesc('a.closed_at')->get()
+            $this->baseQuery()
+                ->whereIn('a.status', $pooled)
+                /* The same condition the model's inCandidatePool() scope
+                   applies, and the dashboard count now reads through. This
+                   query joins and aliases, so it cannot use the scope
+                   directly -- but it must not drift from it. */
+                ->whereNotExists(function ($q) {
+                    $q->from('tblapp_applications as pool_live')
+                        ->whereColumn('pool_live.app_id', 'a.app_id')
+                        ->whereNull('pool_live.closed_at');
+                })
+                ->orderByDesc('a.closed_at')
+                ->get()
         );
 
         /*

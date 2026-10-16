@@ -49,6 +49,21 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(120)->by($empno !== '' ? 'hf:' . $empno : 'hf-ip:' . $request->ip());
         });
 
+        /*
+        | The approver bridge's own bucket.
+        |
+        | Separate from 'hireflow' so approvers and interviewers cannot throttle
+        | one another: they arrive from the same Zen-Hub server, so a shared
+        | bucket keyed by IP would be one bucket for everybody. Lower than the
+        | interviewer limit because approving offers is a deliberate, occasional
+        | act rather than a screen somebody keeps open.
+        */
+        RateLimiter::for('hireflow-approver', function (Request $request) {
+            $empno = (string) $request->header('X-HF-Employee', '');
+
+            return Limit::perMinute(60)->by($empno !== '' ? 'hfa:' . $empno : 'hfa-ip:' . $request->ip());
+        });
+
         $this->routes(function () {
             Route::middleware('api')
                 ->prefix('api')

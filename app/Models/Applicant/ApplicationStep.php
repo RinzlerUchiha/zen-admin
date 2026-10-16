@@ -22,15 +22,38 @@ class ApplicationStep extends Model
     protected $fillable = [
         'application_id', 'stage_key', 'label', 'kind', 'position', 'required',
         'state', 'satisfied_by', 'result', 'notes', 'decided_at', 'decided_by',
+        'outcome', 'outcome_by', 'outcome_at',
     ];
 
     protected $casts = [
         'required' => 'boolean',
         'decided_at' => 'datetime',
+        'outcome_at' => 'datetime',
     ];
 
     public const STATE_PENDING = 'pending';
     public const STATE_COMPLETED = 'completed';
+
+    /*
+    | The round's official outcome, which is a different question from its
+    | state. State says HR has finished with the round; outcome says what they
+    | concluded. NULL means no decision has been recorded -- never "passed".
+    */
+    public const OUTCOME_PASSED = 'passed';
+    public const OUTCOME_FAILED = 'failed';
+
+    public const OUTCOMES = [self::OUTCOME_PASSED, self::OUTCOME_FAILED];
+
+    /** Completed, with HR's decision still outstanding. */
+    public function scopeAwaitingOutcome($query)
+    {
+        return $query->where('state', self::STATE_COMPLETED)->whereNull('outcome');
+    }
+
+    public function passed(): bool
+    {
+        return $this->outcome === self::OUTCOME_PASSED;
+    }
 
     /**
      * Never required on THIS application's path.

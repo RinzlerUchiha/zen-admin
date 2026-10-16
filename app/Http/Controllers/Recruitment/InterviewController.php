@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantApplication;
+use App\Services\Recruitment\ApplicationWorkflow;
 use App\Services\Recruitment\AssessmentResults;
 use App\Services\Recruitment\InterviewEvaluationService;
 use App\Services\Recruitment\InterviewNotes;
@@ -409,6 +410,10 @@ class InterviewController extends Controller
         $validated = $request->validate([
             'result' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
+            /* Optional here: HR may settle the round and record its outcome
+               in one act, or complete it now and decide after reading the
+               evaluations. What is never done is assuming one. */
+            'outcome' => 'nullable|in:passed,failed',
         ]);
 
         return response()->json([
@@ -416,6 +421,31 @@ class InterviewController extends Controller
                 (int) $application,
                 (int) $step,
                 $validated,
+                $this->empno()
+            ),
+        ]);
+    }
+
+    /**
+     * Record or correct the official outcome of a completed round.
+     *
+     * This is the gate the assessments read: only a recorded 'passed' opens
+     * them. An unrecorded outcome opens nothing, which is why this exists as
+     * its own act rather than being inferred from completion.
+     */
+    public function recordOutcome(Request $request, $application, $step)
+    {
+        $validated = $request->validate([
+            'outcome' => 'required|in:passed,failed',
+            'reason' => 'nullable|string|max:300',
+        ]);
+
+        return response()->json([
+            'step' => ApplicationWorkflow::recordOutcome(
+                (int) $application,
+                (int) $step,
+                $validated['outcome'],
+                $validated['reason'] ?? null,
                 $this->empno()
             ),
         ]);

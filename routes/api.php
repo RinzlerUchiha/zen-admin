@@ -49,6 +49,50 @@ Route::prefix('hireflow/interviewer')
         Route::post('/evaluations/{evaluation}/correct', [$c, 'correctEvaluation'])->whereNumber('evaluation')->name('evaluation.correct');
     });
 
+/*
+| The offer-approval bridge for Zen-Hub.
+|
+| The HR Head approves offers from Zen-Hub HireFlow, so these endpoints are the
+| only way they reach one -- and a thin way: every rule about what may happen to
+| an offer lives in OfferWorkflow, shared with HR's own screens.
+|
+| A SEPARATE ROOT, A SEPARATE SECRET, A SEPARATE AUDIENCE
+|
+| Not folded into the interviewer group above. That group's final gate is
+| "do you have an interview assigned", which an HR Head would fail; and its
+| canonical string covers only the path relative to its own root, so sharing
+| the format and the secret would let a signature for one root verify under the
+| other. This root signs with an audience line and its own secret, either of
+| which alone would prevent that.
+|
+| The signature establishes WHO is asking. It never establishes what they may
+| do: the middleware checks the role, and each endpoint then resolves the offer
+| from those actually awaiting approval, so an edited id reaches nothing.
+*/
+Route::prefix('hireflow/approver')
+    /* Its own limiter, for the same reason the interviewer group has one: every
+       approver arrives from the same Zen-Hub server, so counting by IP would
+       have them throttling one another -- and sharing the interviewer's bucket
+       would have the two throttling each other. */
+    ->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class . ':api')
+    ->middleware(['throttle:hireflow-approver', 'hireflow.signed.approver'])
+    ->name('api.hireflow.approver.')
+    ->group(function () {
+        $c = \App\Http\Controllers\Api\ApproverApiController::class;
+
+        Route::get('/me', [$c, 'me'])->name('me');
+        Route::get('/offers', [$c, 'index'])->name('index');
+        Route::get('/offers/{offer}', [$c, 'show'])->whereNumber('offer')->name('show');
+
+        /* The three answers. Decline and revision each require a reason. */
+        Route::post('/offers/{offer}/approve', [$c, 'approve'])
+            ->whereNumber('offer')->name('approve');
+        Route::post('/offers/{offer}/decline', [$c, 'decline'])
+            ->whereNumber('offer')->name('decline');
+        Route::post('/offers/{offer}/request-revision', [$c, 'requestRevision'])
+            ->whereNumber('offer')->name('request-revision');
+    });
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

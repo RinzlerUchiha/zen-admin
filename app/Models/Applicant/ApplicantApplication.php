@@ -29,6 +29,29 @@ class ApplicantApplication extends Model
     public const NON_RESPONSIVE = 'Non-Responsive';
     public const NOT_SELECTED = 'Not Selected';
 
+    /*
+    | Actually hired, which for headcount purposes means ORIENTED -- not
+    | offered, not signed. Recorded by hand because nothing in this system
+    | observes an orientation.
+    |
+    | Deliberately an OPEN status (config/applications.php): requirements may
+    | still be outstanding and the 201 handoff has not happened, so closing it
+    | here would hide the work that remains. The value existed in the config
+    | from the start; this constant was missing, which is why nothing could
+    | refer to it.
+    */
+    public const HIRED = 'Hired';
+
+    /* Did not get past screening or matching, so was never interviewed.
+       Distinct from NOT_SELECTED, which means interviewed and not chosen:
+       without the distinction no report can tell screening loss from
+       interview loss. Carries no cooldown. */
+    public const NOT_SHORTLISTED = 'Not Shortlisted';
+
+    /* The applicant turned the offer down. Their decision, not HR's, which is
+       why it is not NOT_SELECTED. Carries no cooldown. */
+    public const OFFER_DECLINED = 'Offer Declined';
+
     /* Closed because HR recommended the applicant to another job post and an
        application was created there. Not a rejection; carries no cooldown. */
     public const RECOMMENDED = 'Recommended';
@@ -141,8 +164,42 @@ class ApplicantApplication extends Model
         return $query->whereIn('status', self::closedStatuses());
     }
 
+    /**
+     * In the Candidate Pool, and actually available to be revisited.
+     *
+     * TWO QUESTIONS, NOT ONE
+     *
+     * The status answers what happened to THIS application: it ended in a way
+     * that keeps the person worth seeing again. config/applications.php owns
+     * that, and nothing here changes it.
+     *
+     * Availability is a question about the PERSON, and the status cannot
+     * answer it. Somebody who withdrew from one posting while live on another
+     * is mid-process, not a prospect -- and the pool exists to answer "who
+     * have we met before who might suit this new post?". Offering them up
+     * invites HR to recommend somebody into a second pipeline while the first
+     * is still running.
+     *
+     * This matters most for Recommended, which is created by a recommendation
+     * that has ALREADY produced a live application on the other posting. The
+     * disposition stays pooled, and the row simply does not surface while that
+     * application is open -- it returns, intact, the moment it closes.
+     *
+     * Kept here rather than in each caller so the page, the dashboard count
+     * and anything added later cannot drift apart.
+     */
     public function scopeInCandidatePool($query)
     {
-        return $query->whereIn('status', self::candidatePoolStatuses());
+        $table = $query->getQuery()->from ?: 'tblapp_applications';
+        $alias = str_contains($table, ' as ')
+            ? trim(explode(' as ', $table)[1])
+            : $table;
+
+        return $query->whereIn($alias . '.status', self::candidatePoolStatuses())
+            ->whereNotExists(function ($q) use ($alias) {
+                $q->from('tblapp_applications as pool_live')
+                    ->whereColumn('pool_live.app_id', $alias . '.app_id')
+                    ->whereNull('pool_live.closed_at');
+            });
     }
 }

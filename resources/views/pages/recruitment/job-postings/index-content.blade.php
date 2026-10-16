@@ -1745,6 +1745,16 @@
             <a class="jp-panel-jump jp-jump-row" id="jpp-applicants-link"
                 href="{{ url('/recruitment/applicant-intake') }}">See applicants for this posting &rarr;</a>
 
+            {{-- Matching and shortlisting for this posting. An action like the
+                 one above, and the only way into either screen: both need a
+                 posting or a specification to be about, so neither can sit in
+                 the sidebar. --}}
+            <a class="jp-panel-jump jp-jump-row" id="jpp-matching-link"
+                href="#">Match and shortlist candidates &rarr;</a>
+
+            <a class="jp-panel-jump jp-jump-row" id="jpp-requirements-link"
+                href="#" style="display:none">Set mandatory requirements &rarr;</a>
+
             <h3 class="jp-section">The advertisement</h3>
             {{--
                 Folded shut to begin with.
@@ -2842,6 +2852,22 @@
                     'href',
                     BASE + '/recruitment/applicant-intake?posting=' + encodeURIComponent(data.posting_title || '')
                 );
+
+                $('#jpp-matching-link').attr('href',
+                    BASE + '/recruitment/postings/' + encodeURIComponent(id) + '/matching');
+
+                /*
+                | Classifying requirements needs the job specification, which a
+                | posting only has if its position was given one. Hidden rather
+                | than broken when there is none -- a link to a specification
+                | that does not exist is worse than no link.
+                */
+                $('#jpp-requirements-link')
+                    .attr('href', data.jobspec_id
+                        ? BASE + '/recruitment/job-specifications/'
+                            + encodeURIComponent(data.jobspec_id) + '/requirements'
+                        : '#')
+                    .toggle(!!data.jobspec_id);
                 $('#jpp-status').text(data.status).attr('class', 'jp-status-chip ' + (STATUS_CLASS[data
                     .status] || 'jp-status-draft'));
                 $('#jpp-position').text(data.position_title);

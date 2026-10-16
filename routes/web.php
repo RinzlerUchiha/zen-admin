@@ -476,6 +476,20 @@ Route::middleware(['auth'])->group(function () {
                     ->whereNumber('step')->name('steps.remove');
                 Route::post('/steps/{step}/complete', [\App\Http\Controllers\Recruitment\InterviewController::class, 'completeStep'])
                     ->whereNumber('step')->name('steps.complete');
+
+                /*
+                | The round's official outcome, recorded or corrected on its
+                | own.
+                |
+                | Separate from completing the round because the two are
+                | separate acts: a round completed before outcomes were
+                | recorded has none, and HR must be able to settle it without
+                | pretending to re-complete it. Correcting one needs a reason,
+                | because it changes what the applicant is eligible for.
+                */
+                Route::post('/steps/{step}/outcome', [\App\Http\Controllers\Recruitment\InterviewController::class, 'recordOutcome'])
+                    ->whereNumber('step')->name('steps.outcome');
+
                 Route::post('/advance', [\App\Http\Controllers\Recruitment\InterviewController::class, 'advance'])->name('advance');
             });
         });
@@ -530,10 +544,102 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/', [\App\Http\Controllers\Recruitment\OfferController::class, 'store'])->name('store');
             Route::patch('/{offer}', [\App\Http\Controllers\Recruitment\OfferController::class, 'update'])
                 ->whereNumber('offer')->name('update');
+            /*
+            | HR's acts on an offer.
+            |
+            | Approving, declining and requesting a revision are deliberately
+            | NOT here: they belong to the HR Head and happen through the
+            | Zen-Hub approver API, so HR cannot approve their own offer
+            | through a side door in their own workspace.
+            */
+            Route::post('/{offer}/submit', [\App\Http\Controllers\Recruitment\OfferController::class, 'submit'])
+                ->whereNumber('offer')->name('submit');
+            Route::post('/{offer}/send', [\App\Http\Controllers\Recruitment\OfferController::class, 'send'])
+                ->whereNumber('offer')->name('send');
+            Route::post('/{offer}/deadline', [\App\Http\Controllers\Recruitment\OfferController::class, 'extendDeadline'])
+                ->whereNumber('offer')->name('deadline');
+            Route::post('/{offer}/respond', [\App\Http\Controllers\Recruitment\OfferController::class, 'respond'])
+                ->whereNumber('offer')->name('respond');
+            Route::post('/{offer}/contract', [\App\Http\Controllers\Recruitment\OfferController::class, 'contract'])
+                ->whereNumber('offer')->name('contract');
+
+            /* Ending it: withdraw, or expire an overdue one. Nothing else. */
             Route::post('/{offer}/transition', [\App\Http\Controllers\Recruitment\OfferController::class, 'transition'])
                 ->whereNumber('offer')->name('transition');
         });
     });
+
+    /*
+    | Assessment review, for one application.
+    |
+    | Read-only over the assessment engine: it reports where the assessments
+    | stand and records what HR concluded. Reading is gated on seeing
+    | applications; the decision on deciding about them.
+    */
+    Route::prefix('recruitment/applications/{application}/assessment-review')
+        ->whereNumber('application')
+        ->name('recruitment.assessment-review.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\Recruitment\AssessmentProgressController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\Recruitment\AssessmentProgressController::class, 'data'])->name('data');
+
+            Route::middleware('can:applicant-applications.decide')->group(function () {
+                Route::post('/decide', [\App\Http\Controllers\Recruitment\AssessmentProgressController::class, 'decide'])->name('decide');
+            });
+        });
+
+    /*
+    | Candidate matching and shortlisting, for one posting.
+    |
+    | Reading is gated on seeing applications; deciding on deciding about them.
+    | The same split the rest of recruitment uses, and the reason the matcher
+    | itself writes nothing: it reports, and a person with the decide right
+    | records what they concluded.
+    */
+    /*
+    | The picker the Applicants > Matching sidebar entry lands on.
+    |
+    | Declared BEFORE the {posting} group so "matching" is never mistaken for
+    | a posting id. It is the same controller and the same authorization --
+    | only a list of postings to choose from.
+    */
+    Route::get('recruitment/postings/matching', [\App\Http\Controllers\Recruitment\MatchingController::class, 'postings'])
+        ->name('recruitment.matching.postings');
+    Route::get('recruitment/postings/matching/data', [\App\Http\Controllers\Recruitment\MatchingController::class, 'postingsData'])
+        ->name('recruitment.matching.postings.data');
+
+    Route::prefix('recruitment/postings/{posting}/matching')
+        ->whereNumber('posting')
+        ->name('recruitment.matching.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\Recruitment\MatchingController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\Recruitment\MatchingController::class, 'data'])->name('data');
+            Route::get('/{application}', [\App\Http\Controllers\Recruitment\MatchingController::class, 'show'])
+                ->whereNumber('application')->name('show');
+
+            Route::middleware('can:applicant-applications.decide')->group(function () {
+                Route::post('/{application}/decide', [\App\Http\Controllers\Recruitment\MatchingController::class, 'decide'])
+                    ->whereNumber('application')->name('decide');
+            });
+        });
+
+    /*
+    | Mandatory vs preferred, against the reusable job specification.
+    |
+    | Classifying is a decision about how applicants will be judged, so it
+    | needs the decide right -- reading it does not.
+    */
+    Route::prefix('recruitment/job-specifications/{jspec}/requirements')
+        ->whereNumber('jspec')
+        ->name('recruitment.requirements.')
+        ->group(function () {
+            Route::get('/', [\App\Http\Controllers\Recruitment\JobSpecRequirementController::class, 'index'])->name('index');
+            Route::get('/data', [\App\Http\Controllers\Recruitment\JobSpecRequirementController::class, 'data'])->name('data');
+
+            Route::middleware('can:applicant-applications.decide')->group(function () {
+                Route::post('/', [\App\Http\Controllers\Recruitment\JobSpecRequirementController::class, 'store'])->name('store');
+            });
+        });
 
     /*
     | The Candidate Pool, as a place rather than a filter.
@@ -598,6 +704,25 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/applications/{application}/not-selected', [\App\Http\Controllers\Applicant\ApplicantApplicationController::class, 'notSelected'])
             ->whereNumber('application')
             ->middleware('can:applicant-applications.decide')->name('not-selected');
+
+        /*
+        | Recording that somebody was actually hired.
+        |
+        | Gated on applicant.hire, NOT on applicant-applications.decide: hiring
+        | is the narrower right, held by fewer people than the one that
+        | withdraws or declines an application. The same right the 201 handoff
+        | form already uses.
+        |
+        | Unlike the two above, this does not close the application -- 'Hired'
+        | is deliberately an open status, because requirements and the 201
+        | handoff may still be outstanding.
+        */
+        Route::post('/applications/{application}/hired', [\App\Http\Controllers\Applicant\ApplicantApplicationController::class, 'hired'])
+            ->whereNumber('application')
+            ->middleware('can:applicant.hire')->name('hired');
+        Route::post('/applications/{application}/unmark-hired', [\App\Http\Controllers\Applicant\ApplicantApplicationController::class, 'unmarkHired'])
+            ->whereNumber('application')
+            ->middleware('can:applicant.hire')->name('unmark-hired');
 
         // Recommending an applicant onward to another job post (Phase 3).
         // Creating the recommendation and closing this application as

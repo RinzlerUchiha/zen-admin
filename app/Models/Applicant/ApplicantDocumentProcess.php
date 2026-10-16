@@ -50,6 +50,17 @@ class ApplicantDocumentProcess extends Model
     */
     public const RECOMMENDED = 'recommended';
 
+    /*
+    | Ended because the applicant was not shortlisted, or declined the offer.
+    |
+    | Their own values for the same reason RECOMMENDED has one: the document
+    | process ended, but recording either as 'withdrawn' or 'not_selected'
+    | would describe something that did not happen. Documents already
+    | collected stay on the applicant and remain usable by a new application.
+    */
+    public const NOT_SHORTLISTED = 'not_shortlisted';
+    public const OFFER_DECLINED = 'offer_declined';
+
     protected $casts = [
         'deadline_at' => 'datetime',
         'started_at' => 'datetime',

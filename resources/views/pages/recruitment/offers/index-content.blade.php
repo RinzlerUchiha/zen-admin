@@ -46,6 +46,8 @@
 
     .of-stripe { align-self: stretch; }
     .of-stripe-draft    { background: var(--hf-progress, var(--zn-line-2)); }
+    .of-stripe-waiting  { background: var(--hf-progress, var(--zn-line-2)); }
+    .of-stripe-revision { background: var(--hf-overdue, var(--zn-warn)); }
     .of-stripe-issued   { background: var(--hf-attention, var(--zn-accent)); }
     .of-stripe-lapsed   { background: var(--hf-overdue, var(--zn-warn)); }
     .of-stripe-accepted { background: var(--hf-done, var(--zn-ok)); }
@@ -62,6 +64,8 @@
         font-size: var(--zn-fs-xs); font-weight: 700;
     }
     .of-chip-draft    { background: var(--zn-surface-2); color: var(--zn-ink-3); }
+    .of-chip-waiting  { background: var(--zn-surface-2); color: var(--zn-ink-2); }
+    .of-chip-revision { background: var(--zn-warn-soft, #fdecea); color: var(--zn-warn); }
     .of-chip-issued   { background: var(--zn-accent-soft); color: var(--zn-accent-dark); }
     .of-chip-lapsed   { background: var(--zn-warn-soft, #fdecea); color: var(--zn-warn); }
     .of-chip-accepted { background: var(--zn-ok-soft, #e8f5e9); color: var(--zn-ok); }
@@ -158,7 +162,7 @@
                         <input type="date" id="ofStart" class="form-control">
                     </div>
                     <div class="col-6">
-                        <label class="form-label" for="ofExpires">Offer stands until</label>
+                        <label class="form-label" for="ofExpires">Answer by</label>
                         <input type="date" id="ofExpires" class="form-control">
                     </div>
                     <div class="col-12">
@@ -193,6 +197,9 @@
         const BASE_URL = document.querySelector('meta[name="base-url"]').content;
         const CSRF = document.querySelector('meta[name="csrf-token"]').content;
         const CAN_DECIDE = @json(\Illuminate\Support\Facades\Gate::allows('applicant-applications.decide'));
+        /* Hiring is the narrower right: fewer people hold it than hold the one
+           that withdraws or declines an application. */
+        const CAN_HIRE = @json(\Illuminate\Support\Facades\Gate::allows('applicant.hire'));
 
         let DATA = null;
         let view = 'ready';
@@ -211,29 +218,93 @@
             return (row.salary_currency || '') + ' ' + Number(row.salary_amount).toLocaleString();
         }
 
-        /* Lapsed is derived, not stored: an issued offer past its date that
-           nobody has answered. It is still "issued" until somebody records
-           what happened to it. */
+        /* Overdue is derived, not stored: a SENT offer past its deadline that
+           nobody has answered. It is still "sent" and still awaiting a reply
+           until a person extends the deadline or ends it. */
         function tone(row) {
-            if (row.lapsed) { return 'lapsed'; }
+            if (row.overdue) { return 'lapsed'; }
             if (row.status === 'draft') { return 'draft'; }
-            if (row.status === 'issued') { return 'issued'; }
-            if (row.status === 'accepted') { return 'accepted'; }
+            if (row.status === 'pending_approval') { return 'waiting'; }
+            if (row.status === 'revision_requested') { return 'revision'; }
+            if (row.status === 'approved' || row.status === 'sent') { return 'issued'; }
+            if (row.status === 'accepted' || row.status === 'contract_received') { return 'accepted'; }
             return 'settled';
         }
 
+        /* How each status reads to a person. */
+        const STATUS_LABEL = {
+            draft: 'Draft',
+            pending_approval: 'Awaiting HR Head',
+            revision_requested: 'Sent back for revision',
+            approved: 'Approved',
+            rejected: 'Rejected by HR Head',
+            sent: 'With the applicant',
+            accepted: 'Accepted',
+            contract_received: 'Contract received',
+            declined: 'Declined by applicant',
+            withdrawn: 'Withdrawn',
+            expired: 'Ended, unanswered'
+        };
+
         const VERB = {
-            issued: 'Issue', accepted: 'Accepted', declined: 'Declined',
-            withdrawn: 'Withdraw', expired: 'Mark expired'
+            pending_approval: 'Submit for approval',
+            sent: 'Send to applicant',
+            accepted: 'Record acceptance',
+            declined: 'Record decline',
+            contract_received: 'Record contract',
+            withdrawn: 'Withdraw',
+            expired: 'End offer'
+        };
+
+        /*
+        | Which of HR's own endpoints each move belongs to.
+        |
+        | Approving, declining and requesting a revision are NOT here: they are
+        | the HR Head's, through Zen-Hub. zen-admin has no route for them, so
+        | HR cannot approve their own offer from their own workspace.
+        */
+        const ENDPOINT = {
+            pending_approval: 'submit',
+            sent: 'send',
+            accepted: 'respond',
+            declined: 'respond',
+            contract_received: 'contract',
+            withdrawn: 'transition',
+            expired: 'transition'
         };
 
         function actions(row) {
+            /*
+            | Recording the hire.
+            |
+            | A milestone of its own: the contract being signed is not the
+            | hire, and for headcount purposes somebody counts as hired once
+            | they have been ORIENTED -- which nothing here observes, so HR
+            | records it. It does NOT close the application and creates no
+            | employee record.
+            |
+            | Offered on a signed offer because that is where HR is when
+            | orientation happens, and the Work Queue sends them here.
+            */
+            if (CAN_HIRE && row.status === 'contract_received') {
+                const hire = '<button type="button" class="btn btn-sm btn-success js-of-hire" '
+                    + 'data-application="' + esc(row.application_id) + '">Mark as Hired</button>';
+
+                if (!CAN_DECIDE) { return hire; }
+
+                return hire + (row.allowed || []).filter(to => ENDPOINT[to]).map(to =>
+                    '<button type="button" class="btn btn-sm btn-outline-primary js-of-move" '
+                    + 'data-offer="' + esc(row.id) + '" data-to="' + esc(to) + '">'
+                    + esc(VERB[to] || to) + '</button>').join('');
+            }
+
             if (!CAN_DECIDE) { return ''; }
 
-            /* Only what the server would allow from here. The list comes from
-               OfferWorkflow's own table, so the buttons cannot offer a move
-               the service would refuse. */
-            return (row.allowed || []).map(to =>
+            /* Only what the server would allow from here, and only the moves
+               that are HR's to make. The list comes from OfferWorkflow's own
+               table, so the buttons cannot offer a move the service would
+               refuse; ENDPOINT then drops the HR Head's three. */
+            return (row.allowed || []).filter(to => ENDPOINT[to]).map(to =>
                 '<button type="button" class="btn btn-sm btn-outline-primary js-of-move" ' +
                 'data-offer="' + esc(row.id) + '" data-to="' + esc(to) + '">' +
                 esc(VERB[to] || to) + '</button>').join('');
@@ -251,14 +322,22 @@
                 '<span class="of-sub">' + esc(row.mr_no || '') + '</span>' +
               '</div>' +
               '<div class="of-cell">' +
-                '<span class="of-chip of-chip-' + t + '">' + esc(row.lapsed ? 'Lapsed' : row.status) + '</span>' +
+                '<span class="of-chip of-chip-' + t + '">' +
+                    esc(row.overdue ? 'Overdue' : (STATUS_LABEL[row.status] || row.status)) + '</span>' +
                 '<span class="of-sub">' + esc(money(row)) + '</span>' +
                 (row.employment_status ? '<span class="of-sub">' + esc(row.employment_status) + '</span>' : '') +
               '</div>' +
               '<div class="of-cell">' +
                 (row.start_date ? '<span class="of-sub">Starts ' + esc(day(row.start_date)) + '</span>' : '') +
-                (row.expires_at ? '<span class="of-sub">Stands until ' + esc(day(row.expires_at)) + '</span>' : '') +
-                (row.issued_at ? '<span class="of-sub">Issued ' + esc(row.issued_at) + '</span>' : '') +
+                (row.response_deadline ? '<span class="of-sub">Answer by ' + esc(day(row.response_deadline)) +
+                    (row.deadline_extended_count ? ' (extended ' + esc(row.deadline_extended_count) + 'x)' : '') +
+                    '</span>' : '') +
+                (row.sent_at ? '<span class="of-sub">Sent ' + esc(row.sent_at) + '</span>' : '') +
+                /* What the HR Head asked to be changed, where HR will see it. */
+                (row.revision_reason && row.status === 'revision_requested'
+                    ? '<span class="of-sub">HR Head asked: ' + esc(row.revision_reason) + '</span>' : '') +
+                (row.rejected_reason && row.status === 'rejected'
+                    ? '<span class="of-sub">Rejected: ' + esc(row.rejected_reason) + '</span>' : '') +
               '</div>' +
               '<div class="of-acts">' +
                 '<button type="button" class="btn btn-sm btn-outline-secondary js-of-detail" ' +
@@ -313,10 +392,12 @@
                 rows = DATA.ready;
                 html = rows.map(readyRow).join('');
             } else if (view === 'live') {
-                rows = DATA.offers.filter(o => o.status === 'draft' || o.status === 'issued');
+                rows = DATA.offers.filter(o => ['draft', 'pending_approval', 'revision_requested',
+                    'approved', 'sent'].includes(o.status));
                 html = rows.map(offerRow).join('');
             } else {
-                rows = DATA.offers.filter(o => ['accepted', 'declined', 'withdrawn', 'expired'].includes(o.status));
+                rows = DATA.offers.filter(o => ['accepted', 'contract_received', 'rejected',
+                    'declined', 'withdrawn', 'expired'].includes(o.status));
                 html = rows.map(offerRow).join('');
             }
 
@@ -331,11 +412,15 @@
                     const c = json.counts || {};
 
                     $('#of-count-ready').text(c.ready || 0);
-                    $('#of-count-live').text((c.draft || 0) + (c.issued || 0));
-                    $('#of-count-settled').text(c.settled || 0);
+                    $('#of-count-live').text((c.draft || 0) + (c.pending_approval || 0)
+                        + (c.revision_requested || 0) + (c.approved || 0) + (c.sent || 0));
+                    $('#of-count-settled').text((c.accepted || 0) + (c.contract_received || 0)
+                        + (c.closed || 0));
 
-                    $('#of-count').text((c.lapsed || 0)
-                        ? (c.lapsed + ' offer' + (c.lapsed === 1 ? '' : 's') + ' past the date they stood until')
+                    /* Said as what it is: awaiting an answer, not declined. */
+                    $('#of-count').text((c.overdue || 0)
+                        ? (c.overdue + ' offer' + (c.overdue === 1 ? '' : 's')
+                            + ' past the date to answer by, still awaiting a reply')
                         : '');
 
                     render();
@@ -386,7 +471,7 @@
                         salary_currency: $('#ofCurrency').val() || 'PHP',
                         employment_status: $('#ofEmployment').val() || null,
                         start_date: $('#ofStart').val() || null,
-                        expires_at: $('#ofExpires').val() || null,
+                        response_deadline: $('#ofExpires').val() || null,
                         notes: $('#ofNotes').val() || null
                     })
                 });
@@ -410,47 +495,29 @@
 
         /* ---- moving one along ----------------------------------------- */
 
-        $('#of-list').on('click', '.js-of-move', async function () {
-            const to = $(this).data('to');
-            const offer = $(this).data('offer');
+        $('#of-list').on('click', '.js-of-hire', async function () {
+            const application = $(this).data('application');
 
-            /* Withdrawing and declining are kept with the offer, so the
-               reason is asked for and the service refuses without one. */
-            const needsReason = to === 'withdrawn' || to === 'declined';
-            let reason = null;
+            /* The note is required: it is the only record that orientation
+               happened, because nothing in the system observes one. */
+            const note = await hfPrompt({
+                title: 'Record this applicant as Hired',
+                message: 'Only once they have actually been oriented. This does NOT create an '
+                       + 'employee record and does not close the application — requirements and '
+                       + 'the 201 handoff are still to come.',
+                label: 'When were they oriented?',
+                placeholder: 'e.g. oriented 15 Oct 2026, batch 4',
+                required: true,
+                requiredMessage: 'Say what happened — it is the only record of it.',
+                maxLength: 1000,
+                confirmLabel: 'Mark as Hired'
+            });
 
-            if (needsReason) {
-                reason = await hfPrompt({
-                    title: to === 'withdrawn' ? 'Withdraw this offer?' : 'Record a declined offer',
-                    message: to === 'withdrawn'
-                        ? 'It is taken back before the candidate answered.'
-                        : 'The candidate turned it down.',
-                    label: 'Why?',
-                    required: true,
-                    requiredMessage: 'A reason is needed, and it is kept with the offer.',
-                    maxLength: 500,
-                    confirmLabel: to === 'withdrawn' ? 'Withdraw offer' : 'Record decline',
-                    tone: 'warn'
-                });
-
-                if (reason === null) { return; }
-            } else if (!await hfConfirm({
-                title: (VERB[to] || to) + ' this offer?',
-                message: to === 'issued'
-                    ? 'It is put to the candidate and waits on their answer.'
-                    : (to === 'accepted'
-                        ? 'The candidate accepted the terms.'
-                        : 'It is recorded as having lapsed without an answer.'),
-                detail: to === 'accepted'
-                    ? 'This does NOT mark them Hired. Record the hire on the application when it happens.'
-                    : null,
-                confirmLabel: VERB[to] || to
-            })) {
-                return;
-            }
+            if (note === null) { return; }
 
             try {
-                const res = await fetch(BASE_URL + '/recruitment/offers/' + encodeURIComponent(offer) + '/transition', {
+                const res = await fetch(BASE_URL + '/recruitment/applicant-intake/applications/'
+                    + encodeURIComponent(application) + '/hired', {
                     method: 'POST',
                     redirect: 'error',
                     headers: {
@@ -458,7 +525,160 @@
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': CSRF
                     },
-                    body: JSON.stringify({ to: to, reason: reason })
+                    body: JSON.stringify({ note: note })
+                });
+
+                const body = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    throw new Error(body.message
+                        || (body.errors && Object.values(body.errors)[0][0])
+                        || ('Status ' + res.status));
+                }
+
+                await hfConfirm({
+                    title: 'Recorded', message: body.message,
+                    confirmLabel: 'Close', cancelLabel: ''
+                });
+
+                load();
+            } catch (err) {
+                await hfConfirm({
+                    title: 'That could not be done', message: err.message,
+                    confirmLabel: 'Close', cancelLabel: ''
+                });
+            }
+        });
+
+        $('#of-list').on('click', '.js-of-move', async function () {
+            const to = $(this).data('to');
+            const offer = $(this).data('offer');
+            const row = (DATA.offers || []).find(o => String(o.id) === String(offer)) || {};
+
+            /*
+            | Each move has its own endpoint, because each is a different act
+            | with different requirements: sending needs a date to answer by,
+            | a response needs whose answer it was, ending needs a reason.
+            | One generic "set the status" call could not ask for any of them.
+            */
+            const endpoint = ENDPOINT[to];
+
+            if (!endpoint) { return; }
+
+            const payload = {};
+
+            /* Ending an offer: the reason IS the record. */
+            if (to === 'withdrawn' || to === 'expired') {
+                const reason = await hfPrompt({
+                    title: to === 'withdrawn' ? 'Withdraw this offer?' : 'End this offer?',
+                    message: to === 'withdrawn'
+                        ? 'It is taken back. If it is already with the applicant, they should be told.'
+                        : 'The deadline passed with no answer and you are ending it. The applicant '
+                          + 'is NOT recorded as having declined — only that it ended unanswered.',
+                    label: 'Why?',
+                    required: true,
+                    requiredMessage: 'A reason is needed, and it is kept with the offer.',
+                    maxLength: 500,
+                    confirmLabel: VERB[to],
+                    tone: 'warn'
+                });
+
+                if (reason === null) { return; }
+
+                payload.to = to;
+                payload.reason = reason;
+
+            /* The applicant declining: their decision, recorded by HR. */
+            } else if (to === 'declined') {
+                const reason = await hfPrompt({
+                    title: 'Record a declined offer',
+                    message: 'The applicant turned it down. This closes the application as '
+                           + 'Offer Declined — not Not Selected, and with no cooldown.',
+                    label: 'What did they say?',
+                    required: true,
+                    requiredMessage: 'A reason is needed, and it is kept with the offer.',
+                    maxLength: 500,
+                    confirmLabel: 'Record decline',
+                    tone: 'warn'
+                });
+
+                if (reason === null) { return; }
+
+                payload.answer = 'declined';
+                payload.reason = reason;
+
+            /* Sending: a date to answer by is required, and there is no
+               default — the policy for it has not been settled. */
+            } else if (to === 'sent') {
+                if (!row.response_deadline) {
+                    const by = await hfPrompt({
+                        title: 'Send this offer',
+                        message: 'Give the applicant a date to answer by. There is no default: '
+                               + 'the response period is set per offer.',
+                        label: 'Answer by (YYYY-MM-DD)',
+                        placeholder: 'e.g. 2026-11-30',
+                        required: true,
+                        requiredMessage: 'A date is needed before the offer can be sent.',
+                        maxLength: 10,
+                        confirmLabel: 'Send offer'
+                    });
+
+                    if (by === null) { return; }
+
+                    payload.response_deadline = by;
+                } else if (!await hfConfirm({
+                    title: 'Send this offer?',
+                    message: 'It goes to the applicant, who must answer by '
+                           + day(row.response_deadline) + '.',
+                    confirmLabel: 'Send offer'
+                })) {
+                    return;
+                }
+
+            /* Recording the contract. */
+            } else if (to === 'contract_received') {
+                const ref = await hfPrompt({
+                    title: 'Record the signed contract',
+                    message: 'The signed contract is in. This is still not the hire — record '
+                           + 'that on the application when it happens.',
+                    label: 'Contract reference (optional)',
+                    maxLength: 100,
+                    confirmLabel: 'Record contract'
+                });
+
+                if (ref === null) { return; }
+
+                payload.contract_reference = ref || null;
+
+            /* Submitting for approval, and recording an acceptance. */
+            } else if (!await hfConfirm({
+                title: VERB[to] + '?',
+                message: to === 'pending_approval'
+                    ? 'It goes to the HR Head. Every offer needs their approval before it can '
+                      + 'be sent, whatever the salary or position.'
+                    : 'The applicant accepted the terms.',
+                detail: to === 'accepted'
+                    ? 'This does NOT mark them Hired. The signed contract and the hire are '
+                      + 'separate records.'
+                    : null,
+                confirmLabel: VERB[to]
+            })) {
+                return;
+            }
+
+            if (to === 'accepted') { payload.answer = 'accepted'; }
+
+            try {
+                const res = await fetch(BASE_URL + '/recruitment/offers/'
+                    + encodeURIComponent(offer) + '/' + endpoint, {
+                    method: 'POST',
+                    redirect: 'error',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF
+                    },
+                    body: JSON.stringify(payload)
                 });
 
                 const body = await res.json().catch(() => ({}));

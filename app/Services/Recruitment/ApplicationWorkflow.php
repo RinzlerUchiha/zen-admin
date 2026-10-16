@@ -258,6 +258,15 @@ class ApplicationWorkflow
     {
         $step = self::stepFor($applicationId, $stepId);
 
+        /*
+        | The official outcome, when HR settles it at the same time as the
+        | round. It is optional here because not every kind of step has a
+        | pass/fail to record, and because HR may complete a round and record
+        | what it concluded afterwards. What is NOT done is inferring one:
+        | absent means absent, and the gates downstream read it that way.
+        */
+        $verdict = self::validOutcome($outcome['outcome'] ?? null);
+
         $step->update([
             'state' => ApplicationStep::STATE_COMPLETED,
             'result' => $outcome['result'] ?? null,
@@ -265,9 +274,100 @@ class ApplicationWorkflow
             'satisfied_by' => $outcome['satisfied_by'] ?? $step->satisfied_by,
             'decided_at' => now(),
             'decided_by' => $empno,
-        ]);
+        ] + ($verdict ? [
+            'outcome' => $verdict,
+            'outcome_by' => $empno,
+            'outcome_at' => now(),
+        ] : []));
+
+        if ($verdict) {
+            self::recordOutcomeHistory($step, null, $verdict, $outcome['notes'] ?? null, $empno);
+        }
 
         return $step->fresh();
+    }
+
+    /**
+     * Record — or correct — the official outcome of a completed round.
+     *
+     * Separate from completing the round because the two are separate acts:
+     * every round completed before outcomes existed is sitting without one,
+     * and HR must be able to settle those without pretending to re-complete
+     * them. Correcting an outcome is allowed and appends to the history; it
+     * never silently overwrites what was recorded before.
+     */
+    public static function recordOutcome(int $applicationId, int $stepId, string $outcome, ?string $reason = null, ?string $empno = null): ApplicationStep
+    {
+        $step = self::stepFor($applicationId, $stepId);
+
+        if ($step->state !== ApplicationStep::STATE_COMPLETED) {
+            throw ValidationException::withMessages([
+                'outcome' => 'Only a completed round has an outcome to record.',
+            ]);
+        }
+
+        $verdict = self::validOutcome($outcome);
+
+        if (!$verdict) {
+            throw ValidationException::withMessages([
+                'outcome' => 'An outcome must be either passed or failed.',
+            ]);
+        }
+
+        $was = $step->outcome;
+
+        /* Changing a recorded outcome is a correction, and a correction has to
+           say why -- it changes what the applicant is eligible for. */
+        if ($was !== null && $was !== $verdict && ($reason === null || trim($reason) === '')) {
+            throw ValidationException::withMessages([
+                'reason' => 'Changing a recorded outcome needs a reason.',
+            ]);
+        }
+
+        if ($was === $verdict) {
+            return $step;
+        }
+
+        $step->update([
+            'outcome' => $verdict,
+            'outcome_by' => $empno,
+            'outcome_at' => now(),
+        ]);
+
+        self::recordOutcomeHistory($step, $was, $verdict, $reason, $empno);
+
+        return $step->fresh();
+    }
+
+    /** An outcome we recognise, or null. Never guesses. */
+    private static function validOutcome(?string $value): ?string
+    {
+        $value = $value === null ? null : trim($value);
+
+        return in_array($value, ApplicationStep::OUTCOMES, true) ? $value : null;
+    }
+
+    /**
+     * Append the outcome to the application's history.
+     *
+     * from_stage and to_stage are the same: this records a decision ABOUT a
+     * round, not a move between stages, so it must not disturb where the
+     * application actually is.
+     */
+    private static function recordOutcomeHistory(ApplicationStep $step, ?string $was, string $now, ?string $reason, ?string $empno): void
+    {
+        $note = $was === null
+            ? 'Outcome recorded for ' . $step->label . ': ' . $now
+            : 'Outcome for ' . $step->label . ' changed from ' . $was . ' to ' . $now;
+
+        StageHistory::create([
+            'application_id' => $step->application_id,
+            'from_stage' => $step->stage_key,
+            'to_stage' => $step->stage_key,
+            'reason' => $reason ? $note . ' — ' . $reason : $note,
+            'actor_empno' => $empno,
+            'occurred_at' => now(),
+        ]);
     }
 
     /**

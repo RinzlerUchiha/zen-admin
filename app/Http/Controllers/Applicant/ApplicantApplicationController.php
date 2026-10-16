@@ -36,6 +36,60 @@ class ApplicantApplicationController extends Controller
         return back()->with('success', $this->describe($closed) . ' has been marked Not Selected.');
     }
 
+    /**
+     * HR records that this applicant was actually hired.
+     *
+     * A separate milestone from the offer being accepted or the contract being
+     * signed: for headcount purposes somebody counts as hired once they have
+     * been ORIENTED, which nothing in this system observes. So a person records
+     * it, and the note is the only evidence of it.
+     *
+     * Gated on applicant.hire rather than applicant-applications.decide --
+     * hiring is the narrower right, held by fewer people than the one that
+     * withdraws or declines an application.
+     *
+     * It creates no employee record. The 201 handoff stays a separate act.
+     */
+    public function hired(Request $request, $application)
+    {
+        $validated = $request->validate([
+            'note' => 'required|string|max:1000',
+        ], [
+            'note.required' => 'Say what happened — when they were oriented, or how you know. '
+                . 'It is the only record of it.',
+        ]);
+
+        $hired = ApplicationDecision::hired((int) $application, $this->empno(), $validated['note']);
+
+        $message = $this->describe($hired) . ' is recorded as Hired. '
+            . 'The application stays open until requirements and the 201 handoff are done.';
+
+        /* The offer workspace calls this with fetch; the profile forms post
+           and expect a redirect. Both are served rather than forcing one. */
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'status' => $hired->status, 'message' => $message])
+            : back()->with('success', $message);
+    }
+
+    /** Undo a Hired recorded by mistake. */
+    public function unmarkHired(Request $request, $application)
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|max:1000',
+        ], [
+            'reason.required' => 'Say why this is being taken back.',
+        ]);
+
+        $restored = ApplicationDecision::unmarkHired((int) $application, $this->empno(), $validated['reason']);
+
+        $message = $this->describe($restored)
+            . ' is no longer recorded as Hired (now ' . $restored->status . ').';
+
+        return $request->expectsJson()
+            ? response()->json(['success' => true, 'status' => $restored->status, 'message' => $message])
+            : back()->with('success', $message);
+    }
+
     /** "Bea Browser's application for MIS Staff Jr Technician", for HR's confirmation. */
     private function describe(ApplicantApplication $application): string
     {

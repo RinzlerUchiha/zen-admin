@@ -71,7 +71,37 @@ return [
             'hint' => 'Hiring decided. Open until requirements and onboarding are done and the 201 handoff is complete.',
         ],
 
+        /*
+        | Did not get past screening or matching, so never reached interview.
+        |
+        | Distinct from Not Selected on purpose: one applicant was never met,
+        | the other was interviewed and not chosen. Without the distinction no
+        | report can separate screening loss from interview loss, and the two
+        | say completely different things about a posting.
+        |
+        | No cooldown. Not matching THIS posting's requirements is not a mark
+        | against the person -- they may be exactly right for the next one, and
+        | the Candidate Pool exists to surface precisely them.
+        */
+        'Not Shortlisted' => [
+            'closed' => true,
+            'candidate_pool' => true,
+        ],
+
         'Not Selected' => [
+            'closed' => true,
+            'candidate_pool' => true,
+        ],
+
+        /*
+        | The applicant turned the offer down.
+        |
+        | Their choice, not HR's, which is why this is not Not Selected: that
+        | status records a decision HR made. No cooldown either -- declining
+        | one offer says nothing about whether they would accept another, and
+        | somebody who got as far as an offer is worth keeping in the pool.
+        */
+        'Offer Declined' => [
             'closed' => true,
             'candidate_pool' => true,
         ],

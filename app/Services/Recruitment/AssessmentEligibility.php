@@ -26,10 +26,15 @@ use Illuminate\Support\Facades\DB;
  * makes them eligible. A closed application does not count: a process that
  * ended should not keep opening doors.
  *
- * "Completed" means the workflow step is completed — HR recorded the round's
- * outcome — not merely that an interview was marked held. Held is the event;
- * completed is HR saying the round is done and the application may move on,
- * which is exactly the question being asked here.
+ * Completion alone is NOT enough, and used to be. A round is completed when HR
+ * has finished with it, which says nothing about what they concluded — so an
+ * applicant HR had decided against still had the exams unlocked. The gate now
+ * reads the round's recorded outcome, and only 'passed' opens anything.
+ *
+ * An unrecorded outcome does not open it either. That is deliberate: every
+ * round completed before outcomes were recorded has none, and treating absence
+ * as a pass would invent a decision nobody made. Those rounds surface as
+ * outstanding work for HR instead.
  */
 class AssessmentEligibility
 {
@@ -94,13 +99,31 @@ class AssessmentEligibility
     {
         $c = DB::connection('applicant');
 
-        $steps = $c->table('tblapp_application_steps')
+        $rows = $c->table('tblapp_application_steps')
             ->whereIn('application_id', $applicationIds)
             ->where('stage_key', self::PREREQUISITE_STAGE)
-            ->pluck('id');
+            ->get(['id', 'state', 'outcome']);
 
-        if ($steps->isEmpty()) {
+        if ($rows->isEmpty()) {
             return 'The Initial Interview round does not exist on this application yet.';
+        }
+
+        $steps = $rows->pluck('id');
+
+        /*
+        | The round is finished — so the hold-up is the decision, not the
+        | interview. Said in these two cases before anything is checked about
+        | attendance, because "it has not taken place yet" would be wrong and
+        | would send HR to the wrong screen.
+        */
+        $completed = $rows->where('state', 'completed');
+
+        if ($completed->isNotEmpty()) {
+            if ($completed->contains(fn ($s) => $s->outcome === null)) {
+                return 'The Initial Interview is completed but its outcome has not been recorded yet.';
+            }
+
+            return 'The Initial Interview was not passed.';
         }
 
         $held = $c->table('tblapp_interviews')
@@ -122,7 +145,12 @@ class AssessmentEligibility
             : 'The Initial Interview has not been arranged yet.';
     }
 
-    /** Completed Initial Interview steps on this applicant's open applications. */
+    /**
+     * PASSED Initial Interview steps on this applicant's open applications.
+     *
+     * Both conditions matter: completed says HR finished the round, passed
+     * says what they concluded. Neither implies the other.
+     */
     private static function completedSteps(int $appId)
     {
         return DB::connection('applicant')->table('tblapp_application_steps as s')
@@ -131,6 +159,7 @@ class AssessmentEligibility
             ->whereNull('a.closed_at')
             ->where('s.stage_key', self::PREREQUISITE_STAGE)
             ->where('s.state', 'completed')
+            ->where('s.outcome', \App\Models\Applicant\ApplicationStep::OUTCOME_PASSED)
             ->select('s.application_id');
     }
 }

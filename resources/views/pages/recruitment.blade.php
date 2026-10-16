@@ -665,6 +665,20 @@
                         <a class="rc-sublink {{ ($maincat ?? '') == 'applicant-intake' ? 'is-on' : '' }}"
                             href="{{ url('/recruitment/applicant-intake') }}">Intake</a>
                     </li>
+                    {{--
+                        Matching, which the process calls for between applying
+                        and the Initial Interview.
+
+                        It was reachable only by opening a posting and finding
+                        a link inside its detail panel, so a named step of the
+                        process was effectively hidden. Matching is always
+                        ABOUT a posting, so this goes to the picker rather
+                        than to a screen that would not know which one.
+                    --}}
+                    <li>
+                        <a class="rc-sublink {{ ($maincat ?? '') == 'matching' ? 'is-on' : '' }}"
+                            href="{{ url('/recruitment/postings/matching') }}">Matching</a>
+                    </li>
                     <li>
                         <a class="rc-sublink {{ ($maincat ?? '') == 'candidate-pool' ? 'is-on' : '' }}"
                             href="{{ url('/recruitment/candidate-pool') }}">Candidate Pool</a>

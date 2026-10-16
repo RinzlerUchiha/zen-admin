@@ -70,10 +70,16 @@ class OfferController extends Controller
                 ])->values(),
             'counts' => [
                 'draft' => $offers->where('status', Offer::DRAFT)->count(),
-                'issued' => $offers->where('status', Offer::ISSUED)->count(),
-                'lapsed' => $offers->filter(fn ($o) => $o->hasLapsed())->count(),
+                'pending_approval' => $offers->where('status', Offer::PENDING_APPROVAL)->count(),
+                'revision_requested' => $offers->where('status', Offer::REVISION_REQUESTED)->count(),
+                'approved' => $offers->where('status', Offer::APPROVED)->count(),
+                'sent' => $offers->where('status', Offer::SENT)->count(),
+                /* Overdue is derived, never stored: an offer past its date is
+                   still sent and still waiting on an answer. */
+                'overdue' => $offers->filter(fn ($o) => $o->isOverdue())->count(),
                 'accepted' => $offers->where('status', Offer::ACCEPTED)->count(),
-                'settled' => $offers->whereIn('status', Offer::SETTLED)->count(),
+                'contract_received' => $offers->where('status', Offer::CONTRACT_RECEIVED)->count(),
+                'closed' => $offers->whereIn('status', Offer::CLOSED)->count(),
                 'ready' => $readyIds->count(),
             ],
         ]);
@@ -119,7 +125,7 @@ class OfferController extends Controller
             'salary_currency' => 'nullable|string|size:3',
             'employment_status' => 'nullable|string|max:50',
             'start_date' => 'nullable|date',
-            'expires_at' => 'nullable|date',
+            'response_deadline' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -139,7 +145,7 @@ class OfferController extends Controller
             'salary_currency' => 'nullable|string|size:3',
             'employment_status' => 'nullable|string|max:50',
             'start_date' => 'nullable|date',
-            'expires_at' => 'nullable|date',
+            'response_deadline' => 'nullable|date',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -149,26 +155,103 @@ class OfferController extends Controller
     }
 
     /**
-     * Issue, accept, decline, withdraw or expire.
+     * Submit for approval, or resubmit after a revision request.
      *
-     * Which of those are legal from where the offer is now is OfferWorkflow's
-     * business, not this method's — it refuses anything its table does not
-     * allow, and records what it did.
+     * Every offer needs the HR Head's approval, whatever the salary, position,
+     * department or seniority — the gate is the compensation commitment
+     * itself, not its size. There is no threshold and no bypass.
      */
-    public function transition(Request $request, $offer)
+    public function submit(Request $request, $offer)
     {
         $validated = $request->validate([
-            'to' => 'required|string|in:' . implode(',', [
-                Offer::ISSUED, Offer::ACCEPTED, Offer::DECLINED, Offer::WITHDRAWN, Offer::EXPIRED,
-            ]),
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $record = OfferWorkflow::submit((int) $offer, $this->empno(), $validated['note'] ?? null);
+
+        return response()->json([
+            'success' => true,
+            'status' => $record->status,
+            'message' => $record->revision_count > 0
+                ? 'Resubmitted for approval.'
+                : 'Submitted to the HR Head for approval.',
+        ]);
+    }
+
+    /**
+     * Send an approved offer to the applicant.
+     *
+     * Reachable only from approved, so unapproved terms cannot reach a
+     * candidate. A response deadline is required here and nowhere earlier,
+     * because it starts running when the offer actually arrives.
+     */
+    public function send(Request $request, $offer)
+    {
+        $validated = $request->validate([
+            'response_deadline' => 'nullable|date',
+        ]);
+
+        $record = OfferWorkflow::send(
+            (int) $offer,
+            $validated['response_deadline'] ?? null,
+            $this->empno()
+        );
+
+        return response()->json([
+            'success' => true,
+            'status' => $record->status,
+            'message' => 'Offer sent. The applicant has until '
+                . $record->response_deadline->toFormattedDateString() . ' to answer.',
+        ]);
+    }
+
+    /**
+     * Move the response deadline.
+     *
+     * Allowed on purpose: the alternative is ending an offer the candidate is
+     * still considering. Recorded with a reason, and counted so repeated
+     * extension is visible.
+     */
+    public function extendDeadline(Request $request, $offer)
+    {
+        $validated = $request->validate([
+            'response_deadline' => 'required|date',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $record = OfferWorkflow::extendDeadline(
+            (int) $offer,
+            $validated['response_deadline'],
+            $validated['reason'],
+            $this->empno()
+        );
+
+        return response()->json([
+            'success' => true,
+            'status' => $record->status,
+            'response_deadline' => $record->response_deadline->toDateString(),
+            'message' => 'Deadline moved. The offer is still awaiting an answer.',
+        ]);
+    }
+
+    /**
+     * Record the applicant's answer.
+     *
+     * They do not use this system, so an authorised person records it for
+     * them and is named separately from whoever drafted, approved or sent it.
+     */
+    public function respond(Request $request, $offer)
+    {
+        $validated = $request->validate([
+            'answer' => 'required|string|in:' . Offer::ACCEPTED . ',' . Offer::DECLINED,
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $record = OfferWorkflow::transition(
+        $record = OfferWorkflow::recordResponse(
             (int) $offer,
-            $validated['to'],
-            $this->empno(),
-            $validated['reason'] ?? null
+            $validated['answer'],
+            $validated['reason'] ?? null,
+            $this->empno()
         );
 
         return response()->json([
@@ -184,7 +267,62 @@ class OfferController extends Controller
             */
             'message' => $record->status === Offer::ACCEPTED
                 ? 'Offer accepted. The application is not marked Hired by this — record the hire on the application when it happens.'
-                : 'Offer ' . $record->status . '.',
+                : 'Offer declined. Recorded against the offer, not the applicant.',
+        ]);
+    }
+
+    /**
+     * Record the signed contract.
+     *
+     * A separate act from acceptance: someone who accepted verbally and never
+     * returned the contract is a gap HR has to be able to see.
+     */
+    public function contract(Request $request, $offer)
+    {
+        $validated = $request->validate([
+            'contract_reference' => 'nullable|string|max:100',
+            'contract_received_at' => 'nullable|date',
+            'contract_file' => 'nullable|string|max:255',
+        ]);
+
+        $record = OfferWorkflow::recordContract((int) $offer, $validated, $this->empno());
+
+        return response()->json([
+            'success' => true,
+            'status' => $record->status,
+            'message' => 'Signed contract recorded. This is still not the hire.',
+        ]);
+    }
+
+    /**
+     * End an offer: withdraw it, or expire one the deadline has passed on.
+     *
+     * Only these two. Approving, declining and requesting a revision belong
+     * to the HR Head and happen through the Zen-Hub approver API, not here —
+     * so HR cannot approve their own offer through a side door. The
+     * applicant's answer has its own endpoint above.
+     *
+     * Expiring is HR ending an overdue offer deliberately. Nothing expires on
+     * its own, and a passing date never declines anything.
+     */
+    public function transition(Request $request, $offer)
+    {
+        $validated = $request->validate([
+            'to' => 'required|string|in:' . Offer::WITHDRAWN . ',' . Offer::EXPIRED,
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $record = OfferWorkflow::transition(
+            (int) $offer,
+            $validated['to'],
+            $this->empno(),
+            $validated['reason']
+        );
+
+        return response()->json([
+            'success' => true,
+            'status' => $record->status,
+            'message' => 'Offer ' . $record->status . '.',
         ]);
     }
 
@@ -236,14 +374,29 @@ class OfferController extends Controller
             'id' => (int) $offer->id,
             'application_id' => (int) $offer->application_id,
             'status' => $offer->status,
-            'lapsed' => $offer->hasLapsed(),
+            /* Derived on read. Not a status, and never terminal. */
+            'overdue' => $offer->isOverdue(),
+            'awaiting_approval' => $offer->awaitingApproval(),
             'salary_amount' => $offer->salary_amount,
             'salary_currency' => $offer->salary_currency,
             'employment_status' => $offer->employment_status,
             'start_date' => $offer->start_date?->toDateString(),
-            'expires_at' => $offer->expires_at?->toDateString(),
-            'issued_at' => $offer->issued_at?->format('M d, Y h:i A'),
+            'response_deadline' => $offer->response_deadline?->toDateString(),
+            'deadline_extended_count' => (int) $offer->deadline_extended_count,
+            'submitted_at' => $offer->submitted_at?->format('M d, Y h:i A'),
+            'approved_at' => $offer->approved_at?->format('M d, Y h:i A'),
+            'approved_by' => $offer->approved_by,
+            'rejected_at' => $offer->rejected_at?->format('M d, Y h:i A'),
+            'rejected_reason' => $offer->rejected_reason,
+            /* What the HR Head asked to be changed, and how many times. */
+            'revision_requested_at' => $offer->revision_requested_at?->format('M d, Y h:i A'),
+            'revision_reason' => $offer->revision_reason,
+            'revision_count' => (int) $offer->revision_count,
+            'sent_at' => $offer->sent_at?->format('M d, Y h:i A'),
             'responded_at' => $offer->responded_at?->format('M d, Y h:i A'),
+            'response_recorded_by' => $offer->response_recorded_by,
+            'contract_reference' => $offer->contract_reference,
+            'contract_received_at' => $offer->contract_received_at?->format('M d, Y h:i A'),
             'notes' => $offer->notes,
             'allowed' => OfferWorkflow::ALLOWED[$offer->status] ?? [],
         ];

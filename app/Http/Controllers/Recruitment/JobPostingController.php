@@ -143,6 +143,12 @@ class JobPostingController extends Controller
             'created_by_name' => $this->employeeName($jobPosting->created_by),
             'posted_at' => $jobPosting->posted_at?->format('M d, Y h:i A'),
             'closed_at' => $jobPosting->closed_at?->format('M d, Y h:i A'),
+
+            /* Which job specification this posting is matched against, so the
+               panel can offer the requirement-classification screen -- and
+               hide it when the position was never given one. */
+            'jobspec_id' => $jobPosting->jobspec_id
+                ?: $jobPosting->hireflowPosition?->jobspec_id,
         ]);
     }
 

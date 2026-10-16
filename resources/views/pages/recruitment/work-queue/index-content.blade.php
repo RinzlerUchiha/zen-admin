@@ -155,15 +155,30 @@
                 'interview_decision', 'interview_to_schedule'
             ];
 
-            const offerReasons = ['offer_lapsed', 'offer_accepted', 'offer_to_make'];
+            const offerReasons = [
+                'offer_overdue', 'offer_revision', 'offer_accepted',
+                'offer_contract', 'offer_to_send', 'offer_to_make'
+            ];
 
-            const target = offerReasons.includes(row.reason)
+            /* Screening is done against the posting, so that is where it goes.
+               Without a posting there is nothing to match against, and the
+               profile is the only useful destination. */
+            const target = row.reason === 'screening_due'
+                ? (row.job_posting_id
+                    ? BASE_URL + '/recruitment/postings/' + encodeURIComponent(row.job_posting_id) + '/matching'
+                    : profile)
+                : offerReasons.includes(row.reason)
                 ? BASE_URL + '/recruitment/offers'
                 : (interviewReasons.includes(row.reason)
                     ? BASE_URL + '/recruitment/applications/' + encodeURIComponent(row.id) + '/interviews'
-                    : (row.reason === 'access_requested'
-                        ? profile + '/assessment-access'
-                        : (row.documents ? profile + '/documents' : profile)));
+                    /* Reading the results and deciding happens on the review
+                       screen; issuing a code happens on the access screen.
+                       Two different acts, two different destinations. */
+                    : (row.reason === 'assessment_decision'
+                        ? BASE_URL + '/recruitment/applications/' + encodeURIComponent(row.id) + '/assessment-review'
+                        : ((row.reason === 'access_requested' || row.reason === 'assessment_code_due')
+                            ? profile + '/assessment-access'
+                            : (row.documents ? profile + '/documents' : profile))));
 
             const docs = row.documents
                 ? esc(row.documents.accepted + '/' + row.documents.required + ' documents')

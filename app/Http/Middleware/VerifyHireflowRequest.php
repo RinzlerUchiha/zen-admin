@@ -2,10 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Middleware\Concerns\VerifiesSignedHireflowRequest;
 use App\Services\Recruitment\InterviewerAccess;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -31,11 +31,21 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class VerifyHireflowRequest
 {
+    use VerifiesSignedHireflowRequest;
+
     /** How far out of step the two clocks may be before a request is refused. */
-    private const WINDOW_SECONDS = 300;
+    public const WINDOW_SECONDS = 300;
 
     /** A nonce is remembered for longer than the window it could be used in. */
-    private const NONCE_TTL = 600;
+    public const NONCE_TTL = 600;
+
+    /*
+    | This root's nonce namespace.
+    |
+    | Per-root, so the approver bridge cannot consume this one's nonces or be
+    | made to look as though it had.
+    */
+    private const NONCE_SCOPE = 'interviewer';
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -52,28 +62,26 @@ class VerifyHireflowRequest
             return $this->deny('This interface is not configured.', 503);
         }
 
-        $empno = (string) $request->header('X-HF-Employee', '');
-        $timestamp = (string) $request->header('X-HF-Timestamp', '');
-        $nonce = (string) $request->header('X-HF-Nonce', '');
-        $signature = (string) $request->header('X-HF-Signature', '');
+        ['empno' => $empno, 'timestamp' => $timestamp,
+            'nonce' => $nonce, 'signature' => $signature] = $this->signedHeaders($request);
 
         if ($empno === '' || $timestamp === '' || $nonce === '' || $signature === '') {
             return $this->deny('This request is not signed.');
         }
 
-        if (!ctype_digit($timestamp)) {
+        if (!$this->timestampIsNumeric($timestamp)) {
             return $this->deny('This request is not signed correctly.');
         }
 
         /* A request signed minutes ago is almost certainly a replay or a badly
            wrong clock; neither is worth serving. */
-        if (abs(time() - (int) $timestamp) > self::WINDOW_SECONDS) {
+        if (!$this->timestampInWindow($timestamp)) {
             return $this->deny('This request has expired.');
         }
 
         /* Nonce length is checked before use so the cache key cannot be
            steered by an unusually long or odd value. */
-        if (!preg_match('/^[a-f0-9]{16,64}$/i', $nonce)) {
+        if (!$this->nonceLooksRight($nonce)) {
             return $this->deny('This request is not signed correctly.');
         }
 
@@ -93,7 +101,7 @@ class VerifyHireflowRequest
         | add() writes only if the key is absent, which is what makes this a
         | check and a claim in one step rather than two.
         */
-        if (!Cache::add($this->nonceKey($nonce), true, self::NONCE_TTL)) {
+        if (!$this->claimNonce(self::NONCE_SCOPE, $nonce)) {
             return $this->deny('This request has already been used.');
         }
 
@@ -165,19 +173,4 @@ class VerifyHireflowRequest
         ), $secret);
     }
 
-    private function nonceKey(string $nonce): string
-    {
-        return 'hireflow:nonce:' . strtolower($nonce);
-    }
-
-    /**
-     * One shape of refusal.
-     *
-     * Deliberately vague about which check failed: telling a caller whether the
-     * signature or the assignment was the problem tells them which to work on.
-     */
-    private function deny(string $message, int $status = 401): Response
-    {
-        return response()->json(['message' => $message], $status);
-    }
 }

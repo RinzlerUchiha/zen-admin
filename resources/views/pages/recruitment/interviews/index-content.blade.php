@@ -302,6 +302,42 @@
     </div>
 </div>
 
+{{--
+| Recording the round's outcome.
+|
+| Its own modal rather than a confirm dialog because the answer is a choice
+| between two things, not a yes-or-no: a cancelled confirm and a "not passed"
+| would be the same click, and this decides whether the applicant can sit
+| their assessments.
+--}}
+<div class="modal fade" id="iwOutcomeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-6" id="iwOutcomeTitle">Record the outcome</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="font-size:var(--zn-fs)">
+                <p class="iw-sub mb-2">
+                    Your decision for this round. Assessments open only when the Initial
+                    Interview is recorded as passed; the interviewers' evaluations inform
+                    this, they do not decide it.
+                </p>
+                <div id="iwOutcomeReasonWrap" class="mt-3" style="display:none">
+                    <label class="hf-dlg-label" for="iwOutcomeReason">Reason for the change</label>
+                    <textarea class="form-control" id="iwOutcomeReason" rows="2" maxlength="300"
+                        placeholder="Why the recorded outcome is being changed"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="iwOutcomeFailed">Not passed</button>
+                <button type="button" class="btn btn-sm btn-success" id="iwOutcomePassed">Passed</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 (function () {
     const APP_ID = @json((int) $application->id);
@@ -471,7 +507,20 @@
             '<span class="' + (a.hasResult ? '' : 'iw-sub') + '">' +
             esc(a.hasResult ? (a.takenOn || 'Completed') : 'Not taken') + '</span></div>'
         ).join('') + '</div>' +
-        '<div class="iw-sub mt-2">Assessment results belong to the applicant and are shown here for reference. They are recorded in the assessment system, not here.</div>';
+        '<div class="iw-sub mt-2">Assessment results belong to the applicant and are shown here for reference. They are recorded in the assessment system, not here.</div>' +
+        /*
+        | Through to the review, where the expected profile sits beside each
+        | result and HR records proceed, hold or stop.
+        |
+        | This block reports; it does not decide, and deciding needs its own
+        | screen -- so the link is the only way in, the same way matching is
+        | reached from the posting it is about.
+        */
+        (CAN_DECIDE
+            ? '<div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="'
+                + BASE.replace(/\/interviews$/, '') + '/assessment-review">'
+                + 'Review assessments and record a decision</a></div>'
+            : '');
     }
 
     function roundCard(round) {
@@ -484,11 +533,61 @@
                 ? '<span class="hf-chip">Not applicable</span>'
                 : '<span class="hf-chip hf-chip-pool">Outstanding</span>');
 
+        /*
+        | The round's outcome, which is a different question from its state.
+        |
+        | Completed says HR has finished with the round; the outcome says what
+        | they concluded. A completed round with no outcome is shown as
+        | outstanding rather than left blank, because the assessments read this
+        | and a blank is what holds the applicant here.
+        */
+        const outcomeChip = round.outcome === 'passed'
+            ? '<span class="hf-chip hf-chip-ok">Passed</span>'
+            : (round.outcome === 'failed'
+                ? '<span class="hf-chip hf-chip-bad">Not passed</span>'
+                : (round.awaiting_outcome
+                    ? '<span class="hf-chip hf-chip-warn">Outcome not recorded</span>'
+                    : ''));
+
         let actions = '';
+
+        /*
+        | Recording the outcome, and correcting one already recorded.
+        |
+        | Offered only on a completed round, because there is nothing to settle
+        | before then. Correcting is deliberately available: the outcome
+        | decides what the applicant may do next, so a mistake has to be
+        | fixable -- with a reason, which the service requires.
+        */
+        if (CAN_DECIDE && round.state === 'completed') {
+            actions += '<button type="button" class="btn btn-sm '
+                + (round.outcome ? 'btn-outline-secondary' : 'btn-primary')
+                + ' js-iw-outcome" data-step="' + esc(round.step_id) + '"'
+                + ' data-outcome="' + esc(round.outcome || '') + '">'
+                + (round.outcome ? 'Change outcome' : 'Record outcome')
+                + '</button>';
+        }
+
         if (CAN_DECIDE && round.state !== 'completed') {
             const live = round.interviews.some(i => i.attendance === 'scheduled');
             if (!live) {
-                actions += '<button type="button" class="btn btn-sm btn-outline-primary js-iw-arrange" data-step="' + esc(round.step_id) + '">Arrange interview</button>';
+                /*
+                | Arranging out of order is allowed, and said out loud.
+                |
+                | The intended order is: Initial passed, exams unlocked,
+                | assessments completed, HR reviews them, then later
+                | interviews. A round with something in front of it is
+                | de-emphasised and labelled -- never disabled, because the
+                | Job Fair case genuinely runs rounds out of order and
+                | blocking it would break a real intake path.
+                */
+                const early = !!round.waiting_on;
+
+                actions += '<button type="button" class="btn btn-sm '
+                    + (early ? 'btn-outline-secondary' : 'btn-outline-primary')
+                    + ' js-iw-arrange" data-step="' + esc(round.step_id) + '"'
+                    + (early ? ' data-waiting="' + esc(round.waiting_on) + '"' : '')
+                    + '>Arrange interview</button>';
             }
             if (round.interviews.some(i => i.attendance === 'held')) {
                 actions += ' <button type="button" class="btn btn-sm btn-primary js-iw-complete" data-step="' + esc(round.step_id) + '">Complete round</button>';
@@ -504,7 +603,9 @@
 
         return '<div class="iw-round ' + cls + '">' +
             '<div class="iw-round-top">' +
-            '<span class="iw-round-title">' + esc(round.label) + '</span>' + stateChip +
+            '<span class="iw-round-title">' + esc(round.label) + '</span>' + stateChip + outcomeChip +
+            (round.waiting_on
+                ? '<span class="hf-chip">Waiting on ' + esc(round.waiting_on) + '</span>' : '') +
             (round.result ? ' <span class="iw-sub">· ' + esc(round.result) + '</span>' : '') +
             (actions ? '<span class="iw-round-actions">' + actions + '</span>' : '') +
             '</div>' + body + '</div>';
@@ -581,6 +682,26 @@
 
         try {
             if (btn.classList.contains('js-iw-arrange')) {
+                /*
+                | A reminder, not a refusal.
+                |
+                | The intended order is: Initial passed, exams unlocked,
+                | assessments completed, HR reviews them, then later
+                | interviews. Arranging ahead of that is still allowed — the
+                | Job Fair case genuinely does it — so this says what is
+                | outstanding and lets HR carry on.
+                */
+                if (btn.dataset.waiting && !await hfConfirm({
+                    title: 'Arrange this ahead of ' + btn.dataset.waiting + '?',
+                    message: btn.dataset.waiting + ' is still outstanding. The usual order is to '
+                           + 'finish it — and, for the exams, to review the results and decide — '
+                           + 'before arranging a later interview.',
+                    detail: 'You can go ahead if you mean to; nothing is blocked.',
+                    confirmLabel: 'Arrange anyway'
+                })) {
+                    return;
+                }
+
                 openSchedule({ type: 'create', stepId: btn.dataset.step }, 'Arrange interview', '', false);
             }
 
@@ -682,6 +803,22 @@
                     '</div>'
                 ).join('') || '<div class="iw-empty">No earlier versions.</div>';
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('iwHistoryModal')).show();
+            }
+
+            if (btn.classList.contains('js-iw-outcome')) {
+                /*
+                | A reason is asked for only when an outcome already exists,
+                | because only then is this a correction. The service enforces
+                | the same rule, so an empty one is refused there too.
+                */
+                const existing = btn.dataset.outcome || '';
+                document.getElementById('iwOutcomeTitle').textContent =
+                    existing ? 'Change the recorded outcome' : 'Record the outcome';
+                document.getElementById('iwOutcomeReasonWrap').style.display = existing ? '' : 'none';
+                document.getElementById('iwOutcomeReason').value = '';
+                outcomeStep = btn.dataset.step;
+                outcomeExisting = existing;
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('iwOutcomeModal')).show();
             }
 
             if (btn.classList.contains('js-iw-complete')) {
@@ -830,6 +967,43 @@
 
     document.getElementById('iwEvalDraft').addEventListener('click', function () {
         sendEvaluation(false);
+    });
+
+    /* Which round the outcome modal is open for. */
+    let outcomeStep = null;
+    let outcomeExisting = '';
+
+    async function sendOutcome(outcome) {
+        const reason = document.getElementById('iwOutcomeReason').value.trim();
+
+        /* Caught here so the person is told in the dialog they are looking at;
+           the service refuses it as well, which is what actually guarantees it. */
+        if (outcomeExisting && outcomeExisting !== outcome && reason === '') {
+            alertBox('Changing a recorded outcome needs a reason.');
+            return;
+        }
+
+        try {
+            await api('/steps/' + outcomeStep + '/outcome', 'POST', {
+                outcome: outcome,
+                reason: reason || null
+            });
+            bootstrap.Modal.getInstance(document.getElementById('iwOutcomeModal')).hide();
+            alertBox(outcome === 'passed'
+                ? 'Recorded as passed. Assessments are now open for this applicant.'
+                : 'Recorded as not passed. Assessments stay closed.', 'success');
+            await load();
+        } catch (err) {
+            alertBox(err.message);
+        }
+    }
+
+    document.getElementById('iwOutcomePassed').addEventListener('click', function () {
+        sendOutcome('passed');
+    });
+
+    document.getElementById('iwOutcomeFailed').addEventListener('click', function () {
+        sendOutcome('failed');
     });
 
     load();

@@ -72,6 +72,29 @@ class InterviewWorkload
             return self::empty();
         }
 
+        /*
+        | Where each application has actually got to.
+        |
+        | The query above filters to interview steps, so on its own it cannot
+        | see that the Examinations round sits between the Initial and the
+        | Final one -- and it reported EVERY unscheduled interview as waiting
+        | on a date. On a fresh application that meant the Final Interview was
+        | listed as needing a date before the applicant had sat anything, and
+        | right after the Initial Interview passed it drowned out the thing
+        | that was actually due: sending the exam code.
+        |
+        | This is the earliest step still outstanding, of ANY kind. A round
+        | later than it is not waiting on HR; it is waiting on the rounds in
+        | front of it.
+        */
+        $blockedFrom = DB::connection('applicant')->table('tblapp_application_steps')
+            ->whereIn('application_id', $steps->pluck('application_id')->unique())
+            ->where('state', ApplicationStep::STATE_PENDING)
+            ->where('required', true)
+            ->groupBy('application_id')
+            ->selectRaw('application_id, MIN(position) AS next_position')
+            ->pluck('next_position', 'application_id');
+
         $interviews = DB::connection('applicant')->table('tblapp_interviews')
             ->whereIn('step_id', $steps->pluck('step_id'))
             ->orderBy('created_at')
@@ -189,19 +212,29 @@ class InterviewWorkload
             }
 
             /*
-            | Nothing live on a round that is still open.
+            | Nothing live on a round that is still open, AND it is this
+            | application's turn.
             |
-            | A step counts as needing a date when it is pending and has no
-            | interview that is scheduled or already held -- so a round whose
-            | only attempt was cancelled or a no-show comes back here, which
-            | is right: it still has to happen.
+            | A step counts as needing a date when it is pending, has no
+            | interview that is scheduled or already held, and nothing earlier
+            | is still outstanding -- so a round whose only attempt was
+            | cancelled or a no-show comes back here, which is right: it still
+            | has to happen.
+            |
+            | The turn test is what stops the list reading as "arrange every
+            | interview now". A Final Interview behind a pending Examinations
+            | round is not waiting on HR, and saying it is sends them to the
+            | wrong step.
             */
             if ($step->state === ApplicationStep::STATE_PENDING) {
                 $live = $rounds->contains(
                     fn ($r) => in_array($r->attendance, [Interview::SCHEDULED, Interview::HELD], true)
                 );
 
-                if (!$live) {
+                $itsTurn = (int) $step->position
+                    <= (int) ($blockedFrom[$step->application_id] ?? PHP_INT_MAX);
+
+                if (!$live && $itsTurn) {
                     $needsScheduling[] = $person + [
                         'step_id' => $step->step_id,
                         'round' => $labels[$step->step_id],

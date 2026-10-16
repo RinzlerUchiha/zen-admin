@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Recruitment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Applicant\ApplicantApplication;
+use App\Models\Applicant\ApplicationStep;
 use App\Services\Recruitment\ApplicantDocumentReview;
 use App\Models\Applicant\Offer;
+use App\Services\Recruitment\AssessmentEligibility;
+use App\Services\Recruitment\AssessmentProgress;
 use App\Services\Recruitment\InterviewWorkload;
 use App\Services\Recruitment\OfferWorkflow;
 use Illuminate\Support\Carbon;
@@ -50,6 +53,40 @@ class WorkQueueController extends Controller
         'documents_incomplete'  => ['label' => 'Documents outstanding',   'tone' => 'progress'],
 
         /*
+        | Screening, which the process puts between applying and the Initial
+        | Interview and which nothing was asking for.
+        |
+        | The queue went from "documents accepted" straight to "interview to
+        | schedule", so in practice interviews were arranged for applicants
+        | nobody had screened. This raises the step; it does not perform it,
+        | and it never rejects anybody -- HR reads the match and decides, as
+        | they already could.
+        |
+        | Ranked above the interview reasons on purpose: screening comes
+        | first, and a queue that says "schedule the interview" while the
+        | screening is undone is telling HR to skip a step.
+        */
+        'screening_due'         => ['label' => 'Screen and shortlist',    'tone' => 'attention'],
+
+        /*
+        | The two moments the process needs HR to act on and nothing was
+        | telling them about.
+        |
+        | The flow is: the Initial Interview is passed, so HR gives the
+        | applicant their code; they sit the assessments; HR reads the results
+        | and decides. The middle part the applicant drives, but both ends are
+        | HR's -- and until now the only assessment prompt here was the
+        | applicant ASKING for a code, which is the exception rather than the
+        | normal path.
+        |
+        | Placed AFTER the original five, which keep their precedence: an
+        | application that raised a document or deadline reason yesterday must
+        | raise the same one today.
+        */
+        'assessment_code_due'   => ['label' => 'Exams open — send the code', 'tone' => 'attention'],
+        'assessment_decision'   => ['label' => 'Assessments done — decide', 'tone' => 'attention'],
+
+        /*
         | The interview reasons, added below the original five on purpose.
         |
         | All five above keep the precedence they already had, so an
@@ -62,6 +99,10 @@ class WorkQueueController extends Controller
         | interview, an assignment without an evaluation, a held round whose
         | step is still open. None is inferred from a status.
         */
+        /* A finished round whose pass/fail HR never recorded. It outranks the
+           other interview reasons because it is the one that silently holds up
+           everything downstream: no outcome, no assessments. */
+        'outcome_unrecorded'    => ['label' => 'Outcome not recorded',      'tone' => 'overdue'],
         'interview_outcome'     => ['label' => 'Interview needs an outcome', 'tone' => 'overdue'],
         'evaluation_outstanding' => ['label' => 'Evaluation outstanding',  'tone' => 'attention'],
         'interview_decision'    => ['label' => 'Round awaiting decision',  'tone' => 'attention'],
@@ -75,8 +116,13 @@ class WorkQueueController extends Controller
         | not yet turned into a hire, and an application whose steps are all
         | finished with no offer against it.
         */
-        'offer_lapsed'          => ['label' => 'Offer has lapsed',        'tone' => 'overdue'],
+        'offer_overdue'         => ['label' => 'Offer overdue',           'tone' => 'overdue'],
+        /* The HR Head sent it back. HR's work, and nobody else's -- which is
+           exactly why an offer awaiting approval raises nothing here. */
+        'offer_revision'        => ['label' => 'Offer needs revising',    'tone' => 'overdue'],
         'offer_accepted'        => ['label' => 'Offer accepted',          'tone' => 'attention'],
+        'offer_contract'        => ['label' => 'Contract to record',      'tone' => 'attention'],
+        'offer_to_send'         => ['label' => 'Approved — ready to send', 'tone' => 'progress'],
         'offer_to_make'         => ['label' => 'Ready for an offer',      'tone' => 'progress'],
 
         'ready'                 => ['label' => 'Ready to progress',       'tone' => 'done'],
@@ -137,6 +183,27 @@ class WorkQueueController extends Controller
             ->get()
             ->groupBy('app_id');
 
+        /*
+        | Applications waiting to be screened.
+        |
+        | Gated on the right that records the decision: a user who cannot
+        | shortlist is not told shortlisting is due.
+        */
+        $screening = Gate::allows('applicant-applications.decide')
+            ? $this->screeningActions($applications, $documents)
+            : [];
+
+        /*
+        | Where each applicant stands on the assessments.
+        |
+        | Gated on the right that issues codes, for the same reason the
+        | document reasons are gated on seeing documents: a user who cannot act
+        | on it is not told there is something waiting.
+        */
+        $assessments = Gate::allows('applicant-assessments.issue-access')
+            ? $this->assessmentActions($applications)
+            : [];
+
         $titles = $this->postingTitles($applications);
 
         /*
@@ -163,13 +230,17 @@ class WorkQueueController extends Controller
             ? $this->offerActions($applications)
             : [];
 
-        $rows = $applications->map(function ($application) use ($documents, $accessRequests, $titles, $interviews, $offers) {
+        $rows = $applications->map(function ($application) use ($documents, $accessRequests, $titles, $interviews, $offers, $assessments, $screening) {
             $docs = $documents[$application->app_id] ?? null;
             $reason = $this->reasonFor(
                 $application,
                 $docs,
                 $accessRequests,
-                $offers[$application->id] ?? $interviews[$application->id] ?? null
+                $offers[$application->id]
+                    ?? $interviews[$application->id]
+                    ?? $assessments[$application->id]
+                    ?? null,
+                $screening[$application->id] ?? null
             );
 
             return [
@@ -181,6 +252,9 @@ class WorkQueueController extends Controller
                 'app_email' => $application->app_email,
                 'status' => $application->status,
                 'applied_at' => $application->applied_at,
+                /* Carried so the screening row can link to that posting's
+                   own matching screen. */
+                'job_posting_id' => $application->job_posting_id ? (int) $application->job_posting_id : null,
                 'posting_title' => $titles['postings'][$application->job_posting_id] ?? null,
                 'mr_no' => $titles['mrNos'][$application->request_position_id] ?? null,
                 'reason' => $reason['key'],
@@ -222,7 +296,7 @@ class WorkQueueController extends Controller
      * Returns 'ready' when nothing is outstanding — that is not an error
      * state, it is the application waiting for HR to move it forward.
      */
-    private function reasonFor($application, ?array $docs, $accessRequests, ?array $interview = null): array
+    private function reasonFor($application, ?array $docs, $accessRequests, ?array $interview = null, ?array $screening = null): array
     {
         // An open document process with a deadline outranks everything: it is
         // the only thing here that closes an application on its own.
@@ -290,6 +364,21 @@ class WorkQueueController extends Controller
         | One reason per application, the most pressing first, so the same
         | outstanding act is never listed twice.
         */
+        /*
+        | Screening before interviews -- but never before an offer.
+        |
+        | The process is: apply, screen, then interview. Checked before the
+        | interview row so a queue entry never says "schedule the Initial
+        | Interview" for somebody whose match nobody has looked at. An offer
+        | reason always wins: an application that has reached an offer is long
+        | past screening, and the offer is the live act.
+        */
+        $isOffer = $interview && str_starts_with($interview['key'], 'offer_');
+
+        if ($screening && !$isOffer) {
+            return $screening;
+        }
+
         if ($interview) {
             return $interview;
         }
@@ -333,27 +422,62 @@ class WorkQueueController extends Controller
 
         $offers = Offer::whereIn('application_id', $applications->pluck('id'))->get();
 
-        /* Nothing outstanding on a settled offer except an accepted one,
-           which is waiting on the hire being recorded. */
+        /*
+        | What each live offer is waiting on, and whether it is HR waiting.
+        |
+        | pending_approval raises NOTHING. This list is what HR must do, and
+        | an offer with the HR Head is waiting on somebody else -- putting it
+        | here would turn the queue into a list of things to feel anxious
+        | about rather than a list of work.
+        |
+        | A closed offer raises nothing either: rejected, declined, withdrawn
+        | and expired are over.
+        */
         foreach ($offers as $offer) {
-            if ($offer->status === Offer::ACCEPTED) {
-                $byApplication[(int) $offer->application_id] = [
+            $row = match (true) {
+                /* Sent back by the HR Head: HR has to change it and resubmit. */
+                $offer->status === Offer::REVISION_REQUESTED => [
+                    'key' => 'offer_revision',
+                    'detail' => 'The HR Head asked for changes'
+                        . ($offer->revision_reason ? ': ' . $offer->revision_reason : '')
+                        . ' — revise and resubmit',
+                    'deadline' => null,
+                ],
+
+                /* Past its date with no answer. Still sent, still awaiting a
+                   reply: HR extends the deadline or ends it, and nothing here
+                   does either on its own. */
+                $offer->isOverdue() => [
+                    'key' => 'offer_overdue',
+                    'detail' => 'No answer by ' . $offer->response_deadline->toFormattedDateString()
+                        . ' — extend the deadline or end the offer',
+                    'deadline' => $offer->response_deadline->toDateString(),
+                ],
+
+                $offer->status === Offer::APPROVED => [
+                    'key' => 'offer_to_send',
+                    'detail' => 'Approved by the HR Head — ready to send to the applicant',
+                    'deadline' => null,
+                ],
+
+                $offer->status === Offer::ACCEPTED => [
                     'key' => 'offer_accepted',
                     'detail' => 'Accepted ' . ($offer->responded_at?->diffForHumans() ?? '')
-                        . ' — record the hire on the application when it happens',
+                        . ' — record the signed contract, then the hire',
                     'deadline' => null,
-                ];
+                ],
 
-                continue;
-            }
+                $offer->status === Offer::CONTRACT_RECEIVED => [
+                    'key' => 'offer_contract',
+                    'detail' => 'Contract received — record the hire on the application',
+                    'deadline' => null,
+                ],
 
-            if ($offer->hasLapsed()) {
-                $byApplication[(int) $offer->application_id] = [
-                    'key' => 'offer_lapsed',
-                    'detail' => 'Issued offer stood until ' . $offer->expires_at->toFormattedDateString()
-                        . ' and has had no answer',
-                    'deadline' => $offer->expires_at->toDateString(),
-                ];
+                default => null,
+            };
+
+            if ($row !== null) {
+                $byApplication[(int) $offer->application_id] = $row;
             }
         }
 
@@ -368,6 +492,186 @@ class WorkQueueController extends Controller
                 $byApplication[(int) $application->id] = [
                     'key' => 'offer_to_make',
                     'detail' => 'Every recruitment step is settled — no offer raised yet',
+                    'deadline' => null,
+                ];
+            }
+        }
+
+        return $byApplication;
+    }
+
+    /**
+     * Applications whose documents are in and whose screening is not done.
+     *
+     * WHAT THIS IS NOT
+     *
+     * It is not a gate and not an approval. Nothing here rejects anybody or
+     * prevents an interview being arranged -- the previous design deliberately
+     * left scheduling ungated and that is unchanged. It raises a step the
+     * process asks for and the queue was silent about.
+     *
+     * WHEN IT STOPS ASKING
+     *
+     * As soon as a shortlisting decision exists, or as soon as an interview
+     * has actually been held. The second condition matters: an application
+     * that reached its Initial Interview has plainly been screened in
+     * practice, and nagging about it afterwards would be noise.
+     *
+     * @return array<int,array{key:string,detail:string,deadline:null}>
+     */
+    private function screeningActions($applications, array $documents): array
+    {
+        $byApplication = [];
+        $ids = $applications->pluck('id');
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $c = DB::connection('applicant');
+
+        /* Already decided -- shortlisted or not. */
+        $decided = $c->table('tblapp_eligibility_decisions')
+            ->whereIn('application_id', $ids)
+            ->whereNull('superseded_at')
+            ->pluck('application_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        /*
+        | Already past it.
+        |
+        | Any completed step means the process has moved on -- an application
+        | at the offer stage has plainly been screened, whatever this table
+        | says. A held interview counts too, for the gap between the interview
+        | happening and HR completing the round.
+        |
+        | Without both of these the prompt outranked the offer reasons and
+        | buried them, which is the opposite of the problem it exists to fix.
+        */
+        $movedOn = $c->table('tblapp_application_steps')
+            ->whereIn('application_id', $ids)
+            ->where('state', ApplicationStep::STATE_COMPLETED)
+            ->pluck('application_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->all();
+
+        $interviewed = $c->table('tblapp_interviews as i')
+            ->join('tblapp_application_steps as s', 's.id', '=', 'i.step_id')
+            ->whereIn('s.application_id', $ids)
+            ->where('i.attendance', 'held')
+            ->pluck('s.application_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->all();
+
+        $interviewed = array_unique(array_merge($interviewed, $movedOn));
+
+        foreach ($applications as $application) {
+            $id = (int) $application->id;
+
+            if (in_array($id, $decided, true) || in_array($id, $interviewed, true)) {
+                continue;
+            }
+
+            /* Documents first. The document reasons already outrank this, so
+               raising it before they are in would just be a second voice
+               saying the same thing. */
+            $docs = $documents[$application->app_id] ?? null;
+
+            if ($docs !== null && !($docs['complete'] ?? false)) {
+                continue;
+            }
+
+            $byApplication[$id] = [
+                'key' => 'screening_due',
+                'detail' => $application->job_posting_id
+                    ? 'Documents are in — check how they match this posting and shortlist'
+                    : 'Documents are in — screen this application',
+                'deadline' => null,
+            ];
+        }
+
+        return $byApplication;
+    }
+
+    /**
+     * The two assessment moments that are HR's to act on.
+     *
+     * CODE DUE  the Initial Interview is passed, so the exams are open to this
+     *           applicant -- but nobody has issued them a code. The applicant
+     *           cannot start without one and has no way to know they may.
+     *
+     * DECIDE    every assessment is in and HR has not recorded what they
+     *           concluded. Nothing else surfaces this, so an applicant can sit
+     *           finished indefinitely waiting on a decision nobody knows is
+     *           due.
+     *
+     * Read from records that exist -- a passed step, an unlock row, a result
+     * row, a decision row -- never inferred from a status.
+     *
+     * @return array<int,array{key:string,detail:string,deadline:null}>
+     */
+    private function assessmentActions($applications): array
+    {
+        $byApplication = [];
+        $appIds = $applications->pluck('app_id')->unique()->values();
+
+        if ($appIds->isEmpty()) {
+            return [];
+        }
+
+        $c = DB::connection('applicant');
+
+        /* Who has a live unlock already. Revoked ones do not count: the
+           applicant cannot use them. */
+        $unlocked = $c->table('tblapp_assessment_access')
+            ->whereIn('app_id', $appIds)
+            ->whereNull('revoked_at')
+            ->pluck('app_id')
+            ->unique()
+            ->all();
+
+        /* Decisions already recorded, so a decided application stops asking. */
+        $decided = $c->table('tblapp_assessment_decisions')
+            ->whereIn('application_id', $applications->pluck('id'))
+            ->whereNull('superseded_at')
+            ->pluck('application_id')
+            ->all();
+
+        foreach ($applications as $application) {
+            /* Only applicants the gate has actually opened for. */
+            if (!AssessmentEligibility::prerequisiteMet((int) $application->app_id)) {
+                continue;
+            }
+
+            if (in_array((int) $application->id, array_map('intval', $decided), true)) {
+                continue;
+            }
+
+            $progress = AssessmentProgress::forApplication((int) $application->id);
+            $counts = $progress['counts'] ?? [];
+
+            /* Everything in, nothing decided: the decision is the hold-up. */
+            if (($progress['all_taken'] ?? false) && ($counts['total'] ?? 0) > 0) {
+                $byApplication[(int) $application->id] = [
+                    'key' => 'assessment_decision',
+                    'detail' => 'All ' . $counts['total'] . ' assessments are in — read the results '
+                        . 'and record whether they proceed',
+                    'deadline' => null,
+                ];
+
+                continue;
+            }
+
+            /* Open to them, but they have nothing to open them with. */
+            if (!in_array((int) $application->app_id, array_map('intval', $unlocked), true)) {
+                $byApplication[(int) $application->id] = [
+                    'key' => 'assessment_code_due',
+                    'detail' => 'Passed the Initial Interview — send them an access code so they '
+                        . 'can sit the ' . (($counts['outstanding'] ?? 0) ?: 'remaining')
+                        . ' assessments',
                     'deadline' => null,
                 ];
             }
@@ -419,6 +723,52 @@ class WorkQueueController extends Controller
                     . ' — record whether it happened',
                 'deadline' => $row['scheduled_at'],
             ];
+        }
+
+        /*
+        | Finished rounds with no recorded outcome.
+        |
+        | Assigned last, so it wins: of everything on this list it is the only
+        | one that leaves an applicant stuck without saying so anywhere else.
+        | A round completed before outcomes were recorded lands here, which is
+        | the point -- those decisions are outstanding, not absent.
+        */
+        foreach ($this->awaitingOutcome() as $applicationId => $label) {
+            $byApplication[$applicationId] = [
+                'key' => 'outcome_unrecorded',
+                'detail' => $label . ' is complete — record whether it was passed',
+                'deadline' => null,
+            ];
+        }
+
+        return $byApplication;
+    }
+
+    /**
+     * Completed rounds on open applications with no outcome recorded.
+     *
+     * Interview rounds only: those are the ones the assessment gate reads, and
+     * a document step has no pass or fail to settle.
+     *
+     * @return array<int,string> application id => the round's own label
+     */
+    private function awaitingOutcome(): array
+    {
+        $rows = DB::connection('applicant')->table('tblapp_application_steps as s')
+            ->join('tblapp_applications as a', 'a.id', '=', 's.application_id')
+            ->whereNull('a.closed_at')
+            ->where('s.kind', 'interview')
+            ->where('s.state', ApplicationStep::STATE_COMPLETED)
+            ->whereNull('s.outcome')
+            ->orderBy('s.position')
+            ->get(['s.application_id', 's.label']);
+
+        $byApplication = [];
+
+        foreach ($rows as $row) {
+            /* The earliest unsettled round is the one holding things up, and
+               orderBy position means it is the first one seen. */
+            $byApplication[(int) $row->application_id] ??= (string) $row->label;
         }
 
         return $byApplication;

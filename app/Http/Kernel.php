@@ -57,6 +57,10 @@ class Kernel extends HttpKernel
            Identity only — what they may see is decided per request from their
            interview assignments. */
         'hireflow.signed' => \App\Http\Middleware\VerifyHireflowRequest::class,
+        /* The same proof, for the HR Head approving an offer. A separate class
+           with its own secret and its own audience, so a signature for one
+           bridge can never be replayed against the other. */
+        'hireflow.signed.approver' => \App\Http\Middleware\VerifyHireflowApproverRequest::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.session' => \Illuminate\Session\Middleware\AuthenticateSession::class,

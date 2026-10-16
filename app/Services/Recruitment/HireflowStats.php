@@ -318,19 +318,24 @@ class HireflowStats
             ->count();
     }
 
-    /** Candidate Pool size — per application, as config/applications.php defines. */
+    /**
+     * Candidate Pool size.
+     *
+     * Asked through the model's own scope rather than by status, so this
+     * number is the same set the Candidate Pool page lists. Counting by status
+     * alone made the tile disagree with the page: it included people who had
+     * withdrawn from one posting while still live on another, whom the page
+     * (rightly) does not show.
+     */
     public function candidatePoolSize(): int
     {
-        return (int) DB::connection('applicant')->table('tblapp_applications')
-            ->whereIn('status', \App\Models\Applicant\ApplicantApplication::candidatePoolStatuses())
-            ->count();
+        return (int) \App\Models\Applicant\ApplicantApplication::inCandidatePool()->count();
     }
 
     /** Applications added to the pool in the last N days. */
     public function candidatePoolAdditions(int $days = 30): int
     {
-        return (int) DB::connection('applicant')->table('tblapp_applications')
-            ->whereIn('status', \App\Models\Applicant\ApplicantApplication::candidatePoolStatuses())
+        return (int) \App\Models\Applicant\ApplicantApplication::inCandidatePool()
             ->where('closed_at', '>=', Carbon::now()->subDays($days))
             ->count();
     }

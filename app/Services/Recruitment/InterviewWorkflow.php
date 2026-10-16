@@ -139,6 +139,10 @@ class InterviewWorkflow
         return ApplicationWorkflow::completeStep($applicationId, $step->id, [
             'result' => $outcome['result'] ?? null,
             'notes' => $outcome['notes'] ?? null,
+            /* HR's pass/fail for the round, when they settle it here. Passed
+               through rather than derived: the evaluations inform HR, they do
+               not decide for them. */
+            'outcome' => $outcome['outcome'] ?? null,
             /* Which interview settled it — the record, not a reconstruction. */
             'satisfied_by' => $outcome['satisfied_by'] ?? ('interview:' . $held->id),
         ], $empno);
@@ -245,6 +249,26 @@ class InterviewWorkflow
             ->where('kind', 'interview')
             ->get();
 
+        /*
+        | What is in front of each round, of ANY kind.
+        |
+        | The query above is interview steps only, so on its own this page
+        | cannot see that the Examinations round sits between the Initial and
+        | the Final interview -- and it offered "Arrange interview" on every
+        | pending round equally. The intended order is: Initial passed, exams
+        | unlocked, assessments completed, HR reviews them, THEN later
+        | interviews.
+        |
+        | ADVISORY ONLY. Nothing here blocks scheduling, changes a permission
+        | or alters a workflow transition: the page simply says what a round is
+        | waiting on. Scheduling stays ungated, so the Job Fair case -- where
+        | rounds happen at the event, out of order -- keeps working.
+        */
+        $outstanding = ApplicationStep::forApplication($applicationId)
+            ->where('state', ApplicationStep::STATE_PENDING)
+            ->where('required', true)
+            ->get(['id', 'label', 'position', 'kind']);
+
         $interviews = Interview::whereIn('step_id', $steps->pluck('id'))
             ->with(['interviewers', 'evaluations'])
             ->orderBy('created_at')
@@ -278,7 +302,7 @@ class InterviewWorkflow
             $display[$s->id] = self::ordinalLabel($intermediateNumber);
         }
 
-        return $steps->map(function ($step) use ($interviews, $display, $noteCounts) {
+        return $steps->map(function ($step) use ($interviews, $display, $noteCounts, $outstanding) {
             $rounds = $interviews->get($step->id, collect());
 
             return [
@@ -290,6 +314,29 @@ class InterviewWorkflow
                 'display_label' => $display[$step->id] ?? $step->label,
                 'state' => $step->state,
                 'result' => $step->result,
+                /*
+                | HR's pass/fail for the round, and null when they have not
+                | settled it. Null is shown as outstanding rather than as a
+                | pass: the assessments read this, so a blank here is what
+                | holds an applicant at this round.
+                */
+                'outcome' => $step->outcome,
+                'outcome_by' => $step->outcome_by,
+                'outcome_at' => $step->outcome_at?->toDateTimeString(),
+                'awaiting_outcome' => $step->state === ApplicationStep::STATE_COMPLETED
+                    && $step->outcome === null,
+
+                /*
+                | The earliest outstanding step in front of this one, or null
+                | when it is this round's turn. A label for the screen to show
+                | -- never a reason to refuse anything.
+                */
+                'waiting_on' => $step->state === ApplicationStep::STATE_PENDING
+                    ? $outstanding
+                        ->filter(fn ($o) => (int) $o->position < (int) $step->position)
+                        ->sortBy('position')
+                        ->first()?->label
+                    : null,
                 'interviews' => $rounds->map(fn ($i) => [
                     'id' => $i->id,
                     'scheduled_at' => $i->scheduled_at?->toDateTimeString(),
